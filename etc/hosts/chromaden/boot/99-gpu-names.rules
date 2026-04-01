@@ -1,0 +1,7 @@
+# Alias for NVIDIA RTX 5080 (01:00.0)
+SUBSYSTEM=="drm", KERNELS=="0000:01:00.0", ENV{DEVNAME}=="*/card*", SYMLINK+="dri/gpu_nvidia"
+SUBSYSTEM=="drm", KERNELS=="0000:01:00.0", ENV{DEVNAME}=="*/render*", SYMLINK+="dri/render_nvidia"
+
+# Alias for AMD Granite Ridge (07:00.0)
+SUBSYSTEM=="drm", KERNELS=="0000:07:00.0", ENV{DEVNAME}=="*/card*", SYMLINK+="dri/gpu_amd"
+SUBSYSTEM=="drm", KERNELS=="0000:07:00.0", ENV{DEVNAME}=="*/render*", SYMLINK+="dri/render_amd"

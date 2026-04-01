@@ -1,0 +1,78 @@
+theme = "tokyonight"
+
+[editor]
+line-number = "relative"
+mouse = true
+cursorline = true
+bufferline = "multiple"    # Show open tabs at the top
+auto-format = true
+idle-timeout = 200         # Speed up auto-completion popups (ms)
+color-modes = true
+text-width = 100
+end-of-line-diagnostics = "hint"
+
+[editor.inline-diagnostics]
+cursor-line = "warning"
+
+[editor.soft-wrap]
+enable = true
+
+[editor.smart-tab]
+enable = true
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.file-picker]
+hidden = false             # Show hidden files in space+f
+
+[editor.indent-guides]
+render = true
+character = "┊"
+skip-levels = 1
+
+[editor.lsp]
+display-messages = true
+display-inlay-hints = true # Shows type hints in the code
+
+[editor.statusline]
+left = ["mode", "register", "spinner", "file-name", "read-only-indicator", "file-modification-indicator", "version-control"]
+center = ["workspace-diagnostics"]
+right = ["file-encoding", "file-type", "diagnostics", "position-percentage", "position"]
+separator = "│"
+mode.normal = "NORMAL"
+mode.insert = "INSERT"
+mode.select = "SELECT"
+
+[editor.whitespace.render]
+space = "all"
+tab = "all"
+newline = "all"
+nbsp = "all"
+nnbsp = "all"
+
+[editor.whitespace.characters]
+space = "·"
+nbsp = "⍽"
+nnbsp = "␣"
+tab = "⇥"
+newline = "⏎"
+tabpad = "·" # Tabs will look like "→···" (depending on tab width)
+
+[keys.normal]
+"esc" = ["collapse_selection", "keep_primary_selection"]
+"C-h" = "jump_view_left"
+"C-j" = "jump_view_down"
+"C-k" = "jump_view_up"
+"C-l" = "jump_view_right"
+"tab" = "move_parent_node_end"
+"S-tab" = "move_parent_node_start"
+
+[keys.insert]
+"S-tab" = "move_parent_node_start"
+
+[keys.select]
+"tab" = "extend_parent_node_end"
+"S-tab" = "extend_parent_node_start"

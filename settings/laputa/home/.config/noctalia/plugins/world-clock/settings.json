@@ -1,0 +1,21 @@
+{
+  "timezones": [
+    {
+      "name": "Los Angeles",
+      "timezone": "America/Los_Angeles",
+      "enabled": true
+    },
+    {
+      "name": "New York",
+      "timezone": "America/New_York",
+      "enabled": true
+    },
+    {
+      "name": "London",
+      "timezone": "Europe/London",
+      "enabled": true
+    }
+  ],
+  "rotationInterval": 60000,
+  "timeFormat": "HH:mm"
+}

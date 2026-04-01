@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=MangoWC
+Comment=Scrollable-tiling Wayland compositor with DankMaterialShell
+Exec=/home/pc0w/.local/bin/mangowc-launch.sh
+Type=Application
+DesktopNames=MangoWM

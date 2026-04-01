@@ -1,0 +1,38 @@
+{
+  "tracked": [
+    {
+      "ignore": [
+        "**/preview.png",
+        "**/manifest.json",
+        "**/i18n/**",
+        "**/shaders/**",
+        "**/Assets/**",
+        "**/components/**",
+        "**/Components/**",
+        "**/LICENSES/**",
+        "**/REUSE.toml",
+        "!**/settings.json",
+        "!**/colors.json"
+      ],
+      "on_new": "prompt",
+      "pattern": ".config/noctalia/**",
+      "type": "home"
+    },
+    {
+      "ignore": ["**/cache/**", "**/*.tmp", "**/build/**"],
+      "on_new": "prompt",
+      "pattern": ".config/dms/**",
+      "type": "home"
+    },
+    {
+      "on_new": "prompt",
+      "pattern": ".config/helix/**",
+      "type": "home"
+    },
+    {
+      "on_new": "prompt",
+      "pattern": ".config/starship.toml",
+      "type": "home"
+    }
+  ]
+}

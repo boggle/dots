@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Niri (Force NVIDIA GPU)
+Comment=A scrollable-tiling Wayland compositor
+Exec=niri-session
+Type=Application
+DesktopNames=env WLR_DRM_DEVICES=/dev/dri/gpu_nvidia:/dev/dri/render_nvidia niri-session

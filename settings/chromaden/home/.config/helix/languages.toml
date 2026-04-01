@@ -1,0 +1,44 @@
+# --- Python Setup ---
+[language-server.basedpyright]
+command = "basedpyright-langserver"
+args = ["--stdio"]
+
+[language-server.ruff]
+command = "ruff"
+args = ["server", "--preview"]
+
+[[language]]
+name = "python"
+scope = "source.python"
+injection-regex = "python"
+file-types = ["py", "pyi", "pyw", "ipynb"]
+shebangs = ["python"]
+roots = ["pyproject.toml", "setup.py", "poetry.lock", "pyrightconfig.json"]
+# We list both here so they run in parallel
+language-servers = [ "basedpyright", "ruff" ]
+auto-format = true
+
+# --- Markdown Setup ---
+[language-server.markdown-oxide]
+command = "markdown-oxide"
+
+[[language]]
+name = "markdown"
+scope = "source.md"
+injection-regex = "md|markdown"
+file-types = ["md", "markdown"]
+roots = [".marksman.json", ".garden", ".obsidian"]
+language-servers = [ "markdown-oxide" ]
+
+[[language]]
+name = "xml"
+language-servers = [ "lemminx" ]
+auto-format = true
+
+[language-server.lemminx]
+command = "lemminx"
+
+[[language]]
+name = "json"
+formatter = { command = "prettier", args = ["--parser", "json"] }
+auto-format = true

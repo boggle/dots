@@ -1,0 +1,6 @@
+inherits = "tokyonight"
+
+# Match your Starship 'Stone' and 'Bracket' colors
+"ui.virtual.ruler" = { fg = "#444b6a" } 
+"ui.virtual.indent-guide" = { fg = "#2f334d" }
+"ui.cursorline.primary" = { bg = "#2f334d" }

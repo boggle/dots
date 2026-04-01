@@ -1,0 +1,52 @@
+# starship_minimal.toml
+# Layout: Standard text-only for Linux Console (TTY)
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$battery\
+$line_break\
+$character"""
+
+[username]
+show_always = true
+style_user = "bold #1abc9c"
+style_root = "bold #f7768e"
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+style = "bold #565f89"
+format = "[@$hostname]($style) "
+
+[directory]
+style = "bold #9ece6a"
+format = "in [$path]($style) "
+truncation_length = 3
+fish_style_pwd_dir_length = 1
+
+[git_branch]
+symbol = "on "
+style = "bold #9d7cd8"
+format = "[$symbol$branch]($style) "
+
+[git_status]
+style = "#bb9af7"
+format = "([$all_status$ahead_behind]($style)) "
+
+[battery]
+full_symbol = "[V]"
+charging_symbol = "[+]"
+discharging_symbol = "[-]"
+format = "at [$symbol$percentage]($style) "
+
+[[battery.display]]
+threshold = 30
+style = "bold #f7768e"
+
+[character]
+# Simple ASCII representations of the vine/branch
+success_symbol = "[->](bold #73daca) "
+error_symbol = "[!>](bold #bb9af7) "

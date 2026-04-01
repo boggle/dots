@@ -1,0 +1,44 @@
+# --- COLORS (Gruvbox Dark) ---
+set default-bg                  "#282828"
+set default-fg                  "#ebdbb2"
+set recolor-lightcolor          "#282828"
+set recolor-darkcolor           "#ebdbb2"
+set highlight-color             "#fe8019"
+set highlight-active-color      "#458588"
+set notification-bg             "#282828"
+
+# --- DARK MODE SETTINGS ---
+set recolor "true"
+set recolor-keephue "false"
+map <C-r> recolor
+
+# --- ZOOM SETTINGS ---
+# Use 'plus', 'equal', and 'minus' instead of symbols to avoid errors
+map <C-+> zoom in
+map <C-=> zoom in
+map <C--> zoom out
+map <C-0> zoom 100
+
+# --- NAVIGATION & BACK BUTTON ---
+map <A-Left>  jumplist backward
+map <A-Right> jumplist forward
+
+# --- THE "NATURAL" CLICK FIX ---
+# Left-click follows links immediately
+map <Button1> display_link
+map <Button3> @display_link
+
+# --- KEYBINDINGS (GUI Style) ---
+map <C-f> feedkeys "/"
+map <C-q> quit
+
+# --- NAVIGATION (Vim Style) ---
+map j scroll down
+map k scroll up
+map h scroll left
+map l scroll right
+map g goto top
+map G goto bottom
+
+# --- SETTINGS & CLEANUP ---
+set selection-clipboard clipboard

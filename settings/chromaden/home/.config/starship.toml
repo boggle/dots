@@ -1,0 +1,52 @@
+# Layout: Data on line 1, Input on line 2
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$time\
+$line_break\
+$character"""
+
+[username]
+show_always = true
+# Muted "Teal-Leaf" for user, "Deep Crimson" for root
+style_user = "bold #1abc9c" 
+style_root = "bold #f7768e" 
+format = "[$user]($style)"
+
+[hostname]
+ssh_only = false
+# A subtle "Stone/Bridge" color so it doesn't compete with the user
+style = "#565f89" 
+format = "[@$hostname]($style) "
+
+[directory]
+# Deep "Moss/Ivy" Green
+style = "bold #9ece6a" 
+format = "in [$path]($style) "
+truncation_length = 1 
+fish_style_pwd_dir_length = 1
+
+[git_branch]
+symbol = "🌿 "
+# Lunar Purple (Softened)
+style = "#9d7cd8" 
+format = "on [$symbol$branch]($style) "
+
+[git_status]
+style = "#9d7cd8"
+format = "([$all_status$ahead_behind]($style)) "
+
+[time]
+disabled = false
+time_format = "%R"
+# Dimmed "Star-Light" Blue
+style = "#444b6a" 
+format = "at [$time]($style)"
+
+[character]
+# Success is a growing vine, Error is a dried branch
+success_symbol = "[╰─🌱](bold #73daca) " 
+error_symbol = "[╰─🍂](bold #bb9af7) "

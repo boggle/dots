@@ -1,0 +1,18 @@
+[background]
+path = "/etc/greetd/wallpaper-dark.png"
+fit = "Cover"
+
+[GTK]
+application_prefer_dark_theme = true
+# yay -S catppuccin-gtk-theme-mocha
+theme_name = "catppuccin-mocha-blue-standard+default"
+# pacman -S papirus-icon-theme
+icon_theme_name = "Papirus-Dark"
+font_name = "Inter 11"
+monospace_font_name = "IosevkaTerm NFM 11"
+cursor_theme_name = "Bibata-Modern-Ice-Right"
+cursor_blink = false
+
+[commands]
+reboot = ["systemctl", "reboot"]
+poweroff = ["systemctl", "poweroff"]

@@ -1,0 +1,4 @@
+ESP_PATH="/boot"
+KERNEL_CMDLINE[default]+="pcie_aspm=off fbcon=font:TER16x32 nvidia-drm.modeset=1 nvidia-drm.fbdev=1 nvidia.NVreg_PreserveVideoMemoryAllocations=1 quiet nowatchdog splash rw rootflags=subvol=/@ rd.luks.uuid=2dbe4e75-ade5-445d-8a05-1eaac46cc8ce root=/dev/mapper/luks-2dbe4e75-ade5-445d-8a05-1eaac46cc8ce"
+BOOT_ORDER="*, *lts, *fallback, Snapshots"
+MAX_SNAPSHOT_ENTRIES=5
