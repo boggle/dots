@@ -2,6 +2,16 @@
 
 This repository provides a complete, portable development environment using Nix and Home Manager.
 
+## Distro Backends
+
+`dots-local/flake.nix` sets `distro`, which selects alien package manager backends:
+
+- `cachyos` -> `pacman`, `paru`
+- `opensuse` -> `zypper`
+- `azurelinux3` -> `tdnf`
+
+Azure Linux 3 package mappings are intentionally conservative and only include packages verified to exist in the official Azure Linux 3 repositories.
+
 ## Cross-Platform Utilities
 
 Three essential commands that work consistently across Linux (Wayland/X11), WSL, and macOS:

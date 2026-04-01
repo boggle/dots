@@ -189,6 +189,11 @@ See [OVERVIEW.md](OVERVIEW.md#alien-packages-native-package-management) for deta
 - `dots/` - Shared configuration (this repo)
 - `~/dots-local/` - Private identity (hostname, username, tuning flags)
 
+**Distro values (in `~/dots-local/flake.nix`):**
+- `cachyos` -> `pacman` + `paru`
+- `opensuse` -> `zypper`
+- `azurelinux3` -> `tdnf`
+
 **Profiles:**
 - `priv`/`work` - Baseline using cache.nixos.org
 - `priv-opt`/`work-opt` - Optimized with `localSystem.gcc.arch` (rebuilds locally)

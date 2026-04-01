@@ -161,6 +161,9 @@ HELP
           zypper)
             zypper search -i --installed-only -t package 2>/dev/null | grep "^i" | awk '{print $3}' | sort || echo ""
             ;;
+          tdnf)
+            tdnf list installed 2>/dev/null | awk 'NR>2 {print $1}' | cut -d'.' -f1 | sort -u || echo ""
+            ;;
           *)
             echo ""
             ;;
@@ -203,6 +206,15 @@ HELP
                 ;;
               zypper)
                 if sudo zypper remove --no-confirm "$pkg"; then
+                  echo "  ✅ Removed $pkg"
+                  to_remove="$to_remove\n$pkg"
+                  ((removed_count++))
+                else
+                  echo "  ❌ Failed to remove $pkg"
+                fi
+                ;;
+              tdnf)
+                if sudo tdnf remove -y "$pkg"; then
                   echo "  ✅ Removed $pkg"
                   to_remove="$to_remove\n$pkg"
                   ((removed_count++))
@@ -377,6 +389,9 @@ HELP
               ;;
             zypper)
               install_cmd="sudo zypper install --no-confirm"
+              ;;
+            tdnf)
+              install_cmd="sudo tdnf install -y"
               ;;
             *)
               echo "Unknown package manager: $mgr"

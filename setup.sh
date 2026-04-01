@@ -19,6 +19,7 @@ SYSTEM="x86_64-linux"
 MARCH="native"
 BARCH="x86_64-v3"
 DISTRO="cachyos"
+# Supported distro values: cachyos | opensuse | azurelinux3
 
 # 1. Create dots-local if it doesn't exist
 if [ ! -d "$DOTS_LOCAL" ]; then
