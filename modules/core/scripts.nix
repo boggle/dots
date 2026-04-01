@@ -9,7 +9,13 @@
     (pkgs.writeShellScriptBin "apply-dots" ''
       #!/usr/bin/env bash
       # apply-dots - Apply home-manager configuration with dots-local integration
-      # Usage: apply-dots [profile]
+      # Usage: apply-dots [profile] [-- <nh-args>...]
+      #
+      # Examples:
+      #   apply-dots                    # Use default profile
+      #   apply-dots priv               # Use specific profile
+      #   apply-dots -- -b backup       # Pass -b backup to nh home switch
+      #   apply-dots priv -- -b backup  # Profile + nh flags
 
       set -e
 
@@ -22,6 +28,7 @@
       YELLOW='\033[1;33m'
       CYAN='\033[0;36m'
       PURPLE='\033[0;35m'
+      RED='\033[0;31m'
       NC='\033[0m'
       BOLD='\033[1m'
 
@@ -54,20 +61,44 @@
         fi
       }
 
+      print_error() {
+        local text="$1"
+        if [ "$USE_GUM" -eq 1 ]; then
+          gum style --foreground 196 --bold "✗ $text"
+        else
+          echo -e "''${RED}✗ $text''${NC}"
+        fi
+      }
+
       BULLET="*"
       if [ "$USE_GUM" -eq 1 ]; then
         BULLET="•"
       fi
 
-      print_header "✦" "DOTS CONFIGURATION"
+      # Parse arguments: profile name (optional) followed by -- and nh args
+      PROFILE=""
+      NH_ARGS=()
+      FOUND_SEP=false
 
-      # Get profile from argument or dots-local
-      if [[ -n "$1" ]]; then
-          PROFILE="$1"
-      else
+      for arg in "$@"; do
+        if [[ "$arg" == "--" ]]; then
+          FOUND_SEP=true
+          continue
+        fi
+        if [[ "$FOUND_SEP" == true ]]; then
+          NH_ARGS+=("$arg")
+        elif [[ -z "$PROFILE" && ! "$arg" =~ ^- ]]; then
+          PROFILE="$arg"
+        fi
+      done
+
+      # Get profile from dots-local if not provided
+      if [[ -z "$PROFILE" ]]; then
           PROFILE=$(nix eval "git+file://$DOTS_LOCAL_DIR#profile" 2>/dev/null | tr -d '"' || echo "priv")
           PROFILE="''${PROFILE:-priv}"
       fi
+
+      print_header "✦" "DOTS CONFIGURATION"
 
       # Get other info from dots-local
       HOST=$(nix eval "git+file://$DOTS_LOCAL_DIR#host" 2>/dev/null | tr -d '"' || echo "unknown")
@@ -79,6 +110,9 @@
       echo -e "   ''${YELLOW}Profile:''${NC}  ''${GREEN}$PROFILE''${NC}"
       echo -e "   ''${YELLOW}System:''${NC}   ''${GREEN}$SYSTEM''${NC}"
       echo -e "   ''${YELLOW}User:''${NC}     ''${GREEN}$USER''${NC}"
+      if [[ ''${#NH_ARGS[@]} -gt 0 ]]; then
+          echo -e "   ''${YELLOW}NH args:''${NC} ''${CYAN}''${NH_ARGS[*]}''${NC}"
+      fi
       echo ""
 
       # Check sync patterns if config exists
@@ -102,58 +136,82 @@
       # Run home-manager switch
       print_section "🏠" "Running home-manager switch..."
       cd "$DOTS_DIR"
-      nh home switch "$DOTS_DIR" -c "$PROFILE" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
+
+      # Create temp log file for capturing full output
+      BUILD_LOG=$(mktemp /tmp/apply-dots-XXXXXX.log)
+
+      # Build the nh command with optional extra args
+      if [[ ''${#NH_ARGS[@]} -gt 0 ]]; then
+          nh home switch "$DOTS_DIR" -c "$PROFILE" "''${NH_ARGS[@]}" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>&1 | tee "$BUILD_LOG"
+      else
+          nh home switch "$DOTS_DIR" -c "$PROFILE" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>&1 | tee "$BUILD_LOG"
+      fi
       result=$?
 
-      if [[ $result -eq 0 ]]; then
+      if [[ $result -ne 0 ]]; then
           echo ""
-          print_section "🔗" "Creating convenience symlinks..."
-          
-          # Create current-profile symlink (top-level, for bash navigation)
-          ln -sfn "profiles/$PROFILE" "$DOTS_DIR/current-profile"
-          echo -e "   ''${GREEN}current-profile''${NC} → ''${YELLOW}profiles/$PROFILE''${NC}"
-          
-          # Create host.nix and distro.nix symlinks in profile directory (for bash navigation only)
-          PROFILE_DIR="$DOTS_DIR/profiles/$PROFILE"
-          mkdir -p "$PROFILE_DIR"
-          
-          if [[ -n "$HOST" && "$HOST" != "unknown" ]]; then
-              HOST_FILE="$PROFILE_DIR/hosts/$HOST.nix"
-              if [[ -f "$HOST_FILE" ]]; then
-                  ln -sfn "hosts/$HOST.nix" "$PROFILE_DIR/host.nix"
-                  echo -e "   ''${GREEN}profiles/$PROFILE/host.nix''${NC} → ''${YELLOW}hosts/$HOST.nix''${NC}"
-              fi
-          fi
-          
-          DISTRO=$(nix eval "git+file://$DOTS_LOCAL_DIR#distro" 2>/dev/null | tr -d '"' || echo "")
-          if [[ -n "$DISTRO" ]]; then
-              DISTRO_FILE="$DOTS_DIR/modules/distros/$DISTRO.nix"
-              if [[ -f "$DISTRO_FILE" ]]; then
-                  ln -sfn "../../modules/distros/$DISTRO.nix" "$PROFILE_DIR/distro.nix"
-                  echo -e "   ''${GREEN}profiles/$PROFILE/distro.nix''${NC} → ''${YELLOW}modules/distros/$DISTRO.nix''${NC}"
-              fi
-          fi
-          
+          print_error "Activation failed! Full log saved to:"
+          echo -e "   ''${YELLOW}$BUILD_LOG''${NC}"
           echo ""
-          print_section "🔄" "Syncing handcrafted user configs..."
-          "$DOTS_DIR/sync.sh" || true
-          
-          # Check alien packages
+          echo -e "''${CYAN}You can view the full log with:''${NC}"
+          echo -e "   cat \"''${YELLOW}$BUILD_LOG''${NC}\""
           echo ""
-          print_section "📦" "Checking alien packages..."
-          if ! update-alien-packages --dry-run --target all 2>&1; then
-              echo ""
-              echo -e "''${YELLOW}Run: update-alien-packages to apply changes''${NC}"
-          fi
-          
-          # Update desktop database for AppImages
-          if command -v update-desktop-database &> /dev/null; then
-              print_section "📝" "Updating desktop database..."
-              update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
-          fi
+          echo -e "''${CYAN}Common fixes:''${NC}"
+          echo -e "   ''${YELLOW}apply-dots -- -b backup''${NC}  # Backup conflicting files"
+          echo -e "   ''${YELLOW}apply-dots -- --dry''${NC}      # Dry run (don't activate)"
+          exit $result
       fi
 
-      exit $result
+      # Clean up log on success
+      rm -f "$BUILD_LOG"
+
+      echo ""
+      print_section "🔗" "Creating convenience symlinks..."
+      
+      # Create current-profile symlink (top-level, for bash navigation)
+      ln -sfn "profiles/$PROFILE" "$DOTS_DIR/current-profile"
+      echo -e "   ''${GREEN}current-profile''${NC} → ''${YELLOW}profiles/$PROFILE''${NC}"
+      
+      # Create host.nix and distro.nix symlinks in profile directory (for bash navigation only)
+      PROFILE_DIR="$DOTS_DIR/profiles/$PROFILE"
+      mkdir -p "$PROFILE_DIR"
+      
+      if [[ -n "$HOST" && "$HOST" != "unknown" ]]; then
+          HOST_FILE="$PROFILE_DIR/hosts/$HOST.nix"
+          if [[ -f "$HOST_FILE" ]]; then
+              ln -sfn "hosts/$HOST.nix" "$PROFILE_DIR/host.nix"
+              echo -e "   ''${GREEN}profiles/$PROFILE/host.nix''${NC} → ''${YELLOW}hosts/$HOST.nix''${NC}"
+          fi
+      fi
+      
+      DISTRO=$(nix eval "git+file://$DOTS_LOCAL_DIR#distro" 2>/dev/null | tr -d '"' || echo "")
+      if [[ -n "$DISTRO" ]]; then
+          DISTRO_FILE="$DOTS_DIR/modules/distros/$DISTRO.nix"
+          if [[ -f "$DISTRO_FILE" ]]; then
+              ln -sfn "../../modules/distros/$DISTRO.nix" "$PROFILE_DIR/distro.nix"
+              echo -e "   ''${GREEN}profiles/$PROFILE/distro.nix''${NC} → ''${YELLOW}modules/distros/$DISTRO.nix''${NC}"
+          fi
+      fi
+      
+      echo ""
+      print_section "🔄" "Syncing handcrafted user configs..."
+      "$DOTS_DIR/sync.sh" || true
+      
+      # Check alien packages
+      echo ""
+      print_section "📦" "Checking alien packages..."
+      if ! update-alien-packages --dry-run --target all 2>&1; then
+          echo ""
+          echo -e "''${YELLOW}Run: update-alien-packages to apply changes''${NC}"
+      fi
+      
+      # Update desktop database for AppImages
+      if command -v update-desktop-database &> /dev/null; then
+          print_section "📝" "Updating desktop database..."
+          update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
+      fi
+
+      exit 0
     '')
 
     (pkgs.writeShellScriptBin "dots-sync" ''
@@ -171,7 +229,13 @@
     (pkgs.writeShellScriptBin "update-dots" ''
       #!/usr/bin/env bash
       # update-dots - Update dots flake inputs
-      # Usage: update-dots [input-name]
+      # Usage: update-dots [input-name] [-- <nix-flake-update-args>...]
+      #
+      # Examples:
+      #   update-dots                    # Update all inputs
+      #   update-dots nixpkgs            # Update specific input
+      #   update-dots -- --refresh       # Pass --refresh to nix flake update
+      #   update-dots nixpkgs -- --refresh  # Input + extra args
 
       set -e
 
@@ -182,6 +246,7 @@
       BLUE='\033[0;34m'
       GREEN='\033[0;32m'
       YELLOW='\033[1;33m'
+      CYAN='\033[0;36m'
       NC='\033[0m'
       BOLD='\033[1m'
 
@@ -200,18 +265,45 @@
         fi
       }
 
+      # Parse arguments: input name (optional) followed by -- and nix flake update args
+      INPUT_NAME=""
+      EXTRA_ARGS=()
+      FOUND_SEP=false
+
+      for arg in "$@"; do
+        if [[ "$arg" == "--" ]]; then
+          FOUND_SEP=true
+          continue
+        fi
+        if [[ "$FOUND_SEP" == true ]]; then
+          EXTRA_ARGS+=("$arg")
+        elif [[ -z "$INPUT_NAME" ]]; then
+          INPUT_NAME="$arg"
+        fi
+      done
+
       echo ""
       print_section "🔄" "Updating dots flake inputs..."
       echo ""
 
       cd "$DOTS_DIR"
 
-      if [[ -n "$1" ]]; then
-          echo -e "''${YELLOW}Updating input: $1''${NC}"
-          nix flake update "$1" --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
+      if [[ -n "$INPUT_NAME" ]]; then
+          echo -e "''${YELLOW}Updating input: $INPUT_NAME''${NC}"
+          if [[ ''${#EXTRA_ARGS[@]} -gt 0 ]]; then
+              echo -e "''${CYAN}Extra args: ''${EXTRA_ARGS[*]}''${NC}"
+              nix flake update "$INPUT_NAME" "''${EXTRA_ARGS[@]}" --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
+          else
+              nix flake update "$INPUT_NAME" --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
+          fi
       else
           echo -e "''${YELLOW}Updating all inputs...''${NC}"
-          nix flake update --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
+          if [[ ''${#EXTRA_ARGS[@]} -gt 0 ]]; then
+              echo -e "''${CYAN}Extra args: ''${EXTRA_ARGS[*]}''${NC}"
+              nix flake update "''${EXTRA_ARGS[@]}" --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
+          else
+              nix flake update --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
+          fi
       fi
 
       echo ""

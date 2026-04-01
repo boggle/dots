@@ -5,13 +5,14 @@
 
 let
   local = inputs.dots-local;
-  enableGuiDefaults = local.enableGuiDefaults or (local.graphical or false);
+  enableGuiDefaults = local.enableGuiDefaults or local.graphical;
 in
 
 {
     
   imports = [
     ../../../modules/features/sd-switch.nix
+    ../../../modules/features/niri-noctalia.nix
     ../../../modules/suites/ai-apps.nix
     ../../../modules/suites/scanning.nix
   ];
@@ -23,6 +24,7 @@ in
   ];
 
   features.niri-noctalia = {
+      enable = true;
       renderDrmDevice = "/dev/dri/render_amd";
       terminal = "/usr/bin/ghostty";
   };
