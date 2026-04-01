@@ -7,8 +7,6 @@
     
   imports = [
     ../../../modules/features/sd-switch.nix
-    ../../../modules/features/opener.nix
-    ../../../modules/features/clipboard.nix
   ];
   
   home.packages = with pkgs; [ 
@@ -16,17 +14,6 @@
     bluez
     localsend
   ];
-
-  features.opener = {
-      enable = true;
-      backend = "wayland";
-      alias = "o";
-  };
-
-  features.clipboard = {
-    enable = true;
-    backend = "wayland";
-  };
 
   # Laputa uses integrated Intel graphics, no explicit render device needed
   # features.niri-noctalia.renderDrmDevice = "/dev/dri/renderD128";

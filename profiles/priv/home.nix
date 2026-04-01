@@ -4,6 +4,9 @@
   let
     local = inputs.dots-local;
     hostname = local.host or null;
+    enableGuiDefaults = local.enableGuiDefaults or (local.graphical or false);
+    graphicalBackend = local.graphicalBackend or "wayland";
+    validBackend = builtins.elem graphicalBackend [ "wayland" "x11" "wsl" "macos" ];
     hostImport = if hostname != null 
       then ./hosts/${hostname}.nix
       else null;
@@ -12,6 +15,8 @@
   imports = lib.filter (x: x != null) [
     ../common/home.nix
     
+    ../../modules/features/opener.nix
+    ../../modules/features/clipboard.nix
     ../../modules/suites/sixel-tools.nix
     ../../modules/features/appimages.nix
     ../../modules/features/fonts.nix
@@ -23,6 +28,25 @@
     hostImport
   ];
   
+  # Package-specific tuning
+  assertions = [
+    {
+      assertion = validBackend;
+      message = "dots-local.graphicalBackend must be one of: wayland, x11, wsl, macos";
+    }
+  ];
+
+  features.opener = {
+      enable = validBackend;
+      backend = graphicalBackend;
+      alias = "o";
+  };
+
+  features.clipboard = {
+    enable = validBackend;
+    backend = graphicalBackend;
+  };
+
   # Package-specific tuning
   features.tune = {
       enable = true;
@@ -49,6 +73,7 @@
   features.viewer = {
       enable = true;
       alias = "v";  # Use 'v' to view files in terminal
+      ripgrepAll = true;
       preferImageViewer = "chafa";  # "chafa" or "catimg"
       enableVideo = true;           # Use mpv for video files
       enableDirectoryTree = true;   # lsd --tree for directories
@@ -62,6 +87,9 @@
       sshAgent = true;
       gpgAgent = true;
       gpgSsh = true;
+      doggo = true;
+      xh = true;
+      rclone = true;
   };
 
   features.git = {
@@ -82,6 +110,7 @@
       json = true;
       python = true;
       xml = true;
+      marksman = true;
       egglog = true;
       steel = true;
   };
@@ -94,13 +123,25 @@
       ytdlp = true;
   };
   
-  suites.gui-apps = {
-      enable = lib.mkDefault false;
+  suites.gui-apps = lib.mkIf enableGuiDefaults {
+      enable = true;
+
+      # Lean common graphical baseline
       ghostty = true;
+      librewolf = true;
+      vscodium = true;
+      keepassxc = true;
+      drawio = true;
+      zathura = true;
+      ffmpeg = true;
   };
 
   suites.tui-apps = {
-      enable = lib.mkDefault false;
+      enable = true;
+      btop = true;
+      gping = true;
+      imagemagick = true;
+      graphviz = true;
       zellij = true;
       lazygit = true;
       yazi = true;
@@ -108,7 +149,7 @@
 
   suites.pim-apps = {
       enable = true;
-      superproductivity = false;
+      superproductivity = enableGuiDefaults;
   };
 
   features.bookokrat = {

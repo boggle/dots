@@ -27,6 +27,13 @@
       pacman = [ "yazi" ];
     };
   };
+
+  pass = {
+    feature = "tui-apps";
+    packages = {
+      pacman = [ "pass" ];
+    };
+  };
   
   bandwhich = {
     feature = "tui-apps";

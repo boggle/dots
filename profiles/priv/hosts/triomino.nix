@@ -7,9 +7,6 @@
     
   imports = [
     ../../../modules/features/sd-switch.nix
-    ../../../modules/features/opener.nix
-    ../../../modules/features/clipboard.nix
-    ../../../modules/suites/tui-apps.nix
     ../../../modules/suites/ai-apps.nix
   ];
   
@@ -18,17 +15,6 @@
     bluez
     localsend
   ];
-
-  features.opener = {
-      enable = true;
-      backend = "wsl";
-      alias = "o";  # Use 'o' to open files
-  };
-
-  features.clipboard = {
-    enable = true;
-    backend = "wsl";
-  };
 
   # WSL2/WSLg compatibility
   home.sessionVariables = {

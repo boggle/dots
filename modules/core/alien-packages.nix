@@ -81,6 +81,25 @@ in {
       ORPHAN_DIR="$HOME/.local/share/dots/packages/orphaned"
       
       mkdir -p "$INSTALLED_DIR" "$ORPHAN_DIR"
+
+      USE_GUM=0
+      if command -v gum >/dev/null 2>&1; then
+        USE_GUM=1
+      fi
+
+      print_header() {
+        local icon="$1"
+        local title="$2"
+        echo ""
+        if [ "$USE_GUM" -eq 1 ]; then
+          gum style --border rounded --border-foreground 69 --padding "0 1" --bold "$icon $title"
+        else
+          echo "============================================================"
+          echo "$title"
+          echo "============================================================"
+        fi
+        echo ""
+      }
       
       # Parse arguments
       TARGET="all"
@@ -153,20 +172,12 @@ HELP
         local orphaned_file="$ORPHAN_DIR/$mgr.txt"
         
         if [ ! -f "$orphaned_file" ] || [ ! -s "$orphaned_file" ]; then
-          echo ""
-          echo "╔════════════════════════════════════════════════════════════╗"
-          printf "║  🗑️  Remove Orphaned Packages - %-25s ║\n" "$mgr"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
+          print_header "🗑️" "Remove Orphaned Packages - $mgr"
           echo "No orphaned packages found."
           return 0
         fi
         
-        echo ""
-        echo "╔════════════════════════════════════════════════════════════╗"
-          printf "║  🗑️  Remove Orphaned Packages - %-25s ║\n" "$mgr"
-        echo "╚════════════════════════════════════════════════════════════╝"
-        echo ""
+        print_header "🗑️" "Remove Orphaned Packages - $mgr"
         
         local to_remove=""
         local removed_count=0
@@ -201,7 +212,7 @@ HELP
                 ;;
             esac
           else
-            echo "  → Skipped $pkg"
+            echo "  -> Skipped $pkg"
             ((kept_count++))
           fi
         done 3< "$orphaned_file"
@@ -296,11 +307,7 @@ HELP
         
         # DRY-RUN MODE: Show summary and exit
         if [ "$DRY_RUN" -eq 1 ]; then
-          echo ""
-          echo "╔════════════════════════════════════════════════════════════╗"
-          printf "║  📦 Alien Package Changes - %-30s ║\n" "$mgr"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
+          print_header "📦" "Alien Package Changes - $mgr"
           echo "Required: $(echo "$required" | grep -c .) packages"
           
           local already_installed_count
@@ -338,11 +345,7 @@ HELP
         fi
         
         # NORMAL MODE: Print summary header
-        echo ""
-        echo "╔════════════════════════════════════════════════════════════╗"
-        printf "║  📦 Alien Package Manager - %-30s ║\n" "$mgr"
-        echo "╚════════════════════════════════════════════════════════════╝"
-        echo ""
+        print_header "📦" "Alien Package Manager - $mgr"
         echo "Required packages: $(echo "$required" | grep -c .)"
         
         local already_installed_count
@@ -400,11 +403,7 @@ HELP
             local orphan_count
             orphan_count=$(wc -l < "$orphaned_file")
             echo ""
-            echo ""
-            echo "╔════════════════════════════════════════════════════════════╗"
-            printf "║  ⚠️  ORPHANED PACKAGES - Review for removal%-14s ║\n" ""
-            echo "╚════════════════════════════════════════════════════════════╝"
-            echo ""
+            print_header "⚠️" "ORPHANED PACKAGES - Review for removal"
             cat "$orphaned_file"
             echo ""
             echo "Total orphaned: $orphan_count"

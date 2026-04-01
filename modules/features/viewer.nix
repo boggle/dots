@@ -366,10 +366,15 @@ in
       default = true;
       description = "Enable interactive file picker when v is called without arguments.";
     };
+
+    ripgrepAll = lib.mkEnableOption "ripgrep-all (search including PDFs and binaries)";
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ viewerScript ];
+    home.packages = builtins.filter (p: p != null) [
+      viewerScript
+      (lib.mkIf cfg.ripgrepAll pkgs.ripgrep-all)
+    ];
     
     # Create the alias
     programs.bash.shellAliases = {

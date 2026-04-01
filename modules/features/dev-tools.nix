@@ -1,4 +1,4 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, inputs, alien, ... }:
 
 let
   local = inputs.dots-local;
@@ -16,6 +16,11 @@ in
     
     # Python tooling
     python= lib.mkEnableOption "Python toolchain";
+
+    # General tooling
+    uv = lib.mkEnableOption "uv (Python package/project manager)";
+    marksman = lib.mkEnableOption "marksman (Markdown language server)";
+    snippetsLs = lib.mkEnableOption "snippets-ls (snippet language server)";
 
     # JSON tooling
     json = lib.mkEnableOption "JSON toolchain";
@@ -46,7 +51,10 @@ in
       (lib.mkIf cfg.json vscode-json-languageserver)
       (lib.mkIf cfg.python basedpyright)
       (lib.mkIf cfg.python ruff)
+      (lib.mkIf cfg.uv uv)
       (lib.mkIf cfg.xml lemminx)
+      (alien.mkEntry cfg.marksman "marksman" marksman)
+      (lib.mkIf cfg.snippetsLs external.snippets-ls)
       (lib.mkIf cfg.haskell ghc)
       (lib.mkIf cfg.haskell cabal-install)
       (lib.mkIf cfg.haskell stack)
@@ -54,6 +62,9 @@ in
       (lib.mkIf cfg.egglog egglog)
       (lib.mkIf cfg.steel steel)
     ];
+
+    alienPackages.enabledPackages =
+      (lib.optional cfg.marksman "marksman");
 
     # nixd config
     home.file.".nixd.json" = lib.mkIf cfg.nixd {

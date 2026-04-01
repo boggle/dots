@@ -17,11 +17,16 @@
   features.viewer = {
     enable = lib.mkDefault true;
     alias = lib.mkDefault "v";
+    ripgrepAll = lib.mkDefault false;
   };
 
   features.network = {
     enable = lib.mkDefault true;
     sshAgent = lib.mkDefault true;
+    nmap = lib.mkDefault false;
+    rclone = lib.mkDefault false;
+    doggo = lib.mkDefault false;
+    xh = lib.mkDefault false;
   };
 
   # Set defaults for common profile
@@ -35,6 +40,9 @@
     enable = lib.mkDefault true;
     nixd = lib.mkDefault true;
     entr = lib.mkDefault true;
+    uv = lib.mkDefault false;
+    marksman = lib.mkDefault false;
+    snippetsLs = lib.mkDefault false;
   };
 
   programs.bash = {

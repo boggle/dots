@@ -33,6 +33,7 @@ in
 
     programs.git = lib.mkIf cfg.git {
       enable = true;
+      signing.format = null;
       settings = {
         user = {
           name = local.realname;

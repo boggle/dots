@@ -25,11 +25,41 @@
       NC='\033[0m'
       BOLD='\033[1m'
 
-      echo ""
-      echo -e "''${BOLD}╔══════════════════════════════════════════════════════════════╗''${NC}"
-      echo -e "''${BOLD}║''${NC}  ''${BLUE}⚙️  DOTS CONFIGURATION''${NC}                                      ''${BOLD}║''${NC}"
-      echo -e "''${BOLD}╚══════════════════════════════════════════════════════════════╝''${NC}"
-      echo ""
+      USE_GUM=0
+      if command -v gum >/dev/null 2>&1; then
+        USE_GUM=1
+      fi
+
+      print_header() {
+        local icon="$1"
+        local title="$2"
+        echo ""
+        if [ "$USE_GUM" -eq 1 ]; then
+          gum style --border rounded --border-foreground 62 --padding "0 1" --bold "$icon  $title"
+        else
+          echo "=============================================================="
+          echo "$title"
+          echo "=============================================================="
+        fi
+        echo ""
+      }
+
+      print_section() {
+        local icon="$1"
+        local text="$2"
+        if [ "$USE_GUM" -eq 1 ]; then
+          gum style --foreground 51 --bold "$icon $text"
+        else
+          echo -e "''${CYAN}$text''${NC}"
+        fi
+      }
+
+      BULLET="*"
+      if [ "$USE_GUM" -eq 1 ]; then
+        BULLET="•"
+      fi
+
+      print_header "✦" "DOTS CONFIGURATION"
 
       # Get profile from argument or dots-local
       if [[ -n "$1" ]]; then
@@ -44,7 +74,7 @@
       SYSTEM=$(nix eval "git+file://$DOTS_LOCAL_DIR#system" 2>/dev/null | tr -d '"' || echo "x86_64-linux")
       USER=$(nix eval "git+file://$DOTS_LOCAL_DIR#username" 2>/dev/null | tr -d '"' || echo "$(whoami)")
 
-      echo -e "''${CYAN}📋 Settings:''${NC}"
+      print_section "📋" "Settings:"
       echo -e "   ''${YELLOW}Host:''${NC}     ''${GREEN}$HOST''${NC}"
       echo -e "   ''${YELLOW}Profile:''${NC}  ''${GREEN}$PROFILE''${NC}"
       echo -e "   ''${YELLOW}System:''${NC}   ''${GREEN}$SYSTEM''${NC}"
@@ -53,14 +83,14 @@
 
       # Check sync patterns if config exists
       if [[ -f "$DOTS_LOCAL_DIR/sync-config.json" ]]; then
-          echo -e "''${CYAN}📝 Sync Patterns:''${NC}"
+          print_section "📝" "Sync Patterns:"
           if command -v jq &> /dev/null; then
               count=$(jq -r '.tracked | length' "$DOTS_LOCAL_DIR/sync-config.json" 2>/dev/null || echo "0")
               if [[ "$count" -gt 0 ]]; then
                   for ((i=0; i<count; i++)); do
                       pattern=$(jq -r ".tracked[$i].pattern" "$DOTS_LOCAL_DIR/sync-config.json" 2>/dev/null)
                       type=$(jq -r ".tracked[$i].type" "$DOTS_LOCAL_DIR/sync-config.json" 2>/dev/null)
-                      echo -e "   ''${PURPLE}•''${NC} ''${YELLOW}$pattern''${NC} (''${CYAN}$type''${NC})"
+                      echo -e "   ''${PURPLE}$BULLET''${NC} ''${YELLOW}$pattern''${NC} (''${CYAN}$type''${NC})"
                   done
               else
                   echo -e "   ''${YELLOW}No patterns configured''${NC}"
@@ -70,14 +100,14 @@
       fi
 
       # Run home-manager switch
-      echo -e "''${CYAN}🏠 Running home-manager switch...''${NC}"
+      print_section "🏠" "Running home-manager switch..."
       cd "$DOTS_DIR"
       nh home switch "$DOTS_DIR" -c "$PROFILE" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
       result=$?
 
       if [[ $result -eq 0 ]]; then
           echo ""
-          echo -e "''${CYAN}🔗 Creating convenience symlinks...''${NC}"
+          print_section "🔗" "Creating convenience symlinks..."
           
           # Create current-profile symlink (top-level, for bash navigation)
           ln -sfn "profiles/$PROFILE" "$DOTS_DIR/current-profile"
@@ -105,12 +135,12 @@
           fi
           
           echo ""
-          echo -e "''${CYAN}🔄 Syncing handcrafted user configs...''${NC}"
+          print_section "🔄" "Syncing handcrafted user configs..."
           "$DOTS_DIR/sync.sh" || true
           
           # Check alien packages
           echo ""
-          echo -e "''${CYAN}📦 Checking alien packages...''${NC}"
+          print_section "📦" "Checking alien packages..."
           if ! update-alien-packages --dry-run --target all 2>&1; then
               echo ""
               echo -e "''${YELLOW}Run: update-alien-packages to apply changes''${NC}"
@@ -118,7 +148,7 @@
           
           # Update desktop database for AppImages
           if command -v update-desktop-database &> /dev/null; then
-              echo -e "''${CYAN}📝 Updating desktop database...''${NC}"
+              print_section "📝" "Updating desktop database..."
               update-desktop-database ~/.local/share/applications/ 2>/dev/null || true
           fi
       fi
@@ -146,6 +176,7 @@
       set -e
 
       DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
+      DOTS_LOCAL_DIR="''${DOTS_LOCAL_DIR:-$HOME/dots-local}"
 
       # Colors
       BLUE='\033[0;34m'
@@ -154,22 +185,41 @@
       NC='\033[0m'
       BOLD='\033[1m'
 
+      USE_GUM=0
+      if command -v gum >/dev/null 2>&1; then
+        USE_GUM=1
+      fi
+
+      print_section() {
+        local icon="$1"
+        local text="$2"
+        if [ "$USE_GUM" -eq 1 ]; then
+          gum style --foreground 99 --bold "$icon $text"
+        else
+          echo -e "''${BOLD}$text''${NC}"
+        fi
+      }
+
       echo ""
-      echo -e "''${BOLD}🔄 Updating dots flake inputs...''${NC}"
+      print_section "🔄" "Updating dots flake inputs..."
       echo ""
 
       cd "$DOTS_DIR"
 
       if [[ -n "$1" ]]; then
           echo -e "''${YELLOW}Updating input: $1''${NC}"
-          nix flake update "$1"
+          nix flake update "$1" --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
       else
           echo -e "''${YELLOW}Updating all inputs...''${NC}"
-          nix flake update
+          nix flake update --override-input dots-local "git+file://$DOTS_LOCAL_DIR"
       fi
 
       echo ""
-      echo -e "''${GREEN}✅ Flake inputs updated successfully!''${NC}"
+      if [ "$USE_GUM" -eq 1 ]; then
+          gum style --foreground 42 --bold "✅ Flake inputs updated successfully!"
+      else
+          echo -e "''${GREEN}Flake inputs updated successfully!''${NC}"
+      fi
       echo -e "''${BLUE}Run 'apply-dots' to apply the changes.''${NC}"
       echo ""
     '')

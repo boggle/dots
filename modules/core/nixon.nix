@@ -1,4 +1,10 @@
-{ config, lib, pkgs, bashrcDerivation, profileDerivation, ... }:
+{ config, lib, pkgs, inputs, bashrcDerivation, profileDerivation, ... }:
+
+let
+  local = inputs.dots-local;
+  nixonDefault = if local ? nixonDefault then local.nixonDefault else false;
+  nixonDefaultStr = if nixonDefault then "1" else "0";
+in
 
 {
   home.file.".bashrc-nix".source = bashrcDerivation;
@@ -6,6 +12,7 @@
 
   home.file.".profile" = lib.mkForce {
     text = ''
+      if [ -z "''${NIXON+x}" ]; then export NIXON=${nixonDefaultStr}; fi
       [[ -f ~/.profile-core ]] && . ~/.profile-core
       if [ "$NIXON" = "1" ]; then [[ -f ~/.profile-nix ]] && . ~/.profile-nix; fi
       [[ -f ~/.bashrc ]] && . ~/.bashrc
@@ -14,6 +21,8 @@
 
   home.file.".bashrc" = lib.mkForce {
     text = ''
+      if [ -z "''${NIXON+x}" ]; then export NIXON=${nixonDefaultStr}; fi
+
       # --- 0. SHELL FOUNDATIONS (Universal) ---
       # Fix TERM for remote/minimal environments before starting logic
       if [ -z "$TERM" ] || [ "$TERM" = "dumb" ]; then

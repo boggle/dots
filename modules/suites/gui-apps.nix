@@ -200,7 +200,7 @@ in
         return {
           -- Font fallback with absolute path (ensure font is installed correctly)
           font = wezterm.font_with_fallback {
-            "/home/pc0w/.nix-profile/share/fonts/truetype/NerdFonts/IosevkaTerm/IosevkaTermNerdFont-Regular.ttf",
+            os.getenv("HOME") .. "/.nix-profile/share/fonts/truetype/NerdFonts/IosevkaTerm/IosevkaTermNerdFont-Regular.ttf",
             "JetBrains Mono"  -- Fallback font
           },
           font_size = 12.0,

@@ -76,6 +76,9 @@ EOF
       gid = "$(id -g)";
       homeDirectory = "${HOME}";
       profile = "${PROFILE}";
+      enableGuiDefaults = true;
+      graphicalBackend = "wayland";
+      nixonDefault = false;
       
       # AppImages configuration
       appimagesDir = "${HOME}/Applications/AppImages";

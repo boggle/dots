@@ -18,7 +18,7 @@
     noctalia-qs = { url = "github:noctalia-dev/noctalia-qs"; inputs.nixpkgs.follows = "nixpkgs"; };
     snippets-ls = { url = "github:quantonganh/snippets-ls"; inputs.nixpkgs.follows = "nixpkgs"; };
     bookokrat = { url = "github:bugzmanov/bookokrat"; inputs.nixpkgs.follows = "nixpkgs"; };
-    dots-local = { url = "git+file:///home/pc0w/dots-local"; };
+    dots-local = { url = "path:../dots-local"; };
   };
 
   outputs = { self, nixpkgs, home-manager, nur, nixgl, niri, noctalia, noctalia-qs, snippets-ls, bookokrat, dots-local, ... } @ inputs:

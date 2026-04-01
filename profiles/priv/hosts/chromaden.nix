@@ -1,16 +1,17 @@
 # Laputa Machine Configuration
 # Machine-specific hardware and settings for the laputa laptop
 
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
+
+let
+  local = inputs.dots-local;
+  enableGuiDefaults = local.enableGuiDefaults or (local.graphical or false);
+in
 
 {
     
   imports = [
     ../../../modules/features/sd-switch.nix
-    ../../../modules/features/opener.nix
-    ../../../modules/features/clipboard.nix
-    ../../../modules/suites/gui-apps.nix
-    ../../../modules/suites/tui-apps.nix
     ../../../modules/suites/ai-apps.nix
     ../../../modules/suites/scanning.nix
   ];
@@ -21,51 +22,21 @@
     localsend
   ];
 
-  features.opener = {
-      enable = true;
-      backend = "wayland";
-      alias = "o";  # Use 'o' to open files
-  };
-
-  features.clipboard = {
-    enable = true;
-    backend = "wayland";
-  };
-
   features.niri-noctalia = {
       renderDrmDevice = "/dev/dri/render_amd";
       terminal = "/usr/bin/ghostty";
   };
 
-  suites.gui-apps = {
+  suites.gui-apps = lib.mkIf enableGuiDefaults {
       enable = true;
-      librewolf = true;
+
+      # Host extras beyond lean priv defaults
       chromium = true;
       libreoffice = true;
-      vscodium = true;
-      keepassxc = true;
-      drawio = true;
       gimp = true;
       inkscape = true;
       vlc = true;
-      ffmpeg = true;
       flameshot = true;
-      zathura = true;
-  };
-
-  suites.tui-apps = {
-      enable = true;
-      # Core TUI
-      btop = true;
-      gping = true;
-      # Email
-      aerc = false;
-      deltachat = false;
-      # DTP
-      imagemagick = true;
-      graphviz = true;
-      pandoc = false;
-      typst = false;
   };
 
   suites.ai-apps = {

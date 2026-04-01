@@ -3,21 +3,16 @@ home.packages = with pkgs; [
     # --- 1. CORE UTILITIES (Pure CLI / Automation) ---
     # Fast, silent, and scriptable tools
     nh                    # Nix helper
-    uv                    # Universal packaging
     ripgrep               # Fast search (rg)
-    ripgrep-all           # even in PDFs
     fd                    # Fast find
     jq                    # JSON processor
     fx                    # JSON viewer
-    nmap                  # Network mapper
     tree                  # Directory hierarchy
     gnupg                 # Encryption/Signing
     rsync                 # File transfer
-    rclone                # File transfer (cloud edition)
     t3                    # Tree-like utility
     direnv                # Env loader
     nix-direnv            # Nix integration for direnv
-    xh                    # HTTP client (modern)
     curl                  # HTTP client (classic)
     wget                  # File downloader
     curlie                # curl with jq-like output
@@ -41,7 +36,6 @@ home.packages = with pkgs; [
     tailspin              # Log highlighter (tspin)
     tealdeer              # Fast 'tldr'
     difftastic            # Semantic diff tool
-    doggo                 # DNS client (modern 'dig')
     vivid                 # LS_COLORS generator
     gum                   # Shell script TUI components
     fzf                   # Fuzzy finder
@@ -51,15 +45,12 @@ home.packages = with pkgs; [
     # --- 3. INTERACTIVE TUI (Full-Screen Interfaces) ---
     # Tools with persistent terminal UI/dashboards
     helix                 # Modern modal text editor
-    marksman              # Markdown lsp
-    external.snippets-ls  # Snippets LSP
     btop                  # Resource monitor
-    pass                  # Password manager (TUI/CLI)
     pinentry-tty          # TTY-based pinentry for GPG
     # msgvault              # Search old email
   ];
   
-  home.stateVersion = "23.11"; 
+  home.stateVersion = "26.05"; 
   programs.home-manager.enable = true;
 
   # --- TOOL CONFIGURATIONS ---

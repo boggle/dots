@@ -11,6 +11,7 @@ in
     zellij = lib.mkEnableOption "Zellij terminal multiplexer";
     lazygit = lib.mkEnableOption "Lazygit";
     yazi = lib.mkEnableOption "Yazi file manager";
+    pass = lib.mkEnableOption "pass (password manager)";
     bandwhich = lib.mkEnableOption "bandwhich - network monitor";
     vhs = lib.mkEnableOption "vhs - terminal recorder";
     fresh = lib.mkEnableOption "fresh-editor - interactive editor";
@@ -41,6 +42,7 @@ in
       (alien.mkEntry cfg.zellij "zellij" pkgs.zellij)
       (alien.mkEntry cfg.lazygit "lazygit" pkgs.lazygit)
       (alien.mkEntry cfg.yazi "yazi" pkgs.yazi)
+      (alien.mkEntry cfg.pass "pass" pkgs.pass)
       (alien.mkEntry cfg.bandwhich "bandwhich" pkgs.bandwhich)
       (alien.mkEntry cfg.vhs "vhs" pkgs.vhs)
       (alien.mkEntry cfg.fresh "fresh-editor" pkgs.fresh-editor)
@@ -223,6 +225,7 @@ in
       (lib.optional cfg.zellij "zellij") ++
       (lib.optional cfg.lazygit "lazygit") ++
       (lib.optional cfg.yazi "yazi") ++
+      (lib.optional cfg.pass "pass") ++
       (lib.optional cfg.bandwhich "bandwhich") ++
       (lib.optional cfg.vhs "vhs") ++
       (lib.optional cfg.fresh "fresh-editor") ++
