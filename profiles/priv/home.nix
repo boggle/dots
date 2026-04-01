@@ -12,13 +12,13 @@
   imports = lib.filter (x: x != null) [
     ../common/home.nix
     
-    ../../modules/features/niri-noctalia.nix
     ../../modules/suites/sixel-tools.nix
-    ../../modules/suites/terminal-apps.nix
     ../../modules/features/appimages.nix
     ../../modules/features/fonts.nix
     ../../modules/suites/pim-apps.nix
     ../../modules/features/bookokrat.nix
+    ../../modules/suites/gui-apps.nix
+    ../../modules/suites/tui-apps.nix
     
     hostImport
   ];
@@ -94,21 +94,21 @@
       ytdlp = true;
   };
   
-  suites.terminal-apps = {
-      enable = true;
+  suites.gui-apps = {
+      enable = lib.mkDefault false;
       ghostty = true;
+  };
+
+  suites.tui-apps = {
+      enable = lib.mkDefault false;
       zellij = true;
       lazygit = true;
       yazi = true;
   };
 
-  features.niri-noctalia = {
-      enable = true;
-  };
-  
   suites.pim-apps = {
       enable = true;
-      superproductivity = true;
+      superproductivity = false;
   };
 
   features.bookokrat = {

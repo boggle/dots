@@ -1,5 +1,19 @@
 {
   # GUI Apps - CachyOS native packages
+  ghostty = {
+    feature = "gui-apps";
+    packages = {
+      pacman = [ "ghostty" ];
+    };
+  };
+
+  wezterm = {
+    feature = "gui-apps";
+    packages = {
+      pacman = [ "wezterm" ];
+    };
+  };
+
   librewolf = {
     feature = "gui-apps";
     packages = {

@@ -310,23 +310,12 @@ Some packages work better when installed natively:
 Create a `<feature>.<distro>-packages.nix` file next to your feature:
 
 ```nix
-# modules/suites/terminal-apps.cachyos-packages.nix
+# modules/suites/gui-apps.cachyos-packages.nix
 {
   ghostty = {
-    suite = "terminal-apps";
-    option = "ghostty";
+    feature = "gui-apps";
     packages = {
       pacman = [ "ghostty" ];
-      paru = [ "ghostty" ];
-    };
-  };
-
-  yazi = {
-    suite = "terminal-apps";
-    option = "yazi";
-    packages = {
-      pacman = [ "yazi" ];
-      paru = [ ];
     };
   };
 }
@@ -340,22 +329,22 @@ Features check if an alien package exists and skip the Nix version:
 { config, lib, pkgs, alien, ... }:
 
 let
-  cfg = config.suites.terminal-apps;
+  cfg = config.suites.tui-apps;
 in {
-  options.suites.terminal-apps = {
-    enable = lib.mkEnableOption "Enable terminal apps";
-    ghostty = lib.mkEnableOption "Ghostty terminal";
+  options.suites.tui-apps = {
+    enable = lib.mkEnableOption "Enable interactive TUI tools";
+    yazi = lib.mkEnableOption "Yazi file manager";
   };
 
   config = lib.mkIf cfg.enable {
     # Use alien.mkEntry - returns null if alien package exists
     home.packages = builtins.filter (p: p != null) [
-      (alien.mkEntry cfg.ghostty "ghostty" pkgs.ghostty)
+      (alien.mkEntry cfg.yazi "yazi" pkgs.yazi)
     ];
 
     # Declare which alien packages are enabled
-    alienPackages.enabledPackages = 
-      lib.optional cfg.ghostty "ghostty";
+    alienPackages.enabledPackages =
+      lib.optional cfg.yazi "yazi";
   };
 }
 ```

@@ -7,6 +7,10 @@ in
   options.suites.gui-apps = {
     enable = lib.mkEnableOption "Enable GUI application suite";
 
+    # Terminal emulators
+    ghostty = lib.mkEnableOption "Ghostty terminal";
+    wezterm = lib.mkEnableOption "WezTerm terminal emulator";
+
     # Browsers
     librewolf = lib.mkEnableOption "LibreWolf browser" // { default = true; };
     firefox = lib.mkEnableOption "Firefox browser";
@@ -52,6 +56,10 @@ in
 
   config = lib.mkIf cfg.enable {
     home.packages = builtins.filter (p: p != null) [
+      # Terminal emulators
+      (alien.mkEntry cfg.ghostty "ghostty" pkgs.ghostty)
+      (alien.mkEntry cfg.wezterm "wezterm" pkgs.wezterm)
+
       # Browsers
       (alien.mkEntry cfg.librewolf "librewolf" pkgs.librewolf)
       (alien.mkEntry cfg.firefox "firefox" pkgs.firefox)
@@ -97,6 +105,8 @@ in
 
     # Declare which alien packages are enabled
     alienPackages.enabledPackages = 
+      (lib.optional cfg.ghostty "ghostty") ++
+      (lib.optional cfg.wezterm "wezterm") ++
       (lib.optional cfg.librewolf "librewolf") ++
       (lib.optional cfg.firefox "firefox") ++
       (lib.optional cfg.chromium "chromium") ++
@@ -123,6 +133,111 @@ in
       (lib.optional cfg.tuba "tuba") ++
       (lib.optional cfg.betterbird "betterbird") ++
       (lib.optional cfg.flameshot "flameshot");
+
+    programs.ghostty = lib.mkIf cfg.ghostty {
+      enable = true;
+      enableBashIntegration = true;
+    };
+
+    home.file.".config/ghostty/config.ghostty" = lib.mkIf cfg.ghostty {
+      force = true;
+      text = ''
+        # --- Firewatch Theme Colors ---
+        background = #1a1a1c
+        foreground = #bebebe
+        selection-background = #3c3c3c
+        selection-foreground = #ffffff
+        cursor-color = #e27878
+
+        # Palette
+        palette = 0=#1a1a1c
+        palette = 1=#e27878
+        palette = 2=#b4be82
+        palette = 3=#e0af68
+        palette = 4=#84a0c6
+        palette = 5=#a093c7
+        palette = 6=#89b8c2
+        palette = 7=#c0caf5
+        palette = 8=#3e3e40
+        palette = 9=#e98989
+        palette = 10=#c0ca8e
+        palette = 11=#e9b978
+        palette = 12=#91accf
+        palette = 13=#aca1d3
+        palette = 14=#93c4d1
+        palette = 15=#d0d0d0
+
+        # --- Font Configuration ---
+        font-family = "IosevkaTerm NFM Light"
+        font-family-bold = "IosevkaTerm NFM Medium"
+        font-family-italic = "IosevkaTerm NFM Light Obl"
+        font-family-bold-italic = "IosevkaTerm NFM Medium Obl"
+        font-size = 13
+
+        # --- UI Settings ---
+        cursor-style-blink = false
+        adjust-cursor-thickness = 1
+        window-step-resize = true
+        window-decoration = false
+        shell-integration = detect
+        focus-follows-mouse = true
+        copy-on-select = true
+        term = xterm-256color
+
+        # --- Visual Polish (Niri 25.08) ---
+        background-opacity = 0.78
+        background-blur = 10
+        unfocused-split-opacity = 0.85
+      '';
+    };
+
+    programs.wezterm = lib.mkIf cfg.wezterm {
+      enable = true;
+      package = pkgs.wezterm;
+      extraConfig = ''
+        local wezterm = require "wezterm"
+
+        return {
+          -- Font fallback with absolute path (ensure font is installed correctly)
+          font = wezterm.font_with_fallback {
+            "/home/pc0w/.nix-profile/share/fonts/truetype/NerdFonts/IosevkaTerm/IosevkaTermNerdFont-Regular.ttf",
+            "JetBrains Mono"  -- Fallback font
+          },
+          font_size = 12.0,
+
+          -- Tabs and window settings
+          enable_tab_bar = true,
+          hide_tab_bar_if_only_one_tab = false,
+          use_fancy_tab_bar = true,
+          window_decorations = "RESIZE",
+
+          -- Transparency settings
+          window_background_opacity = 0.85,  -- background opacity
+          text_background_opacity = 0.85,    -- text opacity
+
+          -- Dimming for inactive panes while maintaining transparency
+          inactive_pane_hsb = {
+            brightness = 0.75,  -- Dimming inactive panes to 75%
+            saturation = 0.8,   -- Slightly reduce saturation
+            hue = 1.0,          -- Keep hue intact
+          },
+
+          -- Color scheme settings
+          color_schemes = {
+            Firewatch = {
+              background = "#1F1F28",
+              foreground = "#C5C8C6",
+            }
+          },
+          color_scheme = "Firewatch",
+
+          -- Wayland support and other tweaks
+          enable_wayland = true,
+          scrollback_lines = 3500,
+          enable_scroll_bar = false,
+        }
+      '';
+    };
 
     # LibreWolf has rich config, handle separately
     programs.librewolf = lib.mkIf cfg.librewolf {

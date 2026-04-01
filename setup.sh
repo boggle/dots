@@ -14,7 +14,7 @@ fi
 DOTS_LOCAL="$HOME/dots-local"
 
 # Determine hostname (use short hostname by default)
-HOSTNAME=$(hostname)
+HOSTNAME="$HOSTNAME"
 SYSTEM="x86_64-linux"
 MARCH="native"
 BARCH="x86_64-v3"

@@ -6,6 +6,27 @@
       pacman = [ "btop" ];
     };
   };
+
+  zellij = {
+    feature = "tui-apps";
+    packages = {
+      pacman = [ "zellij" ];
+    };
+  };
+
+  lazygit = {
+    feature = "tui-apps";
+    packages = {
+      pacman = [ "lazygit" ];
+    };
+  };
+
+  yazi = {
+    feature = "tui-apps";
+    packages = {
+      pacman = [ "yazi" ];
+    };
+  };
   
   bandwhich = {
     feature = "tui-apps";

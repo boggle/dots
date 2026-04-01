@@ -5,9 +5,12 @@ let
 in
 {
   options.suites.tui-apps = {
-    enable = lib.mkEnableOption "Enable interactive TUI tools";
+    enable = lib.mkEnableOption "Enable interactive TUI tools" // { default = true; };
 
     btop = lib.mkEnableOption "btop - system monitor";
+    zellij = lib.mkEnableOption "Zellij terminal multiplexer";
+    lazygit = lib.mkEnableOption "Lazygit";
+    yazi = lib.mkEnableOption "Yazi file manager";
     bandwhich = lib.mkEnableOption "bandwhich - network monitor";
     vhs = lib.mkEnableOption "vhs - terminal recorder";
     fresh = lib.mkEnableOption "fresh-editor - interactive editor";
@@ -35,6 +38,9 @@ in
     home.packages = builtins.filter (p: p != null) [
       # Core TUI apps
       (alien.mkEntry cfg.btop "btop" pkgs.btop)
+      (alien.mkEntry cfg.zellij "zellij" pkgs.zellij)
+      (alien.mkEntry cfg.lazygit "lazygit" pkgs.lazygit)
+      (alien.mkEntry cfg.yazi "yazi" pkgs.yazi)
       (alien.mkEntry cfg.bandwhich "bandwhich" pkgs.bandwhich)
       (alien.mkEntry cfg.vhs "vhs" pkgs.vhs)
       (alien.mkEntry cfg.fresh "fresh-editor" pkgs.fresh-editor)
@@ -66,9 +72,157 @@ in
       };      
     };
 
+    programs.zellij = lib.mkIf cfg.zellij {
+      enable = true;
+    };
+
+    home.file.".config/zellij/config.kdl" = lib.mkIf cfg.zellij {
+      force = true;
+      text = ''
+        // Minimal UI settings
+        show_startup_tips false
+        show_release_notes false
+        pane_frames false
+        simplified_ui true
+        
+        // Use compact status bar instead of full button bar
+        // The compact-bar shows just the current mode and help hint
+        default_layout "compact"
+        
+        // Theme - Tokyo Night Storm (blue/purple compatible)
+        theme "tokyo-night-storm"
+        
+        themes {
+          tokyo-night-storm {
+            text_unselected {
+              base 169 177 214
+              background 36 40 59
+              emphasis_0 255 158 100
+              emphasis_1 130 170 255
+              emphasis_2 187 154 247
+              emphasis_3 42 195 222
+            }
+            text_selected {
+              base 192 202 245
+              background 65 72 104
+              emphasis_0 255 158 100
+              emphasis_1 130 170 255
+              emphasis_2 187 154 247
+              emphasis_3 42 195 195
+            }
+            ribbon_unselected {
+              base 122 162 247
+              background 41 46 66
+              emphasis_0 255 158 100
+              emphasis_1 130 170 255
+              emphasis_2 187 154 247
+              emphasis_3 42 195 195
+            }
+            ribbon_selected {
+              base 36 40 59
+              background 122 162 247
+              emphasis_0 255 158 100
+              emphasis_1 192 202 245
+              emphasis_2 187 154 247
+              emphasis_3 42 195 195
+            }
+            frame_unselected {
+              base 86 95 137
+              background 36 40 59
+              emphasis_0 255 158 100
+              emphasis_1 130 170 255
+              emphasis_2 187 154 247
+              emphasis_3 42 195 222
+            }
+            frame_selected {
+              base 122 162 247
+              background 36 40 59
+              emphasis_0 255 158 100
+              emphasis_1 192 202 245
+              emphasis_2 187 154 247
+              emphasis_3 42 195 195
+            }
+            frame_highlight {
+              base 187 154 247
+              background 36 40 59
+              emphasis_0 255 158 100
+              emphasis_1 192 202 245
+              emphasis_2 187 154 247
+              emphasis_3 42 195 195
+            }
+          }
+        }
+        
+        // UI configuration
+        ui {
+          pane_frames {
+            hide_session_name false
+            rounded_corners true
+          }
+        }
+        
+        // Keybindings - Ctrl+o for session mode, then a or h for help
+        keybinds {
+          shared_except "locked" {
+            bind "Ctrl o" { SwitchToMode "Session"; }
+          }
+          session {
+            bind "Ctrl o" { SwitchToMode "Normal"; }
+            bind "a" {
+              // Open about plugin (navigate to Help tab with arrow keys)
+              LaunchOrFocusPlugin "zellij:about" {
+                floating true
+                move_to_focused_tab true
+              }
+              SwitchToMode "Normal"
+            }
+            bind "h" {
+              // Show zellij config in a new pane to the right
+              Run "sh" "-c" "zellij setup --dump-config | bat --style=plain" {
+                direction "Right"
+                close_on_exit true
+              }
+              SwitchToMode "Normal"
+            }
+
+          }
+        }
+      '';
+    };
+
+    home.file.".config/zellij/layouts/compact.kdl" = lib.mkIf cfg.zellij {
+      force = true;
+      text = ''
+        layout {
+          default_tab_template {
+            // Top: compact bar (as plugin intends)
+            pane size=1 borderless=true {
+              plugin location="zellij:compact-bar"
+            }
+            children
+
+          }
+        }
+      '';
+    };
+
+    programs.bash.initExtra = lib.mkIf cfg.zellij ''
+      if [ -n "$ZELLIJ" ] && [ -z "$ZELLIJ_HELP_SHOWN" ]; then
+        export ZELLIJ_HELP_SHOWN=1
+        echo -e '\033[1m\033[35m ctrl-o a / ctrl-o h / ctrl-g\033[0m'
+      fi
+    '';
+
+    programs.lazygit = lib.mkIf cfg.lazygit {
+      enable = true;
+    };
+
     # Declare alien packages for this suite
     alienPackages.enabledPackages = 
       (lib.optional cfg.btop "btop") ++
+      (lib.optional cfg.zellij "zellij") ++
+      (lib.optional cfg.lazygit "lazygit") ++
+      (lib.optional cfg.yazi "yazi") ++
       (lib.optional cfg.bandwhich "bandwhich") ++
       (lib.optional cfg.vhs "vhs") ++
       (lib.optional cfg.fresh "fresh-editor") ++
