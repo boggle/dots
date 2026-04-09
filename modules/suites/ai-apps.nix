@@ -826,6 +826,31 @@ if __name__ == "__main__":
       "--prefix PATH : ${lib.makeBinPath [ pkgs.git pkgs.iproute2 pkgs.coreutils pkgs.lsd pkgs.glow pkgs.bat pkgs.jq pkgs.delta ]}"
     ];
   } grabcontextScript;
+
+  graphifyBootstrap = pkgs.writeShellScriptBin "graphify-bootstrap" ''
+    set -euo pipefail
+
+    REPO_URL="https://github.com/safishamsi/graphify.git"
+    REPO_DIR="''${XDG_DATA_HOME:-$HOME/.local/share}/dots/graphify"
+    VENV_DIR="$REPO_DIR/.venv"
+    BIN_DIR="''${XDG_BIN_HOME:-$HOME/.local/bin}"
+
+    mkdir -p "$(dirname "$REPO_DIR")" "$BIN_DIR"
+
+    if [ ! -d "$REPO_DIR/.git" ]; then
+      ${pkgs.git}/bin/git clone --branch v3 --depth 1 "$REPO_URL" "$REPO_DIR"
+    fi
+
+    if [ ! -x "$VENV_DIR/bin/graphify" ]; then
+      ${pkgs.python3}/bin/python3 -m venv "$VENV_DIR"
+      "$VENV_DIR/bin/pip" install --upgrade pip
+      "$VENV_DIR/bin/pip" install "$REPO_DIR"
+    fi
+
+    ln -sf "$VENV_DIR/bin/graphify" "$BIN_DIR/graphify"
+
+    "$BIN_DIR/graphify" install --platform opencode || true
+  '';
 in
 {
   options.suites.ai-apps = {
@@ -841,7 +866,7 @@ in
       (alien.mkEntry cfg.grabcontext "grabcontext" grabcontext)
       (alien.mkEntry cfg.opencode "opencode" pkgs.opencode)
       (alien.mkEntry cfg.copilot "github-copilot-cli" pkgs.github-copilot-cli)
-    ];
+    ] ++ (lib.optional cfg.opencode graphifyBootstrap);
 
     home.file.".grabcontext" = lib.mkIf cfg.grabcontext {
       text = ''
@@ -853,6 +878,55 @@ in
         HOME_LOCAL=''${config.home.homeDirectory}/.local
       '';
     };
+
+    home.file.".config/opencode/opencode.json" = lib.mkIf cfg.opencode {
+      text = builtins.toJSON {
+        "$schema" = "https://opencode.ai/config.json";
+        plugin = [
+          "${config.home.homeDirectory}/.config/opencode/plugins/graphify.js"
+        ];
+      };
+    };
+
+    home.file.".config/opencode/plugins/graphify.js" = lib.mkIf cfg.opencode {
+      text = ''
+        // graphify OpenCode plugin
+        // Injects a knowledge graph reminder before bash tool calls when the graph exists.
+        import { existsSync } from "fs";
+        import { join } from "path";
+
+        export const GraphifyPlugin = async ({ directory }) => {
+          let reminded = false;
+
+          return {
+            "tool.execute.before": async (input, output) => {
+              if (reminded) return;
+              if (!existsSync(join(directory, "graphify-out", "graph.json"))) return;
+
+              if (input.tool === "bash") {
+                output.args.command =
+                  'echo "[graphify] Knowledge graph available. Read graphify-out/GRAPH_REPORT.md for god nodes and architecture context before searching files." && ' +
+                  output.args.command;
+                reminded = true;
+              }
+            },
+          };
+        };
+      '';
+    };
+
+    home.activation.setupGraphifyForOpenCode = lib.mkIf cfg.opencode (lib.hm.dag.entryAfter ["writeBoundary"] ''
+      BOOTSTRAP="${graphifyBootstrap}/bin/graphify-bootstrap"
+      GRAPHIFY_BIN="''${XDG_BIN_HOME:-$HOME/.local/bin}/graphify"
+
+      if [ ! -x "$GRAPHIFY_BIN" ] && [ -x "$BOOTSTRAP" ]; then
+        "$BOOTSTRAP"
+      fi
+
+      if [ -x "$GRAPHIFY_BIN" ]; then
+        "$GRAPHIFY_BIN" install --platform opencode || true
+      fi
+    '');
 
     # Declare which alien packages are enabled
     alienPackages.enabledPackages = 

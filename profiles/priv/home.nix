@@ -86,7 +86,7 @@
       enable = true;
       sshAgent = true;
       gpgAgent = true;
-      gpgSsh = true;
+      gpgSsh = false;
       doggo = true;
       xh = true;
       rclone = true;
