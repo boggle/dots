@@ -49,7 +49,11 @@ in
         export PATH=$(echo "$PATH" | tr ":" "\n" | grep -v "/nix" | tr "\n" ":" | sed 's/:$//')
         export PATH="$PATH:/nix/var/nix/profiles/default/bin"
         alias ls='ls --color=auto'
-        [ "$EUID" -eq 0 ] && PS1='\[\033[01;31m\][\u@\h \W]\# \[\033[00m\]' || PS1='[\u@\h \W]\$ '
+        if [ "$EUID" -eq 0 ]; then
+          PS1='\[\e[31m\]\u@\h\[\e[0m\]:\[\e[32m\]\w\[\e[0m\]\$ '
+        else
+          PS1='\[\e[34m\]\u@\h\[\e[0m\]:\[\e[32m\]\w\[\e[0m\]\$ '
+        fi
       fi
 
       # --- 1. DYNAMIC TOOL DISCOVERY (Generic) ---
