@@ -2,6 +2,15 @@
 
 This repository provides a complete, portable development environment using Nix and Home Manager.
 
+## Environment Variables
+
+```bash
+DOTS_DIR="$HOME/dots"              # Location of dots repository
+DOTS_LOCAL_DIR="$HOME/dots-local"  # Location of dots-local repository
+```
+
+Both default to `~/dots` and `~/dots-local` respectively. Override for custom installations.
+
 ## Distro Backends
 
 `dots-local/flake.nix` sets `distro`, which selects alien package manager backends:

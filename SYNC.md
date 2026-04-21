@@ -115,14 +115,24 @@ dots/settings/laputa/root/etc/NetworkManager/system-connections/Wifi.nmconnectio
 
 ### apply-dots
 ```bash
-apply-dots [profile]    # Apply dots config + run sync
+apply-dots [profile] [-- <nh-args>...]    # Apply dots config + run sync
+```
+
+Examples:
+```bash
+apply-dots                    # Apply default profile from dots-local
+apply-dots priv               # Apply specific profile
+apply-dots -- -b backup       # Pass -b backup to nh home switch
+apply-dots priv -- -b backup  # Profile + nh arguments
 ```
 
 Features:
 - Shows pretty configuration info
 - Auto-regenerates `sync-config.json` if `flake.nix` is newer (via mtime check)
-- Runs home-manager switch
+- Runs home-manager switch with optional arguments
+- Captures full build log on failure (saved to `/tmp/apply-dots-*.log`)
 - Runs sync automatically after successful switch
+- Provides helpful error messages with common fixes
 
 ### dots-sync
 ```bash
@@ -142,7 +152,15 @@ Features:
 
 ### update-dots
 ```bash
-update-dots             # Update all flake inputs
+update-dots [input-name] [-- <nix-flake-update-args>...]    # Update flake inputs
+```
+
+Examples:
+```bash
+update-dots                    # Update all inputs
+update-dots nixpkgs            # Update specific input
+update-dots -- --refresh       # Pass --refresh to nix flake update
+update-dots nixpkgs -- --refresh  # Input + extra args
 ```
 
 ## Pattern Matching
@@ -215,16 +233,18 @@ apply-dots                    # Will auto-regenerate if needed
 dots/                           (main repo, committed)
 ├── profiles/
 │   ├── priv/
+│   │   ├── home.nix           ← Profile configuration
 │   │   └── sync.json          ← Global ignores for priv
 │   ├── work/
 │   │   └── sync.json          ← Global ignores for work  
 │   └── common/
-│       └── sync.json          ← (optional) shared ignores
-├── bin/
-│   ├── apply-dots             ← Main command
-│   ├── dots-sync              ← Sync wrapper
-│   ├── update-dots            ← Update inputs
-│   └── sync.sh                ← Core sync script
+│   │   └── sync.json          ← Shared ignores across profiles
+│   └── hosts/
+│       └── <hostname>.nix     ← Host-specific configuration
+├── modules/
+│   └── core/
+│       └── scripts.nix        ← Commands (apply-dots, dots-sync, etc.)
+├── sync.sh                    ← Core sync script
 ├── SYNC.md                    ← This documentation
 └── settings/
     └── <hostname>/
@@ -234,6 +254,7 @@ dots/                           (main repo, committed)
 dots-local/                     (machine-specific, gitignored)
 ├── flake.nix                  ← Your config (EDIT THIS!)
 ├── sync-config.json           ← Generated from flake.nix (gitignored)
+├── appimages.nix              ← Host-local AppImages config
 ├── .gitignore                 ← Ignores generated files
 └── setup.sh                   ← One-time setup script
 ```

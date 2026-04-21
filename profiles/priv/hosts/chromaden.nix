@@ -9,10 +9,12 @@ let
 in
 
 {
-    
+
   imports = [
     ../../../modules/features/sd-switch.nix
     ../../../modules/features/niri-noctalia.nix
+    ../../../modules/features/llama-cpp.nix
+    ../../../modules/features/koboldcpp.nix
     ../../../modules/suites/ai-apps.nix
     ../../../modules/suites/scanning.nix
   ];
@@ -45,6 +47,38 @@ in
       enable = true;
       opencode = true;
       grabcontext = true;
+  };
+
+  # Optimized llama.cpp for RTX 5080 (Blackwell sm_120) + Zen 5
+  # Using master branch for latest NVFP4 support
+  features.llama-cpp = {
+    enable = true;
+    cudaArchitectures = "120";  # Blackwell RTX 5080
+    
+    # CMake flags for master branch build
+    cmakeFlags = [
+      "-DCMAKE_BUILD_TYPE=Release"
+      "-DBUILD_SHARED_LIBS=OFF"
+      "-DLLAMA_BUILD_SERVER=ON"
+      "-DLLAMA_OPENSSL=ON"
+      "-DLLAMA_CURL=ON"
+      "-DGGML_CUDA=ON"
+      "-DCMAKE_CUDA_ARCHITECTURES=120"
+      "-DGGML_CUDA_FORCE_MMQ=ON"
+      "-DGGML_CUDA_F16=ON"
+      "-DGGML_VULKAN=ON"
+      "-DGGML_BLAS=ON"
+      "-DGGML_BLAS_VENDOR=OpenBLAS"
+      "-DBLAS_INCLUDE_DIRS=/usr/include/openblas"
+      "-DBLAS_LIBRARIES=/usr/lib/libopenblas.so"
+      "-DCMAKE_C_FLAGS=-march=znver5 -O3"
+      "-DCMAKE_CXX_FLAGS=-march=znver5 -O3"
+    ];
+  };
+
+  # koboldcpp - AI story generation with CUDA support
+  features.koboldcpp = {
+    enable = true;
   };
   
   home.sessionVariables = {

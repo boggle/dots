@@ -24,6 +24,10 @@ apply-dots priv-opt # Optimized for your CPU (slower, faster binaries)
 # Manage native packages
 update-alien-packages                    # Install missing native packages
 update-alien-packages --action remove    # Clean up orphaned packages
+
+# Manage AppImages
+appimage-update                          # Update registered AppImages
+appimage-update --all                    # Update all AppImages
 ```
 
 ## Feature System
@@ -31,62 +35,90 @@ update-alien-packages --action remove    # Clean up orphaned packages
 Enable features in `profiles/priv/home.nix` or `profiles/work/home.nix`:
 
 ```nix
-# Core environment
-features.nix.enable = true;                    # Nix tooling
-features.terminal.enable = true;               # Terminal emulators
-features.terminal.wezterm = true;              # Specific terminal
-features.devtools.enable = true;               # Dev tools (nixd, entr)
-features.devtools.entr = true;                 # File watcher for HMR
+# Core environment (always enabled via common profile)
+features.viewer.enable = true;                 # Terminal file viewer ('v' command)
+features.network.enable = true;                # SSH/GPG agents, network tools
+features.git.enable = true;                    # Git tooling (delta, lazygit, etc.)
+features.dev-tools.enable = true;              # Dev tools (nixd, entr, rust, etc.)
 
-# Applications
-features.apps.enable = true;                   # GUI applications
-features.apps.vscodium = true;                 # Code editor
-features.apps.keepassxc = true;                # Password manager
-
-# AI integration
-features.ai.enable = true;                     # AI tooling
-features.ai.opencode = true;                   # AI assistant CLI
-features.ai.grabcontext = true;                # Context gathering for AI
-
-# Media & docs
-features.sixel.enable = true;                  # Terminal images
-features.sixel.mpv = true;                     # Video player
-features.dtp.enable = true;                    # Document tools
-features.dtp.zathura = true;                   # PDF viewer
-
-# System integration
-features.clipboard.enable = true;              # Clipboard manager
+# GUI and applications
+features.opener.enable = true;                 # File opener ('o' command)
+features.opener.backend = "wayland";           # wayland, x11, wsl, or macos
+features.clipboard.enable = true;              # Clipboard manager (clipin/clipout)
 features.clipboard.backend = "wayland";        # Wayland or X11
-features.networkmanager.enable = true;         # Network applet
-features.flatpak.enable = true;                # Flatpak support
+features.fonts.enable = true;                  # Font configuration
+
+# Application suites
+suites.gui-apps.enable = true;                 # GUI applications (browser, editor, etc.)
+suites.gui-apps.chromium = true;               # Specific apps
+suites.tui-apps.enable = true;                 # TUI tools (btop, yazi, etc.)
+suites.sixel-tools.enable = true;              # Terminal graphics (chafa, mpv)
+suites.ai-apps.enable = true;                  # AI tooling (opencode, grabcontext)
+suites.ai-apps.opencode = true;
+suites.scanning.enable = true;                 # Document scanning tools
+
+# Tuning
+features.tune.enable = true;                   # Package optimization
+features.tune.packages.ripgrep = {             # Tune specific packages
+  enable = true; mode = "fast"; lang = "rust";
+};
+
+# AppImages
+features.appimages.enable = true;              # Host-local AppImage support
 ```
 
-### Available Features
+### Available Features & Suites
+
+**Features** (`features.<name>`) - Individual capabilities:
 
 | Feature | Options | Description |
 |---------|---------|-------------|
-| `ai` | `enable`, `grabcontext`, `opencode`, `copilot` | AI assistants and context tools |
-| `alienPackages` | `enable`, `enabledPackages` | Native package manager integration |
-| `apps` | `enable`, `vscodium`, `keepassxc`, `gimp`, `inkscape`, `vlc`, `ffmpeg`, ... | Desktop applications |
-| `clipboard` | `enable`, `backend` (wayland/x11/wsl/macos) | Cross-platform clipboard manager |
-| `cloud` | `enable`, `github` | Cloud service integration |
-| `devtools` | `enable`, `nixd`, `entr`, `rust` | Development tooling |
-| `dtp` | `enable`, `zathura` | Document processing |
-| `email` | `enable` | Email client setup |
-| `flatpak` | `enable`, `steam`, `discord`, ... | Flatpak applications |
+| `appimages` | `enable`, `localDir`, `apps` | Host-local AppImage integration |
+| `bookokrat` | `enable` | Documentation tool |
+| `clipboard` | `enable`, `backend` (wayland/x11/wsl/macos) | Cross-platform clipboard (clipin/clipout) |
+| `dev-tools` | `enable`, `nixd`, `entr`, `rust`, `python`, ... | Development tooling |
 | `fonts` | `enable` | Font configuration |
-| `git` | `enable`, `git`, `jj`, `delta` | Version control tools |
-| `network` | `enable`, `sshAgent`, `gpgAgent` | Network and crypto agents |
-| `networkmanager` | `enable`, `applet` | Network Manager integration |
-| `niri` | `enable` | Niri compositor |
+| `git` | `enable`, `git`, `jj`, `delta`, `lazygit` | Version control tools |
+| `network` | `enable`, `sshAgent`, `gpgAgent`, `gpgSsh` | Network and crypto agents |
+| `niri-noctalia` | `enable`, `renderDrmDevice`, `terminal` | Niri compositor with Noctalia integration |
 | `opener` | `enable`, `backend`, `alias` | Cross-platform file opener (`o` command) |
-| `scanning` | `enable`, `simple-scan`, `gscan2pdf` | Document scanning |
-| `sixel` | `enable`, `chafa`, `timg`, `mpv`, `ytdlp` | Terminal graphics & media |
-| `terminal` | `enable`, `ghostty`, `wezterm`, `zellij`, `yazi` | Terminal environment |
-| `tune` | See [OVERVIEW.md](OVERVIEW.md) | Package optimization |
-| `viewer` | `enable`, `alias`, `preferImageViewer`, ... | Terminal file viewer (`v` command) |
+| `tune` | `enable`, `packages` | Package optimization (see [OVERVIEW.md](OVERVIEW.md)) |
+| `viewer` | `enable`, `alias`, `ripgrepAll`, `preferImageViewer` | Terminal file viewer (`v` command) |
+
+**Suites** (`suites.<name>`) - Bundled application groups:
+
+| Suite | Options | Description |
+|---------|---------|-------------|
+| `ai-apps` | `enable`, `opencode`, `grabcontext` | AI assistants and context tools |
+| `cloud-tools` | `enable`, `aws`, `azure`, `gcp`, `k8s` | Cloud CLI tools |
+| `gui-apps` | `enable`, `ghostty`, `librewolf`, `vscodium`, `keepassxc`, ... | Desktop GUI applications |
+| `pim-apps` | `enable`, `superproductivity` | Personal information management |
+| `scanning` | `enable`, `simple-scan`, `gscan2pdf`, `tesseract` | Document scanning tools |
+| `sixel-tools` | `enable`, `chafa`, `catimg`, `mpv`, `ytdlp` | Terminal graphics & media |
+| `tui-apps` | `enable`, `btop`, `yazi`, `zellij`, `lazygit`, ... | Terminal UI applications |
 
 ## Essential Commands
+
+Daily workflow commands (installed via Home Manager):
+
+```bash
+# Apply configuration
+apply-dots                    # Apply default profile from dots-local
+apply-dots priv               # Apply specific profile
+apply-dots -- -b backup       # Pass arguments to nh home switch
+apply-dots priv -- -b backup --dry  # Profile + nh arguments
+
+# Update flake inputs
+update-dots                   # Update all flake inputs
+update-dots nixpkgs           # Update specific input
+update-dots -- --refresh      # Pass arguments to nix flake update
+
+# Sync handcrafted configs
+dots-sync                     # Sync system → git (safe mode)
+dots-sync -f                  # Force sync (overwrite git)
+dots-sync -i                  # Generate install script (git → system)
+dots-sync -n                  # Dry run (preview changes)
+```
 
 Three cross-platform utilities for daily workflow:
 
@@ -198,4 +230,110 @@ See [OVERVIEW.md](OVERVIEW.md#alien-packages-native-package-management) for deta
 - `priv`/`work` - Baseline using cache.nixos.org
 - `priv-opt`/`work-opt` - Optimized with `localSystem.gcc.arch` (rebuilds locally)
 
-See [OVERVIEW.md](OVERVIEW.md) for detailed architecture.
+## Environment Variables
+
+Customize dots behavior with these environment variables:
+
+```bash
+export DOTS_DIR="$HOME/dots"           # Location of dots repository
+export DOTS_LOCAL_DIR="$HOME/dots-local"  # Location of dots-local repository
+```
+
+These are automatically set if not defined. Useful for non-standard setups.
+
+## Navigation Tips
+
+**Current Profile Symlink:**
+After running `apply-dots`, a symlink is created at `~/dots/current-profile` pointing to the active profile:
+```bash
+cd ~/dots/current-profile        # Quick access to active profile
+cd ~/dots/current-profile/hosts  # Access host configs
+ls -la ~/dots/current-profile    # See what profile is active
+```
+
+**Profile Structure:**
+```
+profiles/
+├── common/          # Minimal CLI baseline (imported by all)
+│   └── home.nix
+├── priv/            # Personal profile (extends common)
+│   ├── home.nix
+│   └── hosts/       # Per-machine configs
+│       ├── chromaden.nix
+│       └── ...
+└── work/            # Work profile (extends common) - create your own
+```
+
+## Adding a New Host
+
+1. Create host file:
+   ```bash
+   touch profiles/priv/hosts/myhostname.nix
+   ```
+
+2. Add to `dots-local/flake.nix`:
+   ```nix
+   host = "myhostname";
+   ```
+
+3. Configure the host in the new file:
+   ```nix
+   { config, pkgs, lib, ... }: {
+     # Machine-specific packages and settings
+     home.packages = with pkgs; [ /* ... */ ];
+   }
+   ```
+
+4. Run `apply-dots`
+
+## Troubleshooting
+
+### Activation Failures
+
+**File collision errors:**
+```
+Existing file '/home/user/.config/niri/config.kdl' would be clobbered
+```
+
+Solutions:
+```bash
+# Option 1: Backup conflicting files
+apply-dots -- -b backup
+
+# Option 2: Remove the conflicting file manually
+mv ~/.config/niri/config.kdl ~/.config/niri/config.kdl.backup
+apply-dots
+
+# Option 3: Force overwrite (use with caution)
+apply-dots -- --force
+```
+
+**Build succeeds but activation fails:**
+1. Check the log path shown in the error message
+2. Run activation manually to see full error:
+   ```bash
+   /nix/store/...-home-manager-generation/activate
+   ```
+
+### Common Issues
+
+**Stale sync-config.json:**
+```bash
+dots-sync -g  # Force regenerate from flake.nix
+```
+
+**Profile not found:**
+Ensure `dots-local/flake.nix` has a valid `profile` attribute (e.g., `profile = "priv";`).
+
+**Nix evaluation errors:**
+```bash
+# Test evaluation without building
+nix eval .#homeConfigurations.priv --override-input dots-local git+file://$HOME/dots-local
+```
+
+### Getting Help
+
+- Check full build logs in `/tmp/apply-dots-*.log` on failure
+- Use `--dry` flag to test without activating: `apply-dots -- --dry`
+- See [OVERVIEW.md](OVERVIEW.md) for detailed architecture
+- Review [SYNC.md](SYNC.md) for sync system documentation
