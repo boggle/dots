@@ -59,14 +59,4 @@
     };
   };
 
-  # koboldcpp dependencies
-  koboldcpp-deps = {
-    feature = "ai-apps";
-    packages = {
-      pacman = [
-        "tk"                 # Tkinter for GUI
-        "python-psutil"      # System monitoring for koboldcpp
-      ];
-    };
-  };
 }

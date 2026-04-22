@@ -14,7 +14,6 @@ in
     ../../../modules/features/sd-switch.nix
     ../../../modules/features/niri-noctalia.nix
     ../../../modules/features/llama-cpp.nix
-    ../../../modules/features/koboldcpp.nix
     ../../../modules/suites/ai-apps.nix
     ../../../modules/suites/scanning.nix
   ];
@@ -76,11 +75,6 @@ in
     ];
   };
 
-  # koboldcpp - AI story generation with CUDA support
-  features.koboldcpp = {
-    enable = true;
-  };
-  
   home.sessionVariables = {
     SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/ssh-agent.socket";
     SAXON_DIR="$HOME/Applications/SaxonHE12-9J";
