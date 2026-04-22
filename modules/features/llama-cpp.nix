@@ -61,7 +61,6 @@ let
       -DLLAMA_CURL=ON \
       -DGGML_CUDA=ON \
       -DCMAKE_CUDA_ARCHITECTURES=120 \
-      -DGGML_CUDA_FORCE_MMQ=ON \
       -DGGML_CUDA_F16=ON \
       -DGGML_CUDA_FA_ALL_QUANTS=ON \
       -DGGML_VULKAN=ON \
@@ -74,9 +73,9 @@ let
       -DGGML_BMI2=ON \
       -DGGML_LTO=ON \
       -DGGML_NATIVE=OFF \
-      -DCMAKE_C_FLAGS="-march=znver5 -O3" \
-      -DCMAKE_CXX_FLAGS="-march=znver5 -O3" \
-      -DCMAKE_CUDA_FLAGS="-Xcompiler='-march=znver5 -mtune=znver5'"
+      -DCMAKE_C_FLAGS="-march=znver5 -O3 -flto" \
+      -DCMAKE_CXX_FLAGS="-march=znver5 -O3 -flto" \
+      -DCMAKE_CUDA_FLAGS="-Xcompiler='-march=znver5 -mtune=znver5 -flto'"
     
     echo "Building (this will take 10-30 minutes)..."
     cmake --build build --config Release -j$(nproc)
@@ -152,9 +151,9 @@ in {
         "-DGGML_BMI2=ON"
         "-DGGML_LTO=ON"
         "-DGGML_NATIVE=OFF"
-        "-DCMAKE_C_FLAGS=-march=znver5 -O3"
-        "-DCMAKE_CXX_FLAGS=-march=znver5 -O3"
-        "-DCMAKE_CUDA_FLAGS=-Xcompiler='-march=znver5 -mtune=znver5'"
+        "-DCMAKE_C_FLAGS=-march=znver5 -O3 -flto"
+        "-DCMAKE_CXX_FLAGS=-march=znver5 -O3 -flto"
+        "-DCMAKE_CUDA_FLAGS=-Xcompiler='-march=znver5 -mtune=znver5 -flto'"
       ];
       description = "CMake flags for building llama.cpp";
     };
