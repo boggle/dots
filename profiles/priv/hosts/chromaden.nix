@@ -43,6 +43,7 @@ in
       enable = true;
       opencode = true;
       grabcontext = true;
+      pi = true;
   };
   
   home.sessionVariables = {

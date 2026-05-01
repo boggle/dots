@@ -859,6 +859,13 @@ in
     grabcontext = lib.mkEnableOption "grabcontext (gather code context for AI) - outputs markdown";
     opencode = lib.mkEnableOption "opencode (AI coding assistant)";
     copilot = lib.mkEnableOption "GitHub Copilot CLI";
+    pi = lib.mkEnableOption "pi (terminal coding agent - pi.dev)";
+    piPackages = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "Pi packages to auto-install via 'pi install npm:<pkg>'. Names are npm package names.";
+      example = [ "pi-web-access" "pi-btw" "@juicesharp/rpiv-todo" ];
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -866,7 +873,49 @@ in
       (alien.mkEntry cfg.grabcontext "grabcontext" grabcontext)
       (alien.mkEntry cfg.opencode "opencode" pkgs.opencode)
       (alien.mkEntry cfg.copilot "github-copilot-cli" pkgs.github-copilot-cli)
-    ] ++ (lib.optional cfg.opencode graphifyBootstrap);
+    ] ++ (lib.optional cfg.opencode graphifyBootstrap)
+      ++ (lib.optionals cfg.pi [
+        pkgs.nodejs
+        (pkgs.writeShellScriptBin "pi-update" ''
+          set -euo pipefail
+          export NPM_CONFIG_PREFIX="''${XDG_DATA_HOME:-$HOME/.local/share}/npm-global"
+          echo "Updating pi via npm..."
+          ${pkgs.nodejs}/bin/npm install -g --no-fund --no-audit --loglevel=error @mariozechner/pi-coding-agent
+          echo "Done. Version: $(pi --version)"
+        '')
+      ]);
+
+    home.sessionVariables = lib.mkIf cfg.pi {
+      NPM_CONFIG_PREFIX = "${config.home.homeDirectory}/.local/share/npm-global";
+      PI_PACKAGE_DIR = "${config.home.homeDirectory}/.local/share/npm-global/lib/node_modules/@mariozechner/pi-coding-agent";
+    };
+
+    home.sessionPath = lib.mkIf cfg.pi [
+      "${config.home.homeDirectory}/.local/share/npm-global/bin"
+    ];
+
+    home.activation.installPi = lib.mkIf cfg.pi (lib.hm.dag.entryAfter ["writeBoundary"] ''
+      export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+      export PI_PACKAGE_DIR="$HOME/.local/share/npm-global/lib/node_modules/@mariozechner/pi-coding-agent"
+      export PATH="${pkgs.nodejs}/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
+      mkdir -p "$NPM_CONFIG_PREFIX/bin"
+      # Keep npm symlink up to date so pi install/update can find it
+      ln -sf "${pkgs.nodejs}/bin/npm" "$NPM_CONFIG_PREFIX/bin/npm"
+      if [ ! -x "$NPM_CONFIG_PREFIX/bin/pi" ]; then
+        echo "Installing pi via npm..."
+        ${pkgs.nodejs}/bin/npm install -g --no-fund --no-audit --loglevel=error @mariozechner/pi-coding-agent
+      fi
+      _PI="$NPM_CONFIG_PREFIX/bin/pi"
+      ${lib.optionalString (cfg.piPackages != []) ''
+        _PI_INSTALLED=$("$_PI" list 2>/dev/null || true)
+        ${lib.concatMapStrings (pkg: ''
+          if ! echo "$_PI_INSTALLED" | grep -qF "npm:${pkg}"; then
+            echo "Installing pi package: ${pkg}"
+            "$_PI" install npm:${pkg} || true
+          fi
+        '') cfg.piPackages}
+      ''}
+    '');
 
     home.file.".grabcontext" = lib.mkIf cfg.grabcontext {
       text = ''

@@ -64,6 +64,22 @@
       enable = true;
       opencode = true;
       grabcontext = true;
+      pi = true;
+      piPackages = [
+        "pi-btw"
+        "pi-subagents"
+        "context-mode"
+        "@tintinweb/pi-subagents"
+        "pi-mcp-adapter"
+        "@plannotator/pi-extension"
+        "pi-powerline-footer"
+        "pi-lens"
+        "@juicesharp/rpiv-ask-user-question"
+        "@juicesharp/rpiv-advisor"
+        "@juicesharp/rpiv-todo"
+        "@samfp/pi-memory"
+        "@juicesharp/rpiv-web-tools"
+      ];
   };
   
   programs.ssh = {

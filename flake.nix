@@ -30,6 +30,7 @@
            external.bookokrat = bookokrat.packages.${prev.stdenv.hostPlatform.system}.default.overrideAttrs (oldAttrs: {
              doCheck = false;
            });
+           external.quarkdown = prev.callPackage ./pkgs/quarkdown.nix {};
         };
       tuning = import ./modules/flake/package-tuning.nix { inherit lib dots-local; };
       
