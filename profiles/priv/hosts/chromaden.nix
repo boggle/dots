@@ -122,14 +122,7 @@ in
       tesseract = true;
   };
 
-  # AppImages - enable all on this machine
-  # features.appimages = {
-  #   enable = true;
-  #   apps = {
-  #     betterbird.enable = true;
-  #     buttercup.enable = true;
-  #     discord.enable = true;
-  #     tuta.enable = true;
-  #   };
-  # };
+  # FUSE support for AppImages
+  alienPackages.enabledPackages = [ "appimages-fuse" ];
+
 }

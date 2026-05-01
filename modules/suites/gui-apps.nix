@@ -134,12 +134,8 @@ in
       (lib.optional cfg.betterbird "betterbird") ++
       (lib.optional cfg.flameshot "flameshot");
 
-    programs.ghostty = lib.mkIf cfg.ghostty {
-      enable = true;
-      enableBashIntegration = true;
-    };
-
-    home.file.".config/ghostty/config.ghostty" = lib.mkIf cfg.ghostty {
+    # Ghostty config file (using CachyOS ghostty, not programs.ghostty module)
+    home.file.".config/ghostty/config" = lib.mkIf cfg.ghostty {
       force = true;
       text = ''
         # --- Firewatch Theme Colors ---

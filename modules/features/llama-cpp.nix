@@ -44,7 +44,7 @@ let
     
     echo "Building llama-cpp-chromaden..."
     echo "Build directory: $BUILD_DIR"
-    echo "OpenBLAS: $OPENBLAS_PATH"
+    echo "AOCL-BLIS: /opt/aocl/gcc"
     echo ""
     
     export CUDA_HOME=/opt/cuda
@@ -64,7 +64,10 @@ let
       -DGGML_CUDA_F16=ON \
       -DGGML_CUDA_FA_ALL_QUANTS=ON \
       -DGGML_VULKAN=ON \
-      -DGGML_BLAS=OFF \
+      -DGGML_BLAS=ON \
+      -DGGML_BLAS_VENDOR=AOCL \
+      -DBLAS_INCLUDE_DIRS=/opt/aocl/gcc/include_LP64 \
+      -DBLAS_LIBRARIES=/opt/aocl/gcc/lib_LP64/libblis-mt.so \
       -DGGML_AVX512=ON \
       -DGGML_AVX512_VNNI=ON \
       -DGGML_AVX512_BF16=ON \
@@ -74,8 +77,8 @@ let
       -DGGML_LTO=ON \
       -DGGML_NATIVE=OFF \
       -DCMAKE_C_FLAGS="-march=znver5 -O3 -flto" \
-      -DCMAKE_CXX_FLAGS="-march=znver5 -O3 -flto" \
-      -DCMAKE_CUDA_FLAGS="-Xcompiler='-march=znver5 -mtune=znver5 -flto'"
+      -DCMAKE_CXX_FLAGS="-march=znver5 -O3 -flto -include omp.h" \
+      -DCMAKE_CUDA_FLAGS="-Xcompiler='-march=znver5 -mtune=znver5'"
     
     echo "Building (this will take 10-30 minutes)..."
     cmake --build build --config Release -j$(nproc)
@@ -90,7 +93,7 @@ let
         mv "$bin" "$bin.wrapped"
         cat > "$bin" << EOF
 #!/bin/bash
-export LD_LIBRARY_PATH="${pkgs.openblas}/lib:/opt/cuda/lib64:/usr/lib:/opt/aocl/lib:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="/opt/aocl/gcc/lib_LP64:/opt/cuda/lib64:/usr/lib:/opt/aocl/lib:$LD_LIBRARY_PATH"
 exec "$bin.wrapped" "\$@"
 EOF
         chmod +x "$bin"
@@ -102,7 +105,12 @@ EOF
     echo ""
     echo "Build complete! Run 'llama-server --version' to verify."
     echo "Build files preserved at: $BUILD_DIR"
+    echo ""
+    echo "Set capabilities for GPU memory locking:"
+    echo "  sudo setcap 'cap_ipc_lock=+ep' ${installDir}/bin/llama-cli.wrapped"
+    echo "  sudo setcap 'cap_ipc_lock=+ep' ${installDir}/bin/llama-server.wrapped"
   '';
+
 in {
   options.features.llama-cpp = {
     enable = lib.mkEnableOption "llama.cpp with CUDA and Zen 5 optimization";
@@ -135,14 +143,13 @@ in {
         "-DLLAMA_CURL=ON"
         "-DGGML_CUDA=ON"
         "-DCMAKE_CUDA_ARCHITECTURES=120"
-        "-DGGML_CUDA_FORCE_MMQ=ON"
         "-DGGML_CUDA_F16=ON"
         "-DGGML_CUDA_FA_ALL_QUANTS=ON"
         "-DGGML_VULKAN=ON"
         "-DGGML_BLAS=ON"
-        "-DGGML_BLAS_VENDOR=OpenBLAS"
-        "-DBLAS_INCLUDE_DIRS=/usr/include/openblas"
-        "-DBLAS_LIBRARIES=/usr/lib/libopenblas.so"
+        "-DGGML_BLAS_VENDOR=AOCL"
+        "-DBLAS_INCLUDE_DIRS=/opt/aocl/gcc/include_LP64"
+        "-DBLAS_LIBRARIES=/opt/aocl/gcc/lib_LP64/libblis-mt.so"
         "-DGGML_AVX512=ON"
         "-DGGML_AVX512_VNNI=ON"
         "-DGGML_AVX512_BF16=ON"

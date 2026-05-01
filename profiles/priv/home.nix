@@ -113,6 +113,8 @@
       marksman = true;
       egglog = true;
       steel = true;
+      mkcert = true;
+      caddy = true;
   };
 
   suites.sixel-tools = {

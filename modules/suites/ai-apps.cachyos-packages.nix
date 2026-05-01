@@ -59,4 +59,14 @@
     };
   };
 
+  # FUSE2 support for AppImages
+  appimages-fuse = {
+    feature = "ai-apps";
+    packages = {
+      pacman = [
+        "fuse2"           # FUSE2 library required by AppImages
+      ];
+    };
+  };
+
 }

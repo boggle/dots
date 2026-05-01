@@ -33,7 +33,11 @@ in
     
     # HMR tooling
     entr = lib.mkEnableOption "entr (file watcher for auto-rebuilds)";
-    
+
+    # Web development tools
+    mkcert = lib.mkEnableOption "mkcert (locally-trusted development certificates)";
+    caddy = lib.mkEnableOption "caddy (modern web server with automatic HTTPS)";
+
     # Other tools
     egglog = lib.mkEnableOption "egglog (e-graph toolkit)";
     steel = lib.mkEnableOption "steel (Scheme interpreter)";
@@ -59,12 +63,16 @@ in
       (lib.mkIf cfg.haskell cabal-install)
       (lib.mkIf cfg.haskell stack)
       (lib.mkIf cfg.entr entr)
+      (alien.mkEntry cfg.mkcert "mkcert" mkcert)
+      (alien.mkEntry cfg.caddy "caddy" caddy)
       (lib.mkIf cfg.egglog egglog)
       (lib.mkIf cfg.steel steel)
     ];
 
     alienPackages.enabledPackages =
-      (lib.optional cfg.marksman "marksman");
+      (lib.optional cfg.marksman "marksman") ++
+      (lib.optional cfg.mkcert "mkcert") ++
+      (lib.optional cfg.caddy "caddy");
 
     # nixd config
     home.file.".nixd.json" = lib.mkIf cfg.nixd {
