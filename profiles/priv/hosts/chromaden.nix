@@ -16,7 +16,6 @@ in
     ../../../modules/features/llama-cpp.nix
     ../../../modules/suites/ai-apps.nix
     ../../../modules/suites/scanning.nix
-    ../../../modules/suites/tolaria.nix
   ];
   
   home.packages = with pkgs; [ 
@@ -51,10 +50,6 @@ suites.ai-apps = {
       # Inherits piPackages from priv home.nix, extend here if needed:
       # piPackages = (import ../home.nix { }).suites.ai-apps.piPackages ++ [ "extra-pkg" ];
     };
-
-  suites.tolaria = {
-    enable = true;
-  };
 
   features.quarkdown.enable = false;
 
