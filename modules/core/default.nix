@@ -17,6 +17,7 @@ home.packages = with pkgs; [
     wget                  # File downloader
     curlie                # curl with jq-like output
     psutils               # psutils
+    time                  # time
         
     # --- 2. ENHANCED WORKFLOW (Modern Unix Replacements) ---
     # Tools that upgrade the interactive Bash experience

@@ -825,32 +825,132 @@ if __name__ == "__main__":
     makeWrapperArgs = [
       "--prefix PATH : ${lib.makeBinPath [ pkgs.git pkgs.iproute2 pkgs.coreutils pkgs.lsd pkgs.glow pkgs.bat pkgs.jq pkgs.delta ]}"
     ];
-  } grabcontextScript;
+} grabcontextScript;
 
-  graphifyBootstrap = pkgs.writeShellScriptBin "graphify-bootstrap" ''
+  install-graphify = pkgs.writeShellScriptBin "install-graphify" ''
     set -euo pipefail
 
     REPO_URL="https://github.com/safishamsi/graphify.git"
-    REPO_DIR="''${XDG_DATA_HOME:-$HOME/.local/share}/dots/graphify"
+    REPO_DIR="$HOME/.local/share/dots/graphify"
     VENV_DIR="$REPO_DIR/.venv"
-    BIN_DIR="''${XDG_BIN_HOME:-$HOME/.local/bin}"
+    BIN_DIR="$HOME/.local/bin"
 
     mkdir -p "$(dirname "$REPO_DIR")" "$BIN_DIR"
 
     if [ ! -d "$REPO_DIR/.git" ]; then
-      ${pkgs.git}/bin/git clone --branch v3 --depth 1 "$REPO_URL" "$REPO_DIR"
+      echo ">> Cloning graphify..."
+      git clone --branch v3 --depth 1 "$REPO_URL" "$REPO_DIR"
     fi
 
     if [ ! -x "$VENV_DIR/bin/graphify" ]; then
-      ${pkgs.python3}/bin/python3 -m venv "$VENV_DIR"
+      echo ">> Creating venv and installing..."
+      python3 -m venv "$VENV_DIR"
       "$VENV_DIR/bin/pip" install --upgrade pip
       "$VENV_DIR/bin/pip" install "$REPO_DIR"
     fi
 
     ln -sf "$VENV_DIR/bin/graphify" "$BIN_DIR/graphify"
 
+    echo ">> Running platform install..."
     "$BIN_DIR/graphify" install --platform opencode || true
+
+    echo ">> Install complete. Run 'graphify' to generate knowledge graphs."
   '';
+
+  uninstall-graphify = pkgs.writeShellScriptBin "uninstall-graphify" ''
+    set -euo pipefail
+
+    REPO_DIR="$HOME/.local/share/dots/graphify"
+    BIN_DIR="$HOME/.local/bin"
+
+    echo ">> Cleaning graphify install..."
+
+    read -p "Remove $REPO_DIR? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Cancelled."
+      exit 0
+    fi
+
+    if [ -d "$REPO_DIR" ]; then
+      echo ">> Removing $REPO_DIR..."
+      rm -rf "$REPO_DIR"
+    fi
+
+    if [ -L "$BIN_DIR/graphify" ]; then
+      echo ">> Removing symlink..."
+      rm -f "$BIN_DIR/graphify"
+    fi
+
+    echo ">> Clean complete."
+  '';
+
+  installGraphify = install-graphify;
+
+  pi-launcher = pkgs.writeShellScriptBin "pi" ''
+    export NPM_CONFIG_PREFIX="$HOME/.local/share/pi-agent"
+    export npm_config_prefix="$HOME/.local/share/pi-agent"
+    export PATH="$HOME/.nix-profile/bin:$HOME/.local/share/pi-agent/bin:$PATH"
+    export PI_PACKAGE_DIR="$HOME/.local/share/pi-agent/lib/node_modules/@mariozechner/pi-coding-agent"
+    exec "$HOME/.local/share/pi-agent/bin/pi" "$@"
+  '';
+
+install-pi = pkgs.writeShellScriptBin "install-pi" ''
+    set -euo pipefail
+
+    echo ">> Preparing isolated environment at $HOME/.local/share/pi-agent..."
+    
+    export NPM_CONFIG_PREFIX="$HOME/.local/share/pi-agent"
+    export PATH="$HOME/.nix-profile/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
+    
+    # Clean first
+    rm -rf "$NPM_CONFIG_PREFIX"
+    mkdir -p "$NPM_CONFIG_PREFIX"
+
+    echo ">> Installing pi-coding-agent..."
+    # Use --prefix to install to our target directory
+    npm install -g --prefix "$NPM_CONFIG_PREFIX" @mariozechner/pi-coding-agent
+
+    # Fix: copy the actual pi binary to our bin (npm installs to lib/, we need bin/)
+    if [ -f "$NPM_CONFIG_PREFIX/lib/node_modules/@mariozechner/pi-coding-agent/bin/pi" ]; then
+      cp "$NPM_CONFIG_PREFIX/lib/node_modules/@mariozechner/pi-coding-agent/bin/pi" "$NPM_CONFIG_PREFIX/bin/pi"
+    fi
+
+    # Install declared packages
+    ${lib.optionalString (cfg.piPackages != []) ''
+      echo ">> Installing declared packages..."
+      ${lib.concatMapStrings (pkg: ''
+        echo " > Adding ${pkg}..."
+        "$NPM_CONFIG_PREFIX/bin/pi" install npm:${pkg} || true
+      '') cfg.piPackages}
+    ''}
+
+    echo ">> Build complete."
+    echo ">> To add packages: pi install npm:<package-name>"
+  '';
+
+  uninstall-pi = pkgs.writeShellScriptBin "uninstall-pi" ''
+    set -euo pipefail
+    
+    echo ">> Cleaning pi-agent install..."
+    
+    read -p "Remove $HOME/.local/share/pi-agent? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Cancelled."
+      exit 0
+    fi
+    
+    if [ -d "$HOME/.local/share/pi-agent" ]; then
+      echo ">> Removing $HOME/.local/share/pi-agent..."
+      rm -rf "$HOME/.local/share/pi-agent"
+    fi
+
+    echo ">> Clean complete."
+  '';
+
+  # Legacy - kept for reference but not used
+  piDataDir = "''${config.home.homeDirectory}/.local/share/pi-agent";
 in
 {
   options.suites.ai-apps = {
@@ -873,49 +973,19 @@ in
       (alien.mkEntry cfg.grabcontext "grabcontext" grabcontext)
       (alien.mkEntry cfg.opencode "opencode" pkgs.opencode)
       (alien.mkEntry cfg.copilot "github-copilot-cli" pkgs.github-copilot-cli)
-    ] ++ (lib.optional cfg.opencode graphifyBootstrap)
+] ++ (lib.optional cfg.opencode install-graphify)
       ++ (lib.optionals cfg.pi [
         pkgs.nodejs
-        (pkgs.writeShellScriptBin "pi-update" ''
-          set -euo pipefail
-          export NPM_CONFIG_PREFIX="''${XDG_DATA_HOME:-$HOME/.local/share}/npm-global"
-          echo "Updating pi via npm..."
-          ${pkgs.nodejs}/bin/npm install -g --no-fund --no-audit --loglevel=error @mariozechner/pi-coding-agent
-          echo "Done. Version: $(pi --version)"
-        '')
-      ]);
+        install-pi
+        uninstall-pi
+        pi-launcher
+      ])
+      ++ (lib.optional cfg.opencode uninstall-graphify);
 
-    home.sessionVariables = lib.mkIf cfg.pi {
-      NPM_CONFIG_PREFIX = "${config.home.homeDirectory}/.local/share/npm-global";
-      PI_PACKAGE_DIR = "${config.home.homeDirectory}/.local/share/npm-global/lib/node_modules/@mariozechner/pi-coding-agent";
-    };
-
-    home.sessionPath = lib.mkIf cfg.pi [
-      "${config.home.homeDirectory}/.local/share/npm-global/bin"
+    # Make build/clean scripts immediately usable
+    home.sessionPath = [
+      "${config.home.homeDirectory}/.local/bin"
     ];
-
-    home.activation.installPi = lib.mkIf cfg.pi (lib.hm.dag.entryAfter ["writeBoundary"] ''
-      export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
-      export PI_PACKAGE_DIR="$HOME/.local/share/npm-global/lib/node_modules/@mariozechner/pi-coding-agent"
-      export PATH="${pkgs.nodejs}/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
-      mkdir -p "$NPM_CONFIG_PREFIX/bin"
-      # Keep npm symlink up to date so pi install/update can find it
-      ln -sf "${pkgs.nodejs}/bin/npm" "$NPM_CONFIG_PREFIX/bin/npm"
-      if [ ! -x "$NPM_CONFIG_PREFIX/bin/pi" ]; then
-        echo "Installing pi via npm..."
-        ${pkgs.nodejs}/bin/npm install -g --no-fund --no-audit --loglevel=error @mariozechner/pi-coding-agent
-      fi
-      _PI="$NPM_CONFIG_PREFIX/bin/pi"
-      ${lib.optionalString (cfg.piPackages != []) ''
-        _PI_INSTALLED=$("$_PI" list 2>/dev/null || true)
-        ${lib.concatMapStrings (pkg: ''
-          if ! echo "$_PI_INSTALLED" | grep -qF "npm:${pkg}"; then
-            echo "Installing pi package: ${pkg}"
-            "$_PI" install npm:${pkg} || true
-          fi
-        '') cfg.piPackages}
-      ''}
-    '');
 
     home.file.".grabcontext" = lib.mkIf cfg.grabcontext {
       text = ''
@@ -964,16 +1034,12 @@ in
       '';
     };
 
-    home.activation.setupGraphifyForOpenCode = lib.mkIf cfg.opencode (lib.hm.dag.entryAfter ["writeBoundary"] ''
-      BOOTSTRAP="${graphifyBootstrap}/bin/graphify-bootstrap"
-      GRAPHIFY_BIN="''${XDG_BIN_HOME:-$HOME/.local/bin}/graphify"
-
-      if [ ! -x "$GRAPHIFY_BIN" ] && [ -x "$BOOTSTRAP" ]; then
-        "$BOOTSTRAP"
-      fi
-
-      if [ -x "$GRAPHIFY_BIN" ]; then
-        "$GRAPHIFY_BIN" install --platform opencode || true
+    home.activation.graphifyCheck = lib.mkIf cfg.opencode (lib.hm.dag.entryAfter ["writeBoundary"] ''
+      GRAPHIFY_BIN="$HOME/.local/bin/graphify"
+      if [ ! -x "$GRAPHIFY_BIN" ]; then
+        echo "graphify not found. Run 'install-graphify' to install."
+      else
+        echo "graphify ready. Run 'graphify' to generate knowledge graphs."
       fi
     '');
 

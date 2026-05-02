@@ -42,12 +42,16 @@ in
       flameshot = true;
   };
 
-  suites.ai-apps = {
+suites.ai-apps = {
       enable = true;
       opencode = true;
       grabcontext = true;
       pi = true;
-  };
+      # Inherits piPackages from priv home.nix, extend here if needed:
+      # piPackages = (import ../home.nix { }).suites.ai-apps.piPackages ++ [ "extra-pkg" ];
+    };
+
+  features.quarkdown.enable = false;
 
   # Optimized llama.cpp for RTX 5080 (Blackwell sm_120) + Zen 5
   # Using master branch for latest NVFP4 support

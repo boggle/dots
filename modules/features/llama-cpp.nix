@@ -3,20 +3,22 @@
 let
   cfg = config.features.llama-cpp;
   
+  # Fixed install directory
   installDir = "$HOME/.local/share/llama-cpp-chromaden";
   
   # Generate the cmake command with all flags
   cmakeCommand = lib.concatStringsSep " " (map (f: "'" + lib.escape ["'"] f + "'") cfg.cmakeFlags);
   
-  # Build command - run once manually
-  buildCommand = pkgs.writeShellScriptBin "build-llama-cpp" ''
+  # Install command - run once manually
+  installCommand = pkgs.writeShellScriptBin "install-llama-cpp" ''
     set -e
     
-    INSTALL_DIR="${installDir}"
+    INSTALL_DIR="$HOME/.local/share/llama-cpp-chromaden"
     BUILD_DIR="$INSTALL_DIR/build"
     
-    # Nixpkgs OpenBLAS paths (avoid GLIBC mismatch with system OpenBLAS)
-    OPENBLAS_PATH="${pkgs.openblas}"
+    # Use system paths
+    OPENBLAS_PATH="/opt/aocl/gcc"
+    CUDA_HOME="/opt/cuda"
     
     mkdir -p "$INSTALL_DIR/bin"
     mkdir -p "$BUILD_DIR"
@@ -107,8 +109,36 @@ EOF
     echo "Build files preserved at: $BUILD_DIR"
     echo ""
     echo "Set capabilities for GPU memory locking:"
-    echo "  sudo setcap 'cap_ipc_lock=+ep' ${installDir}/bin/llama-cli.wrapped"
-    echo "  sudo setcap 'cap_ipc_lock=+ep' ${installDir}/bin/llama-server.wrapped"
+    echo "  sudo setcap 'cap_ipc_lock=+ep' $HOME/.local/share/llama-cpp-chromaden/bin/llama-cli.wrapped"
+    echo "  sudo setcap 'cap_ipc_lock=+ep' $HOME/.local/share/llama-cpp-chromaden/bin/llama-server.wrapped"
+  '';
+
+  uninstall-llama-cpp = pkgs.writeShellScriptBin "uninstall-llama-cpp" ''
+    set -euo pipefail
+    
+    INSTALL_DIR="$HOME/.local/share/llama-cpp-chromaden"
+    BUILD_DIR="$INSTALL_DIR/build"
+    
+    echo ">> Cleaning llama.cpp build for chromaden..."
+    
+    read -p "Remove build directory ($BUILD_DIR)? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Cancelled."
+      exit 0
+    fi
+    
+    if [ -d "$BUILD_DIR" ]; then
+      echo ">> Removing build directory..."
+      rm -rf "$BUILD_DIR"
+    fi
+    
+    if [ -d "$INSTALL_DIR" ]; then
+      echo ">> Removing install directory..."
+      rm -rf "$INSTALL_DIR"
+    fi
+    
+    echo ">> Clean complete."
   '';
 
 in {
@@ -168,12 +198,14 @@ in {
 
   config = lib.mkIf cfg.enable {
     home.packages = [ 
-      buildCommand
+      installCommand
+      uninstall-llama-cpp
       pkgs.python313Packages.huggingface-hub  # Provides 'hf' command
     ];
 
     home.sessionPath = [ 
-      "${installDir}/bin"
+      "${config.home.homeDirectory}/.local/bin"
+      "$HOME/.local/share/llama-cpp-chromaden/bin"
       "/opt/cuda/bin"
     ];
 
@@ -215,7 +247,7 @@ in {
     '';
 
     home.activation.checkLlamaCpp = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      if [ ! -f "${installDir}/bin/llama-server" ]; then
+      if [ ! -f "$HOME/.local/share/llama-cpp-chromaden/bin/llama-server" ]; then
         $DRY_RUN_CMD echo "⚠️  llama-cpp not built yet. Run: build-llama-cpp"
       fi
     '';

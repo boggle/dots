@@ -48,6 +48,29 @@
     backend = graphicalBackend;
   };
 
+  # Common AI Apps configuration
+  suites.ai-apps = {
+    enable = true;
+    opencode = true;
+    grabcontext = true;
+    # Default pi packages - hosts extend with ++
+    piPackages = [
+      "pi-btw"
+      "pi-subagents"
+      "context-mode"
+      "@tintinweb/pi-subagents"
+      "pi-mcp-adapter"
+      "@plannotator/pi-extension"
+      "pi-powerline-footer"
+      "pi-lens"
+      "@juicesharp/rpiv-ask-user-question"
+      "@juicesharp/rpiv-advisor"
+      "@juicesharp/rpiv-todo"
+      "@samfp/pi-memory"
+      "@juicesharp/rpiv-web-tools"
+    ];
+  };
+
   # Package-specific tuning
   features.tune = {
       enable = true;
@@ -157,12 +180,8 @@
 
   features.bookokrat = {
       enable = true;
-  };
-
-  features.quarkdown = {
-      enable = true;
-  };
-  
+    };
+   
   features.appimages = {
      enable = true;
   };
