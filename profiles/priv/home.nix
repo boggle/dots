@@ -22,6 +22,7 @@
     ../../modules/features/fonts.nix
     ../../modules/suites/pim-apps.nix
     ../../modules/features/bookokrat.nix
+    ../../modules/features/quarkdown.nix
     ../../modules/suites/gui-apps.nix
     ../../modules/suites/tui-apps.nix
     
@@ -86,7 +87,7 @@
       enable = true;
       sshAgent = true;
       gpgAgent = true;
-      gpgSsh = true;
+      gpgSsh = false;
       doggo = true;
       xh = true;
       rclone = true;
@@ -155,6 +156,10 @@
   };
 
   features.bookokrat = {
+      enable = true;
+  };
+
+  features.quarkdown = {
       enable = true;
   };
   

@@ -46,6 +46,7 @@ in
       enable = true;
       opencode = true;
       grabcontext = true;
+      pi = true;
   };
 
   # Optimized llama.cpp for RTX 5080 (Blackwell sm_120) + Zen 5

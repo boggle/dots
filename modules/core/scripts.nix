@@ -618,6 +618,6 @@
     '')
   ];
 
-  # Also ensure dots/bin is in PATH for development/testing
-  home.sessionPath = [ "$HOME/dots/bin" ];
+  # Ensure user-local and repo helper bins are on PATH
+  home.sessionPath = [ "$HOME/.local/bin" "$HOME/dots/bin" ];
 }

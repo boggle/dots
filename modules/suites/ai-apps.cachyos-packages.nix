@@ -13,6 +13,13 @@
     };
   };
 
+graphify = {
+    feature = "ai-apps";
+    packages = {
+      paru = [ "graphifyy" ];
+    };
+  };
+  
   github-copilot-cli = {
     feature = "ai-apps";
     packages = {

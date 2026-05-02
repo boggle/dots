@@ -826,6 +826,31 @@ if __name__ == "__main__":
       "--prefix PATH : ${lib.makeBinPath [ pkgs.git pkgs.iproute2 pkgs.coreutils pkgs.lsd pkgs.glow pkgs.bat pkgs.jq pkgs.delta ]}"
     ];
   } grabcontextScript;
+
+  graphifyBootstrap = pkgs.writeShellScriptBin "graphify-bootstrap" ''
+    set -euo pipefail
+
+    REPO_URL="https://github.com/safishamsi/graphify.git"
+    REPO_DIR="''${XDG_DATA_HOME:-$HOME/.local/share}/dots/graphify"
+    VENV_DIR="$REPO_DIR/.venv"
+    BIN_DIR="''${XDG_BIN_HOME:-$HOME/.local/bin}"
+
+    mkdir -p "$(dirname "$REPO_DIR")" "$BIN_DIR"
+
+    if [ ! -d "$REPO_DIR/.git" ]; then
+      ${pkgs.git}/bin/git clone --branch v3 --depth 1 "$REPO_URL" "$REPO_DIR"
+    fi
+
+    if [ ! -x "$VENV_DIR/bin/graphify" ]; then
+      ${pkgs.python3}/bin/python3 -m venv "$VENV_DIR"
+      "$VENV_DIR/bin/pip" install --upgrade pip
+      "$VENV_DIR/bin/pip" install "$REPO_DIR"
+    fi
+
+    ln -sf "$VENV_DIR/bin/graphify" "$BIN_DIR/graphify"
+
+    "$BIN_DIR/graphify" install --platform opencode || true
+  '';
 in
 {
   options.suites.ai-apps = {
@@ -834,6 +859,13 @@ in
     grabcontext = lib.mkEnableOption "grabcontext (gather code context for AI) - outputs markdown";
     opencode = lib.mkEnableOption "opencode (AI coding assistant)";
     copilot = lib.mkEnableOption "GitHub Copilot CLI";
+    pi = lib.mkEnableOption "pi (terminal coding agent - pi.dev)";
+    piPackages = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "Pi packages to auto-install via 'pi install npm:<pkg>'. Names are npm package names.";
+      example = [ "pi-web-access" "pi-btw" "@juicesharp/rpiv-todo" ];
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -841,7 +873,49 @@ in
       (alien.mkEntry cfg.grabcontext "grabcontext" grabcontext)
       (alien.mkEntry cfg.opencode "opencode" pkgs.opencode)
       (alien.mkEntry cfg.copilot "github-copilot-cli" pkgs.github-copilot-cli)
+    ] ++ (lib.optional cfg.opencode graphifyBootstrap)
+      ++ (lib.optionals cfg.pi [
+        pkgs.nodejs
+        (pkgs.writeShellScriptBin "pi-update" ''
+          set -euo pipefail
+          export NPM_CONFIG_PREFIX="''${XDG_DATA_HOME:-$HOME/.local/share}/npm-global"
+          echo "Updating pi via npm..."
+          ${pkgs.nodejs}/bin/npm install -g --no-fund --no-audit --loglevel=error @mariozechner/pi-coding-agent
+          echo "Done. Version: $(pi --version)"
+        '')
+      ]);
+
+    home.sessionVariables = lib.mkIf cfg.pi {
+      NPM_CONFIG_PREFIX = "${config.home.homeDirectory}/.local/share/npm-global";
+      PI_PACKAGE_DIR = "${config.home.homeDirectory}/.local/share/npm-global/lib/node_modules/@mariozechner/pi-coding-agent";
+    };
+
+    home.sessionPath = lib.mkIf cfg.pi [
+      "${config.home.homeDirectory}/.local/share/npm-global/bin"
     ];
+
+    home.activation.installPi = lib.mkIf cfg.pi (lib.hm.dag.entryAfter ["writeBoundary"] ''
+      export NPM_CONFIG_PREFIX="$HOME/.local/share/npm-global"
+      export PI_PACKAGE_DIR="$HOME/.local/share/npm-global/lib/node_modules/@mariozechner/pi-coding-agent"
+      export PATH="${pkgs.nodejs}/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
+      mkdir -p "$NPM_CONFIG_PREFIX/bin"
+      # Keep npm symlink up to date so pi install/update can find it
+      ln -sf "${pkgs.nodejs}/bin/npm" "$NPM_CONFIG_PREFIX/bin/npm"
+      if [ ! -x "$NPM_CONFIG_PREFIX/bin/pi" ]; then
+        echo "Installing pi via npm..."
+        ${pkgs.nodejs}/bin/npm install -g --no-fund --no-audit --loglevel=error @mariozechner/pi-coding-agent
+      fi
+      _PI="$NPM_CONFIG_PREFIX/bin/pi"
+      ${lib.optionalString (cfg.piPackages != []) ''
+        _PI_INSTALLED=$("$_PI" list 2>/dev/null || true)
+        ${lib.concatMapStrings (pkg: ''
+          if ! echo "$_PI_INSTALLED" | grep -qF "npm:${pkg}"; then
+            echo "Installing pi package: ${pkg}"
+            "$_PI" install npm:${pkg} || true
+          fi
+        '') cfg.piPackages}
+      ''}
+    '');
 
     home.file.".grabcontext" = lib.mkIf cfg.grabcontext {
       text = ''
@@ -853,6 +927,55 @@ in
         HOME_LOCAL=''${config.home.homeDirectory}/.local
       '';
     };
+
+    home.file.".config/opencode/opencode.json" = lib.mkIf cfg.opencode {
+      text = builtins.toJSON {
+        "$schema" = "https://opencode.ai/config.json";
+        plugin = [
+          "${config.home.homeDirectory}/.config/opencode/plugins/graphify.js"
+        ];
+      };
+    };
+
+    home.file.".config/opencode/plugins/graphify.js" = lib.mkIf cfg.opencode {
+      text = ''
+        // graphify OpenCode plugin
+        // Injects a knowledge graph reminder before bash tool calls when the graph exists.
+        import { existsSync } from "fs";
+        import { join } from "path";
+
+        export const GraphifyPlugin = async ({ directory }) => {
+          let reminded = false;
+
+          return {
+            "tool.execute.before": async (input, output) => {
+              if (reminded) return;
+              if (!existsSync(join(directory, "graphify-out", "graph.json"))) return;
+
+              if (input.tool === "bash") {
+                output.args.command =
+                  'echo "[graphify] Knowledge graph available. Read graphify-out/GRAPH_REPORT.md for god nodes and architecture context before searching files." && ' +
+                  output.args.command;
+                reminded = true;
+              }
+            },
+          };
+        };
+      '';
+    };
+
+    home.activation.setupGraphifyForOpenCode = lib.mkIf cfg.opencode (lib.hm.dag.entryAfter ["writeBoundary"] ''
+      BOOTSTRAP="${graphifyBootstrap}/bin/graphify-bootstrap"
+      GRAPHIFY_BIN="''${XDG_BIN_HOME:-$HOME/.local/bin}/graphify"
+
+      if [ ! -x "$GRAPHIFY_BIN" ] && [ -x "$BOOTSTRAP" ]; then
+        "$BOOTSTRAP"
+      fi
+
+      if [ -x "$GRAPHIFY_BIN" ]; then
+        "$GRAPHIFY_BIN" install --platform opencode || true
+      fi
+    '');
 
     # Declare which alien packages are enabled
     alienPackages.enabledPackages = 

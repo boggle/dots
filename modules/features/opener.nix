@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, alien, ... }:
 
 let
   cfg = config.features.opener;
@@ -30,9 +30,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = with pkgs; 
-      lib.optionals (backend == "wayland" || backend == "x11") [ xdg-utils ]
-      ++ lib.optionals (backend == "wsl") [ wslu ];
+    home.packages = builtins.filter (p: p != null) (
+      (lib.optionals (backend == "wayland" || backend == "x11") [ pkgs.xdg-utils ])
+      ++ [ (alien.mkEntry (backend == "wsl") "wslu" null) ]
+    );
+
+    alienPackages.enabledPackages = lib.optional (backend == "wsl") "wslu";
 
     programs.bash.shellAliases = {
       ${cfg.alias} = openCmd;
