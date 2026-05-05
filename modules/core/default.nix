@@ -18,6 +18,7 @@ home.packages = with pkgs; [
     curlie                # curl with jq-like output
     psutils               # psutils
     time                  # time
+    mmv                   # mmv
         
     # --- 2. ENHANCED WORKFLOW (Modern Unix Replacements) ---
     # Tools that upgrade the interactive Bash experience
