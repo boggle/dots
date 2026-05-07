@@ -22,35 +22,36 @@ home.packages = with pkgs; [
         
     # --- 2. ENHANCED WORKFLOW (Modern Unix Replacements) ---
     # Tools that upgrade the interactive Bash experience
-    bash                  # Updated Bash shell
-    bash-completion       # Tab-completion logic
-    bash-language-server  # Editing bash scripts from helix 
-    starship              # Prompt engine
-    moor                  # General pager
-    ov                    # Pager for csv, tsv
-    lsd                   # Next-gen 'ls'
-    less                  # Standard pager
-    bat                   # 'cat' with wings
-    glow                  # Markdown renderer
-    dust                  # 'du' replacement
-    tokei                 # Code statistics
-    fastfetch             # System info fetch
-    procs                 # 'ps' replacement
-    tailspin              # Log highlighter (tspin)
-    tealdeer              # Fast 'tldr'
-    difftastic            # Semantic diff tool
-    vivid                 # LS_COLORS generator
-    gum                   # Shell script TUI components
-    fzf                   # Fuzzy finder
-    zoxide                # Smarter 'cd'
-    prettier              # Code formatter
+    bash                              # Updated Bash shell
+    bash-completion                   # Tab-completion logic
+    bash-language-server              # Editing bash scripts from helix 
+    simple-completion-language-server # snippets
+    starship                          # Prompt engine
+    moor                              # General pager
+    ov                                # Pager for csv, tsv
+    lsd                               # Next-gen 'ls'
+    less                              # Standard pager
+    bat                               # 'cat' with wings
+    glow                              # Markdown renderer
+    dust                              # 'du' replacement
+    tokei                             # Code statistics
+    fastfetch                         # System info fetch
+    procs                             # 'ps' replacement
+    tailspin                          # Log highlighter (tspin)
+    tealdeer                          # Fast 'tldr'
+    difftastic                        # Semantic diff tool
+    vivid                             # LS_COLORS generator
+    gum                               # Shell script TUI components
+    fzf                               # Fuzzy finder
+    zoxide                            # Smarter 'cd'
+    prettier                          # Code formatter
      
     # --- 3. INTERACTIVE TUI (Full-Screen Interfaces) ---
     # Tools with persistent terminal UI/dashboards
-    helix                 # Modern modal text editor
-    btop                  # Resource monitor
-    pinentry-tty          # TTY-based pinentry for GPG
-    # msgvault              # Search old email
+    helix                             # Modern modal text editor
+    btop                              # Resource monitor
+    pinentry-tty                      # TTY-based pinentry for GPG
+    # msgvault                        # Search old email
   ];
   
   home.stateVersion = "26.05"; 
