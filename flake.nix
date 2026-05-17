@@ -3,6 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    # Known-good nixpkgs revision: quarto 1.8.26 + pandoc 3.1.11.1.
+    # Current nixos-unstable ships quarto 1.9.37 which expects pandoc 3.8+,
+    # but the pandoc in the same nixpkgs is only 3.7.0.2.
+    nixpkgs-quarto-pin.url = "github:nixos/nixpkgs/15f4ee454b1dce334612fa6843b3e05cf546efab";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -21,7 +25,7 @@
     dots-local = { url = "path:../dots-local"; };
   };
 
-  outputs = { self, nixpkgs, home-manager, nur, nixgl, niri, noctalia, noctalia-qs, snippets-ls, bookokrat, dots-local, ... } @ inputs:
+  outputs = { self, nixpkgs, nixpkgs-quarto-pin, home-manager, nur, nixgl, niri, noctalia, noctalia-qs, snippets-ls, bookokrat, dots-local, ... } @ inputs:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -31,7 +35,10 @@
              doCheck = false;
            });
            external.quarkdown = prev.callPackage ./pkgs/quarkdown.nix {};
-        };
+           # Known-good pairing from pinned nixpkgs: quarto 1.8.26 + pandoc 3.1.11.1
+           quarto = inputs.nixpkgs-quarto-pin.legacyPackages.${prev.stdenv.hostPlatform.system}.quarto;
+           pandoc = inputs.nixpkgs-quarto-pin.legacyPackages.${prev.stdenv.hostPlatform.system}.pandoc;
+         };
       tuning = import ./modules/flake/package-tuning.nix { inherit lib dots-local; };
       
       # Alien package helpers (need to be available early for imports)

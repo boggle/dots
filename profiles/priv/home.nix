@@ -139,6 +139,9 @@
       steel = true;
       mkcert = true;
       caddy = true;
+      quarto = true;
+      typst = true;
+      pandoc = true;
   };
 
   suites.sixel-tools = {

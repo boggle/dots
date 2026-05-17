@@ -38,6 +38,11 @@ in
     mkcert = lib.mkEnableOption "mkcert (locally-trusted development certificates)";
     caddy = lib.mkEnableOption "caddy (modern web server with automatic HTTPS)";
 
+    # Document/Publishing tools
+    quarto = lib.mkEnableOption "quarto (scientific/technical publishing)";
+    typst = lib.mkEnableOption "typst (modern markup-based typesetting)";
+    pandoc = lib.mkEnableOption "pandoc (universal document converter)";
+
     # Other tools
     egglog = lib.mkEnableOption "egglog (e-graph toolkit)";
     steel = lib.mkEnableOption "steel (Scheme interpreter)";
@@ -65,6 +70,9 @@ in
       (lib.mkIf cfg.entr entr)
       (alien.mkEntry cfg.mkcert "mkcert" mkcert)
       (alien.mkEntry cfg.caddy "caddy" caddy)
+      (lib.mkIf cfg.quarto quarto)
+      (lib.mkIf cfg.typst typst)
+      (lib.mkIf cfg.pandoc pkgs.pandoc)
       (lib.mkIf cfg.egglog egglog)
       (lib.mkIf cfg.steel steel)
     ];
