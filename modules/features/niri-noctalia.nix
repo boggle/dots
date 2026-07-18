@@ -15,8 +15,11 @@ let
   noctaliaPkg = if useAlienNoctalia then "noctalia-shell" else inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
   noctaliaBin = if useAlienNoctalia then "qs -c noctalia-shell" else "${noctaliaPkg}/bin/noctalia-shell";
   
-  # Get niri package (use regular niri to avoid tuning conflicts)
-  niriPkg = if useAlienNiri then pkgs.niri else pkgs.niri;
+  # Get niri package (use regular niri to avoid tuning conflicts).
+  # Only referenced in the non-alien branch at the ExecStart site below, so
+  # no conditional is needed here (previously: `if useAlienNiri then pkgs.niri
+  # else pkgs.niri` - a dead/no-op conditional, both branches were identical).
+  niriPkg = pkgs.niri;
 in {
   # Import nix modules (always import, but conditionally enable)
   imports = [ inputs.niri.homeModules.niri inputs.noctalia.homeModules.default ];

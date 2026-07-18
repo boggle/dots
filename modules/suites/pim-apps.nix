@@ -6,41 +6,17 @@ in {
   options.suites.pim-apps = {
     enable = lib.mkEnableOption "Enable PIM (Personal Information Management) tools";
     
-    khal = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "khal - calendar CLI";
-    };
+    khal = lib.mkEnableOption "khal - calendar CLI";
     
-    todoman = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "todoman - todo manager for CalDAV";
-    };
+    todoman = lib.mkEnableOption "todoman - todo manager for CalDAV";
     
-    pimsync = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "pimsync - sync CalDAV/CardDAV with vdirsyncer";
-    };
+    pimsync = lib.mkEnableOption "pimsync - sync CalDAV/CardDAV with vdirsyncer";
     
-    khard = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "khard - console CardDAV client";
-    };
+    khard = lib.mkEnableOption "khard - console CardDAV client";
     
-    taskwarrior = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Taskwarrior - command line task manager";
-    };
+    taskwarrior = lib.mkEnableOption "Taskwarrior - command line task manager";
     
-    superproductivity = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "SuperProductivity - GUI todo app with timeboxing";
-    };
+    superproductivity = lib.mkEnableOption "SuperProductivity - GUI todo app with timeboxing";
   };
 
   config = lib.mkIf cfg.enable {

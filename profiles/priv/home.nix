@@ -25,6 +25,7 @@
     ../../modules/features/quarkdown.nix
     ../../modules/suites/gui-apps.nix
     ../../modules/suites/tui-apps.nix
+    ../../modules/suites/ai-apps.nix
     
     hostImport
   ];

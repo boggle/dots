@@ -193,10 +193,11 @@
           fi
       fi
       
-      echo ""
-      print_section "🔄" "Syncing handcrafted user configs..."
-      "$DOTS_DIR/sync.sh" || true
-      
+      # NOTE: sync.sh already ran automatically during the switch above, via
+      # the home.activation.syncUserConfigs hook (modules/core/dots-local.nix)
+      # - that hook fires on every activation regardless of entry point, so
+      # calling sync.sh again here was a redundant double-invocation.
+
       # Check alien packages
       echo ""
       print_section "📦" "Checking alien packages..."

@@ -2,6 +2,39 @@
 
 This document provides architecture and development guidance for AI agents working on this repository.
 
+## Memory Bank (read this first)
+
+This repository is undergoing a large, multi-phase re-architecture. Before
+making any non-trivial change, **read `memory-bank/*.md`**, at minimum:
+
+1. `memory-bank/plan.md` — the phased execution tracker with current status.
+   Find the current/next phase before starting work.
+2. `memory-bank/decisions.md` — dated decision log with rationale. Do not
+   re-litigate or silently contradict a logged decision; if you think one
+   should change, ask the user and log the outcome.
+3. `memory-bank/open-questions.md` — unresolved items that need user input
+   before proceeding on the related work.
+
+As you work:
+- Update `memory-bank/plan.md` checkboxes/status as tasks progress (mark
+  in-progress/done in real time, not batched).
+- Append new entries to `memory-bank/decisions.md` for any consequential
+  choice, and to `memory-bank/learnings.md` for gotchas/workarounds
+  discovered along the way.
+- Add anything unresolved to `memory-bank/open-questions.md` rather than
+  guessing and moving on.
+- See `memory-bank/architecture.md` for the target design and
+  `memory-bank/preserved-features-checklist.md` for the regression list that
+  must stay intact throughout.
+
+**Transitional state warning:** because this is a phased migration, this
+AGENTS.md file (describing the *current/legacy* architecture below) and
+`memory-bank/architecture.md` (describing the *target* architecture) may
+temporarily disagree — the memory bank always wins for anything already
+migrated; this file is authoritative for anything not yet touched. Update
+this file's relevant sections as each phase lands so the two never drift for
+long.
+
 ## Repository Structure
 
 ### Two-Repo Design

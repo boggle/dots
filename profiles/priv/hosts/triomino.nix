@@ -1,5 +1,5 @@
-# Laputa Machine Configuration
-# Machine-specific hardware and settings for the laputa laptop
+# Triomino Machine Configuration
+# Machine-specific hardware and settings for the triomino WSL2 host
 
 { config, pkgs, lib, ... }:
 
@@ -7,7 +7,6 @@
     
   imports = [
     ../../../modules/features/sd-switch.nix
-    ../../../modules/suites/ai-apps.nix
   ];
   
   home.packages = with pkgs; [ 
@@ -83,9 +82,9 @@
   };
   
   programs.ssh = {
-    matchBlocks."*" = {
-      identityFile = "~/.ssh/id_github_triomino";
-      addKeysToAgent = "yes";
+    settings."*" = {
+      IdentityFile = "~/.ssh/id_github_triomino";
+      AddKeysToAgent = "yes";
     };
   };
 

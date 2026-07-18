@@ -37,7 +37,11 @@ in
       echo -n -e "\e[10;440]"
      
       # --- 2. THE NIXON GATEKEEPER ---
-      [[ -f ~/.bashrc_core ]] && . ~/.bashrc_core
+      # NOTE: was previously "~/.bashrc_core" (underscore) - a typo that
+      # never matched the real file "~/.bashrc-core" (hyphen, consistent
+      # with ~/.profile-core below), so native/pre-nix bashrc content
+      # (e.g. GTK/QT theme env vars) was silently never sourced.
+      [[ -f ~/.bashrc-core ]] && . ~/.bashrc-core
       alias nixon='NIXON=1 exec bash -l'
       alias nixoff='NIXON=0 exec bash -l'
  

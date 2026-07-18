@@ -1,5 +1,5 @@
-# Laputa Machine Configuration
-# Machine-specific hardware and settings for the laputa laptop
+# Chromaden Machine Configuration
+# Machine-specific hardware and settings for the chromaden desktop
 
 { config, pkgs, lib, inputs, ... }:
 
@@ -15,7 +15,6 @@ in
     ../../../modules/features/niri-noctalia.nix
     ../../../modules/features/llama-cpp.nix
     ../../../modules/features/butterfish.nix
-    ../../../modules/suites/ai-apps.nix
     ../../../modules/suites/scanning.nix
   ];
   
@@ -103,9 +102,9 @@ suites.ai-apps = {
   };
 
   programs.ssh = {
-    matchBlocks."*" = {
-      identityFile = "~/.ssh/id_github_chromaden";
-      addKeysToAgent = "yes";
+    settings."*" = {
+      IdentityFile = "~/.ssh/id_github_chromaden";
+      AddKeysToAgent = "yes";
     };
   };
   
@@ -145,5 +144,12 @@ suites.ai-apps = {
 
   # FUSE support for AppImages
   alienPackages.enabledPackages = [ "appimages-fuse" ];
+
+  # Native fzf isn't alien-managed by any dots spec (it's provided via Nix
+  # in modules/core/default.nix instead), but other native packages here
+  # depend on it directly (`pacman -Qi fzf` -> Required By: downgrade,
+  # fontpreview) - without this, update-alien-packages's orphan detector
+  # would repeatedly flag it for removal, which would break those tools.
+  alienPackages.protectedPackages = [ "fzf" ];
 
 }

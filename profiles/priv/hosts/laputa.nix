@@ -7,6 +7,7 @@
     
   imports = [
     ../../../modules/features/sd-switch.nix
+    ../../../modules/suites/scanning.nix
   ];
   
   home.packages = with pkgs; [ 
@@ -21,6 +22,13 @@
   home.sessionVariables = {
     SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/ssh-agent.socket";
     GDK_SCALE = "1";
+  };
+
+  programs.ssh = {
+    settings."*" = {
+      IdentityFile = "~/.ssh/id_github_laputa";
+      AddKeysToAgent = "yes";
+    };
   };
 
   xdg.configFile."xdg-desktop-portal/portals.conf".text = ''
@@ -50,7 +58,7 @@
   };
 
   # Scanner support for this machine
-  features.scanning = {
+  suites.scanning = {
     enable = true;
     simple-scan = true;
     gscan2pdf = true;
