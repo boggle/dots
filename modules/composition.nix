@@ -77,6 +77,9 @@ in {
     # ai-apps: same reasoning as opener/clipboard above - referenced by
     # composition-rules.nix's `gpu == "nvidia"` rule regardless of context.
     ./suites/ai-apps.nix
+    # fonts: same reasoning again - niri-noctalia.nix (Phase 9) contributes
+    # to features.fonts.required, and niri-noctalia is itself universal.
+    ./features/fonts.nix
   ] ++ lib.optional contextExists contextFile;
 
   config = lib.mkMerge ([

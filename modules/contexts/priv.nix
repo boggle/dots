@@ -22,7 +22,9 @@ in {
     # below is context-specific now, not the import itself.
     ../../modules/suites/sixel-tools.nix
     ../../modules/features/appimages.nix
-    ../../modules/features/fonts.nix
+    # fonts.nix moved to modules/composition.nix's universal imports (Phase
+    # 9 - see its comment for why) - only the enable/base config below is
+    # context-specific now, not the import itself.
     ../../modules/suites/pim-apps.nix
     ../../modules/features/bookokrat.nix
     ../../modules/features/quarkdown.nix

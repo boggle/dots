@@ -46,6 +46,11 @@ let
     IMAGE_VIEWER="${imageViewer}"
     PDF_VIEWER="${pdfViewer}"
     VIDEO_VIEWER="${videoViewer}"
+    ENABLE_VIDEO="${lib.boolToString cfg.enableVideo}"
+    ENABLE_DIRECTORY_TREE="${lib.boolToString cfg.enableDirectoryTree}"
+    ENABLE_ARCHIVES="${lib.boolToString cfg.enableArchives}"
+    ENABLE_DATA_FORMATS="${lib.boolToString cfg.enableDataFormats}"
+    ENABLE_FZF_PICKER="${lib.boolToString cfg.enableFzfPicker}"
   '' + builtins.readFile ./viewer/v.sh);
 
 in

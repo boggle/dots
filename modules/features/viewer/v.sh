@@ -87,7 +87,7 @@ EOF
     
     # Interactive mode - no files provided, always use FZF
     if [ $# -eq 0 ]; then
-      if [ -t 0 ] && command -v $FZF_BIN >/dev/null 2>&1; then
+      if [ "$ENABLE_FZF_PICKER" = "true" ] && [ -t 0 ] && command -v $FZF_BIN >/dev/null 2>&1; then
         # Interactive file picker with preview
         $FD_BIN --type f 2>/dev/null | $FZF_BIN \
           --preview 'echo "File: {}"; echo "Size: $(stat -c%s {} 2>/dev/null || stat -f%z {} 2>/dev/null) bytes"; echo "Type: $(file -b {} 2>/dev/null)"; echo "---"; head -20 {}' \
@@ -97,7 +97,11 @@ EOF
           --header 'Select file to view (ESC to cancel)'
         exit 0
       else
-        echo "Error: No files specified and fzf not available for interactive mode" >&2
+        if [ "$ENABLE_FZF_PICKER" != "true" ]; then
+          echo "Error: No files specified (interactive picker disabled via features.viewer.enableFzfPicker)" >&2
+        else
+          echo "Error: No files specified and fzf not available for interactive mode" >&2
+        fi
         echo "Use 'v --help' for usage" >&2
         exit 1
       fi
@@ -141,7 +145,11 @@ EOF
         if [ "$CONTINUOUS_MODE" = "true" ] || [ $total -gt 1 ]; then
           echo "=== Directory: $file ==="
         fi
-        $LSD_BIN --tree "$file" | strip_ansi
+        if [ "$ENABLE_DIRECTORY_TREE" = "true" ]; then
+          $LSD_BIN --tree "$file" | strip_ansi
+        else
+          $LSD_BIN "$file" | strip_ansi
+        fi
         return $?
       fi
       
@@ -179,16 +187,19 @@ EOF
           ;;
           
         mp4|mkv|avi|mov|webm|flv|wmv|ogv|3gp)
-          if [ "$CONTINUOUS_MODE" = "true" ]; then
-            # In continuous mode, show metadata instead of playing
+          if [ "$ENABLE_VIDEO" = "true" ] && [ "$CONTINUOUS_MODE" != "true" ]; then
+            echo "Playing: $file (press 'q' to quit)"
+            $VIDEO_VIEWER --vo=sixel --profile=fast --loop-file=no --fs=no "$file" 2>/dev/null | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          else
+            # In continuous mode, or when video viewing is disabled, show
+            # metadata instead of playing
             echo "Video file: $file"
             echo "Type: $(file -b "$file" 2>/dev/null)"
             echo "Size: $(numfmt --to=iec $size)"
             echo ""
-            echo "Use 'v -p $file' or 'v <single-file>' to play interactively"
-          else
-            echo "Playing: $file (press 'q' to quit)"
-            $VIDEO_VIEWER --vo=sixel --profile=fast --loop-file=no --fs=no "$file" 2>/dev/null | strip_ansi || $BAT_BIN "$file" | strip_ansi
+            if [ "$ENABLE_VIDEO" = "true" ]; then
+              echo "Use 'v -p $file' or 'v <single-file>' to play interactively"
+            fi
           fi
           ;;
           
@@ -197,40 +208,64 @@ EOF
           ;;
           
         zip)
-          echo "Archive: $file ($(numfmt --to=iec $size))"
-          echo ""
-          unzip -l "$file" 2>/dev/null | head -20 | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          if [ "$ENABLE_ARCHIVES" = "true" ]; then
+            echo "Archive: $file ($(numfmt --to=iec $size))"
+            echo ""
+            unzip -l "$file" 2>/dev/null | head -20 | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          else
+            $BAT_BIN "$file" | strip_ansi
+          fi
           ;;
           
         tar|gz|bz2|xz|tgz|tbz2|txz)
-          echo "Archive: $file ($(numfmt --to=iec $size))"
-          echo ""
-          tar -tvf "$file" 2>/dev/null | head -30 | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          if [ "$ENABLE_ARCHIVES" = "true" ]; then
+            echo "Archive: $file ($(numfmt --to=iec $size))"
+            echo ""
+            tar -tvf "$file" 2>/dev/null | head -30 | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          else
+            $BAT_BIN "$file" | strip_ansi
+          fi
           ;;
           
         7z|rar)
-          echo "Archive: $file ($(numfmt --to=iec $size))"
-          echo ""
-          if command -v 7z >/dev/null 2>&1; then
-            7z l "$file" 2>/dev/null | head -30 | strip_ansi
-          elif command -v unrar >/dev/null 2>&1; then
-            unrar l "$file" 2>/dev/null | head -30 | strip_ansi
+          if [ "$ENABLE_ARCHIVES" = "true" ]; then
+            echo "Archive: $file ($(numfmt --to=iec $size))"
+            echo ""
+            if command -v 7z >/dev/null 2>&1; then
+              7z l "$file" 2>/dev/null | head -30 | strip_ansi
+            elif command -v unrar >/dev/null 2>&1; then
+              unrar l "$file" 2>/dev/null | head -30 | strip_ansi
+            else
+              echo "Archive viewer not available (install p7zip or unrar)"
+              $BAT_BIN "$file" | strip_ansi
+            fi
           else
-            echo "Archive viewer not available (install p7zip or unrar)"
             $BAT_BIN "$file" | strip_ansi
           fi
           ;;
           
         csv)
-          column -t -s, "$file" 2>/dev/null | $BAT_BIN --language=tsv | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          if [ "$ENABLE_DATA_FORMATS" = "true" ]; then
+            column -t -s, "$file" 2>/dev/null | $BAT_BIN --language=tsv | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          else
+            $BAT_BIN "$file" | strip_ansi
+          fi
           ;;
           
         json)
-          $JQ_BIN . "$file" 2>/dev/null | $BAT_BIN --language=json | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          if [ "$ENABLE_DATA_FORMATS" = "true" ]; then
+            $JQ_BIN . "$file" 2>/dev/null | $BAT_BIN --language=json | strip_ansi || $BAT_BIN "$file" | strip_ansi
+          else
+            $BAT_BIN "$file" | strip_ansi
+          fi
           ;;
           
         yaml|yml)
-          $BAT_BIN --language=yaml "$file" | strip_ansi
+          if [ "$ENABLE_DATA_FORMATS" = "true" ]; then
+            $BAT_BIN --language=yaml "$file" | strip_ansi
+          else
+            $BAT_BIN "$file" | strip_ansi
+          fi
           ;;
           
         log)

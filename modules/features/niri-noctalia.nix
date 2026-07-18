@@ -2,6 +2,17 @@
 
 let
   cfg = config.features.niri-noctalia;
+  # Font family names this desktop expects to be available (Phase 9 of the
+  # re-architecture wires these into features.fonts.required - see below).
+  # terminalFont ("IosevkaTerm NFM" = the Nerd Font Mono variant of Iosevka
+  # Term) is already satisfied by features.fonts.base's default
+  # nerd-fonts.iosevka-term package - no extra contribution needed, kept
+  # here purely as documentation of the dependency. uiFont ("Inter") is
+  # NOT covered by fonts.base by default, so it's actually contributed to
+  # features.fonts.required below (fonts.nix's fontconfig.defaultFonts
+  # already lists "Inter" as the preferred sansSerif font - without this,
+  # that preference silently fell through to the next entry since no
+  # package actually providing "Inter" was ever installed).
   terminalFont = "IosevkaTerm NFM";
   uiFont = "Inter";
   
@@ -317,6 +328,11 @@ in {
   config = lib.mkIf cfg.enable {
     # Declare alien packages as enabled (both are always enabled when feature is on)
     alienPackages.enabledPackages = [ "niri" "noctalia-shell" ];
+
+    # Contribute the UI font this desktop actually needs to the shared
+    # features.fonts.required extension point (see the terminalFont/uiFont
+    # comment above for the full explanation).
+    features.fonts.required = [ pkgs.inter ];
 
     # Systemd service files - use correct niri binary
     home.file.".config/systemd/user/niri.service".text = ''

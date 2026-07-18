@@ -650,11 +650,64 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
   for wait-for-x11); a final `shellcheck` pass over all extracted files.
   **Phase 8 fully complete.**
 
-## Phase 9 — Wire up dead options, close out, final docs
-- [ ] `viewer.nix`'s 5 dead options actually gate script behavior
+## Phase 9 — Wire up dead options, close out, final docs `[~] IN PROGRESS`
+- [x] `viewer.nix`'s 5 dead options actually gate script behavior
       (enableVideo, enableDirectoryTree, enableArchives, enableDataFormats,
-      enableFzfPicker)
-- [ ] `fonts.required` actually gets contributed to (e.g. by niri-noctalia)
+      enableFzfPicker). Each option now flows through as a shell variable
+      (`ENABLE_VIDEO`/`ENABLE_DIRECTORY_TREE`/`ENABLE_ARCHIVES`/
+      `ENABLE_DATA_FORMATS`/`ENABLE_FZF_PICKER`, via
+      `lib.boolToString cfg.<opt>` in the Nix preamble) and gates the
+      corresponding branch in `v.sh`: disabling `enableVideo` shows
+      metadata instead of attempting mpv playback (matching the existing
+      continuous-mode fallback, just always rather than conditionally);
+      disabling `enableDirectoryTree` drops `lsd`'s `--tree` flag (flat
+      listing instead); disabling `enableArchives` falls back to plain
+      `bat` for zip/tar/7z/rar instead of listing contents; disabling
+      `enableDataFormats` falls back to plain `bat` for csv/json/yaml
+      instead of `column`/`jq`/forced-yaml-syntax; disabling
+      `enableFzfPicker` skips straight to a clear error (rather than
+      attempting fzf) when `v` is called with no arguments.
+      Validated: full `nix build .../activationPackage` for chromaden
+      (default/enabled config); built a second, all-disabled synthetic
+      variant via direct Nix eval + `.drv` build and ran it against real
+      test files for every gate (json/csv/yaml pretty-print off -> raw
+      `bat` output confirmed; directory tree off -> flat listing
+      confirmed; zip archive off -> raw bytes through `bat` confirmed;
+      video off, both continuous AND single-file/pager mode -> metadata
+      shown, playback never attempted, confirmed); fzf-picker-off with no
+      args -> correct error message + exit 1, confirmed.
+- [x] `fonts.required` actually gets contributed to - `niri-noctalia.nix`
+      now sets `features.fonts.required = [ pkgs.inter ];` (Noctalia's UI
+      wants "Inter" per the existing but previously-dead `uiFont` binding;
+      `terminalFont`/"IosevkaTerm NFM" needs no extra contribution since
+      it's already covered by `features.fonts.base`'s default
+      `nerd-fonts.iosevka-term`). Also moved `modules/features/fonts.nix`
+      to `composition.nix`'s universal imports (same fix pattern as the
+      Phase 3 opener/clipboard/ai-apps case - `niri-noctalia.nix` is
+      itself universal, so `features.fonts.required` must be a declared
+      option regardless of which context is active, not just in
+      `contexts/priv.nix`).
+      **Found a bigger, pre-existing (not a regression from any phase of
+      this re-architecture) issue while doing this**: `features.fonts.enable`
+      has never been set to `true` anywhere, on any host, confirmed via
+      `git log -p` on the pre-Phase-2 `profiles/priv/home.nix` history -
+      the entire fonts module has always been dormant. Chromaden's fonts
+      "just work" today only by accident, via a native pacman package the
+      user installed directly (`ttf-iosevkaterm-nerd`, `Install Reason:
+      Explicitly installed`) plus `yazi`/`goverlay`'s own hard pacman
+      dependency on some nerd font. Full details and the resulting user
+      decision needed (leave off vs. turn on) logged in
+      `open-questions.md` - **deliberately did NOT flip
+      `features.fonts.enable` myself**, since that would be a new,
+      visible, live-affecting default well beyond the literal "wire up
+      required" scope of this phase.
+      Validated: `nix eval` of `config.features.fonts.required` resolves
+      to `[ inter-4.1 ]` on chromaden (real) and a synthetic
+      `profile = "work"` + `compositor = "niri"` config, and correctly to
+      `[]` on a synthetic config with niri-noctalia disabled; full
+      `nix build .../activationPackage` passes for all three (chromaden,
+      synthetic work+niri, synthetic no-compositor) - confirming the
+      universal-import fix doesn't break any context.
 - [ ] Update README.md/OVERVIEW.md/SYNC.md to match new architecture
 - [ ] Finalize `preserved-features-checklist.md`, mark everything verified
 - Validation: `(live)` final checkpoint
