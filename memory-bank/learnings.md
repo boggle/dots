@@ -355,7 +355,53 @@ Several real Nix/evalModules quirks surfaced while wiring up
     and doesn't cover when reporting confidence to the user - don't let
     "I tested it in a sandbox" imply more coverage than it actually has.
 
-14. **Chromaden's power-toggle.sh script content matched byte-for-byte**
+14. **CRITICAL, learned from a real live failure: removing a `home.file`
+    declaration is NOT the same as disabling it, when another module
+    ALSO declares the same path.** Phase 6's first live attempt failed
+    with `Permission denied` writing to `~/.bashrc`. Root cause: `nixon.nix`
+    previously `lib.mkForce`'d `home.file.".bashrc"`/`".profile"`, which WON
+    over Home Manager's own **built-in** `programs.bash` module (enabled
+    via `programs.bash.enable = true` in `flake.nix`, completely
+    independent of `nixon.nix`) - that HM module *also* declares
+    `home.file.".bashrc"` itself (that's literally the mechanism by which
+    `programs.bash.*` options become a real `~/.bashrc`). Simply *removing*
+    `nixon.nix`'s own declaration (rather than disabling the option) meant
+    HM's built-in declaration became uncontested and reclaimed the path,
+    symlinking it back into the read-only Nix store - so the new
+    `ensureDotsShellHook`'s `>> $HOME/.bashrc` append failed with EACCES,
+    since appending to a symlink into `/nix/store` is a permission error
+    by design (immutable store).
+    - **The isolated sandbox tests from earlier (fake `$HOME`, testing
+      just the hook's bash logic) could not have caught this** - they
+      never had `programs.bash`'s competing declaration in the picture at
+      all, since that only exists inside the real Nix module evaluation,
+      not in a bare bash script test. This is a real limit of "extract the
+      logic and sandbox-test it" as a validation technique: it validates
+      the logic in isolation but can't catch cross-module interactions
+      that only manifest in the full module system.
+    - **Fix**: explicit `home.file.".bashrc".enable = lib.mkForce false;`
+      (and `.profile` likewise) - not just omitting the declaration.
+      `lib.mkForce false` beats `programs.bash`'s plain `true` regardless
+      of which module set it, telling HM to skip materializing the file
+      at all. Verified this time by actually building the
+      `home-manager-files` derivation and confirming `.bashrc`/`.profile`
+      are absent from its directory listing (not just eval-checking the
+      option value) - the strongest verification short of a live switch.
+    - **General lesson for the rest of this project**: whenever "removing"
+      something Nix-managed that a *different* module might also touch
+      (not just the one you're editing), check whether merely omitting
+      your own declaration is enough, or whether you need to explicitly
+      force-disable the option - especially for options like `home.file.*`
+      that many unrelated modules (`programs.*` wrappers especially) can
+      independently declare. When in doubt, build the actual derivation
+      and inspect its real file listing, not just the option's Nix value.
+    - **Live system was NOT left broken**: the failed activation had
+      already completed HM's own file-linking before the hook step failed,
+      so `~/.bashrc`/`~/.profile` still resolved to valid (if not-yet-final)
+      content the whole time - confirmed via `readlink -f` immediately
+      after the failure, before making any further changes.
+
+15. **Chromaden's power-toggle.sh script content matched byte-for-byte**
    between the old hardcoded version and the new
    `dotsLocal.machine.display`-parametrized one (checked via `nix eval
    --raw` on the generated `home.file` text) - strong confidence the

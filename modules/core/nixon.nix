@@ -13,6 +13,21 @@ in
   home.file.".bashrc-nix".source = bashrcDerivation;
   home.file.".profile-nix".source = profileDerivation;
 
+  # CRITICAL: `programs.bash.enable = true` (set in flake.nix) makes Home
+  # Manager's OWN built-in bash module declare `home.file.".bashrc"`/
+  # `".profile"` itself, independent of anything in this file. Previously
+  # `lib.mkForce`-ing those two paths (see the old hybrid-script attrs)
+  # silently WON over HM's own declaration - once that mkForce was removed
+  # (first attempt at this phase), HM's built-in module reclaimed both
+  # paths and tried to symlink them into the (read-only) Nix store again,
+  # which made the new `ensureDotsShellHook` activation hook's `>> $HOME/
+  # .bashrc` append fail with "Permission denied" on the live system.
+  # Explicitly disabling these two `home.file` entries (rather than simply
+  # not declaring our own) tells HM to skip materializing them at all,
+  # leaving the real dotfiles genuinely alone for the hook below to manage.
+  home.file.".bashrc".enable = lib.mkForce false;
+  home.file.".profile".enable = lib.mkForce false;
+
   # .profile-dots / .bashrc-dots: the hand-authored NIXON-gatekeeper hybrid
   # script (was previously .profile/.bashrc directly, force-owning the
   # user's real dotfiles entirely). Now dots-owned files under a different

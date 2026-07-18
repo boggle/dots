@@ -456,6 +456,37 @@ etc).
   not silent data loss, since the target would no longer be a bare
   symlink after this change).
 
+### First live attempt FAILED - root cause found and fixed
+User ran `apply-dots`; activation failed with:
+`/home/pc0w/.bashrc: line 429: Permission denied`. Root cause: removing
+`nixon.nix`'s `home.file.".bashrc"`/`".profile"` declarations (rather than
+disabling them) let Home Manager's OWN **built-in** `programs.bash` module
+(enabled via `programs.bash.enable = true` in flake.nix, independent of
+nixon.nix) reclaim those two paths and try to symlink them into the
+read-only Nix store again - so by the time `ensureDotsShellHook`'s
+`>> $HOME/.bashrc` ran, `.bashrc` was (again) a symlink into
+`/nix/store`, and appending to a symlinked read-only target failed with
+EACCES. The isolated sandbox tests from before couldn't have caught this
+because they never had `programs.bash`'s own competing declaration in
+scope at all - they tested the hook's logic in isolation, not the
+interaction with HM's bash module.
+
+**Fix**: explicitly `home.file.".bashrc".enable = lib.mkForce false;` /
+`.profile` likewise, instead of just omitting the declaration - tells HM
+to skip materializing these paths entirely, regardless of what
+`programs.bash`'s own module logic wants to write there. Verified by
+building the actual `home-manager-files` derivation and confirming
+`.bashrc`/`.profile` are genuinely absent from its output (only
+`.bashrc-dots`/`.bashrc-nix`/`.profile-dots`/`.profile-nix` remain), and
+that the only remaining references to these two paths anywhere in the
+generated `activate` script are the hook's own lines.
+
+**Live system status after the failed attempt**: NOT broken - activation
+failed at the hook step, after HM's own file-linking had already
+succeeded, so `~/.bashrc`/`~/.profile` still resolved to valid (HM's
+plain, non-nixon) content the whole time. Confirmed via `readlink -f`
+before applying the fix. Awaiting a retry with the fix in place.
+
 ## Phase 7 — Script consolidation (`setup-*`) + shared bash lib `(live)`
 - [ ] Rename install-llama-cpp/uninstall-llama-cpp -> `setup-llama-cpp
       {install|remove|update}`; same for pi, graphify
