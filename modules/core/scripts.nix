@@ -146,7 +146,7 @@
       else
           nh home switch "$DOTS_DIR" -c "$PROFILE" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>&1 | tee "$BUILD_LOG"
       fi
-      result=$?
+      result=''${PIPESTATUS[0]}
 
       if [[ $result -ne 0 ]]; then
           echo ""

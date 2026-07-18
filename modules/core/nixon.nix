@@ -90,6 +90,11 @@ in
         alias fm='f() { if [ $# -eq 0 ]; then frogmouth .; else frogmouth "$@"; fi; }; f'
       fi
 
+      # Butterfish AI shell (local LLM via llama.cpp)
+      if command -v butterfish >/dev/null 2>&1; then
+        alias bf="butterfish shell -u 'http://127.0.0.1:5001/v1' -b ${pkgs.bash}/bin/bash"
+      fi
+
       # Pager & Previewer Logic
       if command -v moor >/dev/null 2>&1; then
         export PAGER="$(type -p moor)"

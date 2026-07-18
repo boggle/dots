@@ -14,6 +14,7 @@ in
     ../../../modules/features/sd-switch.nix
     ../../../modules/features/niri-noctalia.nix
     ../../../modules/features/llama-cpp.nix
+    ../../../modules/features/butterfish.nix
     ../../../modules/suites/ai-apps.nix
     ../../../modules/suites/scanning.nix
   ];
@@ -57,7 +58,6 @@ suites.ai-apps = {
   # Using master branch for latest NVFP4 support
   features.llama-cpp = {
     enable = true;
-    cudaArchitectures = "120";  # Blackwell RTX 5080
     
     # CMake flags for master branch build
     cmakeFlags = [
@@ -68,16 +68,32 @@ suites.ai-apps = {
       "-DLLAMA_CURL=ON"
       "-DGGML_CUDA=ON"
       "-DCMAKE_CUDA_ARCHITECTURES=120"
-      "-DGGML_CUDA_FORCE_MMQ=ON"
       "-DGGML_CUDA_F16=ON"
       "-DGGML_VULKAN=ON"
+      "-DGGML_CCACHE=OFF"
       "-DGGML_BLAS=ON"
       "-DGGML_BLAS_VENDOR=OpenBLAS"
       "-DBLAS_INCLUDE_DIRS=/usr/include/openblas"
       "-DBLAS_LIBRARIES=/usr/lib/libopenblas.so"
+      "-DGGML_AVX512=ON"
+      "-DGGML_AVX512_VNNI=ON"
+      "-DGGML_AVX512_BF16=ON"
+      "-DGGML_AVX512_VBMI=ON"
+      "-DGGML_FMA=ON"
+      "-DGGML_F16C=ON"
+      "-DGGML_BMI2=ON"
+      "-DGGML_LTO=ON"
+      "-DGGML_NATIVE=OFF"
       "-DCMAKE_C_FLAGS=-march=znver5 -O3"
       "-DCMAKE_CXX_FLAGS=-march=znver5 -O3"
+      "-DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++-15"
+      "-DCMAKE_CUDA_FLAGS=-Xcompiler=-march=znver5 -Xcompiler=-mtune=znver5"
     ];
+  };
+
+  # Butterfish AI shell - pulls endpoint from dots-local
+  features.butterfish = {
+    enable = true;
   };
 
   home.sessionVariables = {
