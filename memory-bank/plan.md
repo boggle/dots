@@ -15,8 +15,11 @@ unification + Debian support, + Azure Linux 4/dnf5 addendum) complete and
 committed** (`b0e9c90`, `04a1bdd`) - eval/build-validated (no Debian/Azure
 Linux hardware to live-test). **Phase 4 (`mkAppSet` helper, migrate all
 suites) complete and committed** (`157a691`) - eval/build-validated,
-byte-identical package-list regression check passed. Phase 5 (tuning
-defaults unification) not yet started.
+byte-identical package-list regression check passed. **Phase 5 (tuning
+defaults unification) complete and committed** (`b80b2c3`) -
+byte-identical resolved flags + identical derivation hash confirmed. Phase
+6 (shell bootstrap retarget) not yet started - **this one requires a live
+checkpoint**.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
