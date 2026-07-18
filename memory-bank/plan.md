@@ -1,5 +1,8 @@
 # Execution Plan
 
+Status: **Phase 0 complete and committed** (`4c39074`, "Phase 0: memory bank
++ re-architecture bugfixes"). Phase 1 (`dots-local` schema) not yet started.
+
 Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(live)` = needs a
 live `apply-dots` checkpoint on chromaden, not just `nix eval`/`nix build`.
 
