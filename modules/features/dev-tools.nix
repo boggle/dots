@@ -2,6 +2,18 @@
 
 let
   cfg = config.features.dev-tools;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  # Only the alien-managed subset (marksman/mkcert/caddy) - everything else
+  # in this feature is a plain, always-Nix-installed package with no alien
+  # counterpart, so it stays as a hand-written lib.mkIf list below.
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      marksman = { enable = cfg.marksman; pkg = pkgs.marksman; };
+      mkcert = { enable = cfg.mkcert; pkg = pkgs.mkcert; };
+      caddy = { enable = cfg.caddy; pkg = pkgs.caddy; };
+    };
+  };
 in
 {
   options.features.dev-tools = {
@@ -49,7 +61,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # Nix tooling
-    home.packages = with pkgs; builtins.filter (p: p != null) [
+    home.packages = (with pkgs; builtins.filter (p: p != null) [
       (lib.mkIf cfg.nixd nixd)
       (lib.mkIf cfg.nixd alejandra)
       (lib.mkIf cfg.rust mold)
@@ -61,25 +73,19 @@ in
       (lib.mkIf cfg.python ruff)
       (lib.mkIf cfg.uv uv)
       (lib.mkIf cfg.xml lemminx)
-      (alien.mkEntry cfg.marksman "marksman" marksman)
       (lib.mkIf cfg.snippetsLs external.snippets-ls)
       (lib.mkIf cfg.haskell ghc)
       (lib.mkIf cfg.haskell cabal-install)
       (lib.mkIf cfg.haskell stack)
       (lib.mkIf cfg.entr entr)
-      (alien.mkEntry cfg.mkcert "mkcert" mkcert)
-      (alien.mkEntry cfg.caddy "caddy" caddy)
       (lib.mkIf cfg.quarto quarto)
       (lib.mkIf cfg.typst typst)
       (lib.mkIf cfg.pandoc pkgs.pandoc)
       (lib.mkIf cfg.egglog egglog)
       (lib.mkIf cfg.steel steel)
-    ];
+    ]) ++ appSet.packages;
 
-    alienPackages.enabledPackages =
-      (lib.optional cfg.marksman "marksman") ++
-      (lib.optional cfg.mkcert "mkcert") ++
-      (lib.optional cfg.caddy "caddy");
+    alienPackages.enabledPackages = appSet.alienEnabled;
 
     # nixd config
     # NOTE: previously hardcoded "/home/${local.username}/dots" - broke if

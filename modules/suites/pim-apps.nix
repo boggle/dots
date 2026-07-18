@@ -2,6 +2,18 @@
 
 let
   cfg = config.suites.pim-apps;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      khal = { enable = cfg.khal; pkg = pkgs.khal; };
+      todoman = { enable = cfg.todoman; pkg = pkgs.todoman; };
+      pimsync = { enable = cfg.pimsync; pkg = pkgs.pimsync; };
+      khard = { enable = cfg.khard; pkg = pkgs.khard; };
+      taskwarrior = { enable = cfg.taskwarrior; pkg = pkgs.taskwarrior; };
+      superproductivity = { enable = cfg.superproductivity; pkg = pkgs.superproductivity; };
+    };
+  };
 in {
   options.suites.pim-apps = {
     enable = lib.mkEnableOption "Enable PIM (Personal Information Management) tools";
@@ -20,23 +32,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      # All PIM tools with alien support
-      (alien.mkEntry cfg.khal "khal" pkgs.khal)
-      (alien.mkEntry cfg.todoman "todoman" pkgs.todoman)
-      (alien.mkEntry cfg.pimsync "pimsync" pkgs.pimsync)
-      (alien.mkEntry cfg.khard "khard" pkgs.khard)
-      (alien.mkEntry cfg.taskwarrior "taskwarrior" pkgs.taskwarrior)
-      (alien.mkEntry cfg.superproductivity "superproductivity" pkgs.superproductivity)
-    ];
-    
+    home.packages = appSet.packages;
+
     # Declare alien packages as enabled
-    alienPackages.enabledPackages = 
-      (lib.optional cfg.khal "khal") ++
-      (lib.optional cfg.todoman "todoman") ++
-      (lib.optional cfg.pimsync "pimsync") ++
-      (lib.optional cfg.khard "khard") ++
-      (lib.optional cfg.taskwarrior "taskwarrior") ++
-      (lib.optional cfg.superproductivity "superproductivity");
+    alienPackages.enabledPackages = appSet.alienEnabled;
   };
 }

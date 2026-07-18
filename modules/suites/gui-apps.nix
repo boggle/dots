@@ -2,6 +2,57 @@
 
 let
   cfg = config.suites.gui-apps;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      # Terminal emulators
+      ghostty = { enable = cfg.ghostty; pkg = pkgs.ghostty; };
+      wezterm = { enable = cfg.wezterm; pkg = pkgs.wezterm; };
+
+      # Browsers
+      librewolf = { enable = cfg.librewolf; pkg = pkgs.librewolf; };
+      firefox = { enable = cfg.firefox; pkg = pkgs.firefox; };
+      chromium = { enable = cfg.chromium; pkg = pkgs.chromium; };
+
+      # Office
+      libreoffice = { enable = cfg.libreoffice; pkg = pkgs.libreoffice-fresh; alienName = "libreoffice-fresh"; };
+
+      # Productivity
+      vscodium = { enable = cfg.vscodium; pkg = pkgs.vscodium; };
+      keepassxc = { enable = cfg.keepassxc; pkg = pkgs.keepassxc; };
+      sublime = { enable = cfg.sublime; pkg = pkgs.sublime; };
+
+      # PDF/Documents
+      drawio = { enable = cfg.drawio; pkg = pkgs.drawio; };
+      masterpdfeditor = { enable = cfg.masterpdfeditor; pkg = pkgs.masterpdfeditor; };
+      papers = { enable = cfg.papers; pkg = pkgs.papers; };
+      pdfarranger = { enable = cfg.pdfarranger; pkg = pkgs.pdfarranger; };
+      sioyek = { enable = cfg.sioyek; pkg = pkgs.sioyek; };
+      zathura = { enable = cfg.zathura; pkg = pkgs.zathura; };
+      evince = { enable = cfg.evince; pkg = pkgs.evince; };
+      newsfeed = { enable = cfg.newsfeed; pkg = pkgs.newsflash; alienName = "newsflash"; };
+
+      # Graphics
+      gimp = { enable = cfg.gimp; pkg = pkgs.gimp-with-plugins; };
+      inkscape = { enable = cfg.inkscape; pkg = pkgs.inkscape-with-extensions; };
+      krita = { enable = cfg.krita; pkg = pkgs.krita; };
+
+      # Media
+      vlc = { enable = cfg.vlc; pkg = pkgs.vlc; };
+      ffmpeg = { enable = cfg.ffmpeg; pkg = pkgs.ffmpeg_7-full; };
+      handbrake = { enable = cfg.handbrake; pkg = pkgs.handbrake; };
+      imv = { enable = cfg.imv; pkg = pkgs.imv; };
+      amberol = { enable = cfg.amberol; pkg = pkgs.amberol; };
+
+      # Chat/Communication
+      tuba = { enable = cfg.tuba; pkg = pkgs.tuba; };
+      betterbird = { enable = cfg.betterbird; pkg = pkgs.betterbird; };
+
+      # Utils
+      flameshot = { enable = cfg.flameshot; pkg = pkgs.flameshot; };
+    };
+  };
 in
 {
   options.suites.gui-apps = {
@@ -55,84 +106,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      # Terminal emulators
-      (alien.mkEntry cfg.ghostty "ghostty" pkgs.ghostty)
-      (alien.mkEntry cfg.wezterm "wezterm" pkgs.wezterm)
-
-      # Browsers
-      (alien.mkEntry cfg.librewolf "librewolf" pkgs.librewolf)
-      (alien.mkEntry cfg.firefox "firefox" pkgs.firefox)
-      (alien.mkEntry cfg.chromium "chromium" pkgs.chromium)
-      
-      # Office
-      (alien.mkEntry cfg.libreoffice "libreoffice-fresh" pkgs.libreoffice-fresh)
-      
-      # Productivity
-      (alien.mkEntry cfg.vscodium "vscodium" pkgs.vscodium)
-      (alien.mkEntry cfg.keepassxc "keepassxc" pkgs.keepassxc)
-      (alien.mkEntry cfg.sublime "sublime" pkgs.sublime)
-
-      # PDF/Documents
-      (alien.mkEntry cfg.drawio "drawio" pkgs.drawio)
-      (alien.mkEntry cfg.masterpdfeditor "masterpdfeditor" pkgs.masterpdfeditor)
-      (alien.mkEntry cfg.papers "papers" pkgs.papers)
-      (alien.mkEntry cfg.pdfarranger "pdfarranger" pkgs.pdfarranger)
-      (alien.mkEntry cfg.sioyek "sioyek" pkgs.sioyek)
-      (alien.mkEntry cfg.zathura "zathura" pkgs.zathura)
-      (alien.mkEntry cfg.evince "evince" pkgs.evince)
-      (alien.mkEntry cfg.newsfeed "newsflash" pkgs.newsflash)
-
-      # Graphics
-      (alien.mkEntry cfg.gimp "gimp" pkgs.gimp-with-plugins)
-      (alien.mkEntry cfg.inkscape "inkscape" pkgs.inkscape-with-extensions)
-      (alien.mkEntry cfg.krita "krita" pkgs.krita)
-      
-      # Media
-      (alien.mkEntry cfg.vlc "vlc" pkgs.vlc)
-      (alien.mkEntry cfg.ffmpeg "ffmpeg" pkgs.ffmpeg_7-full)
-      (alien.mkEntry cfg.handbrake "handbrake" pkgs.handbrake)
-      (alien.mkEntry cfg.imv "imv" pkgs.imv)
-      (alien.mkEntry cfg.amberol "amberol" pkgs.amberol)
-      
-      # Chat/Communication
-      (alien.mkEntry cfg.tuba "tuba" pkgs.tuba)
-      (alien.mkEntry cfg.betterbird "betterbird" pkgs.betterbird)
-      
-      # Utils
-      (alien.mkEntry cfg.flameshot "flameshot" pkgs.flameshot)
-    ];
+    home.packages = appSet.packages;
 
     # Declare which alien packages are enabled
-    alienPackages.enabledPackages = 
-      (lib.optional cfg.ghostty "ghostty") ++
-      (lib.optional cfg.wezterm "wezterm") ++
-      (lib.optional cfg.librewolf "librewolf") ++
-      (lib.optional cfg.firefox "firefox") ++
-      (lib.optional cfg.chromium "chromium") ++
-      (lib.optional cfg.libreoffice "libreoffice-fresh") ++
-      (lib.optional cfg.vscodium "vscodium") ++
-      (lib.optional cfg.keepassxc "keepassxc") ++
-      (lib.optional cfg.sublime "sublime") ++
-      (lib.optional cfg.drawio "drawio") ++
-      (lib.optional cfg.masterpdfeditor "masterpdfeditor") ++
-      (lib.optional cfg.papers "papers") ++
-      (lib.optional cfg.pdfarranger "pdfarranger") ++
-      (lib.optional cfg.sioyek "sioyek") ++
-      (lib.optional cfg.zathura "zathura") ++
-      (lib.optional cfg.evince "evince") ++
-      (lib.optional cfg.newsfeed "newsflash") ++
-      (lib.optional cfg.gimp "gimp") ++
-      (lib.optional cfg.inkscape "inkscape") ++
-      (lib.optional cfg.krita "krita") ++
-      (lib.optional cfg.vlc "vlc") ++
-      (lib.optional cfg.ffmpeg "ffmpeg") ++
-      (lib.optional cfg.handbrake "handbrake") ++
-      (lib.optional cfg.imv "imv") ++
-      (lib.optional cfg.amberol "amberol") ++
-      (lib.optional cfg.tuba "tuba") ++
-      (lib.optional cfg.betterbird "betterbird") ++
-      (lib.optional cfg.flameshot "flameshot");
+    alienPackages.enabledPackages = appSet.alienEnabled;
 
     # Ghostty config file (using CachyOS ghostty, not programs.ghostty module)
     home.file.".config/ghostty/config" = lib.mkIf cfg.ghostty {

@@ -2,6 +2,15 @@
 
 let
   cfg = config.suites.scanning;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      "simple-scan" = { enable = cfg.simple-scan; pkg = pkgs.simple-scan; };
+      gscan2pdf = { enable = cfg.gscan2pdf; pkg = pkgs.gscan2pdf; };
+      tesseract = { enable = cfg.tesseract; pkg = pkgs.tesseract; };
+    };
+  };
 in
 {
   options.suites.scanning = {
@@ -13,16 +22,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      (alien.mkEntry cfg.simple-scan "simple-scan" pkgs.simple-scan)
-      (alien.mkEntry cfg.gscan2pdf "gscan2pdf" pkgs.gscan2pdf)
-      (alien.mkEntry cfg.tesseract "tesseract" pkgs.tesseract)
-    ];
+    home.packages = appSet.packages;
 
     # Declare which alien packages are enabled
-    alienPackages.enabledPackages = 
-      (lib.optional cfg.simple-scan "simple-scan") ++
-      (lib.optional cfg.gscan2pdf "gscan2pdf") ++
-      (lib.optional cfg.tesseract "tesseract");
+    alienPackages.enabledPackages = appSet.alienEnabled;
   };
 }

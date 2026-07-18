@@ -2,6 +2,18 @@
 
 let
   cfg = config.suites.ai-apps;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  # `appSet` is defined further down (references `grabcontext`, the
+  # derivation defined later in this same `let` block) - Nix `let` bindings
+  # are mutually recursive so definition order doesn't matter.
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      grabcontext = { enable = cfg.grabcontext; pkg = grabcontext; };
+      opencode = { enable = cfg.opencode; pkg = pkgs.opencode; };
+      copilot = { enable = cfg.copilot; pkg = pkgs.github-copilot-cli; alienName = "github-copilot-cli"; };
+    };
+  };
 
   grabcontextScript = ''
 """Gather context for AI - outputs valid GitHub-style markdown."""
@@ -969,11 +981,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      (alien.mkEntry cfg.grabcontext "grabcontext" grabcontext)
-      (alien.mkEntry cfg.opencode "opencode" pkgs.opencode)
-      (alien.mkEntry cfg.copilot "github-copilot-cli" pkgs.github-copilot-cli)
-] ++ (lib.optional cfg.opencode install-graphify)
+    home.packages = appSet.packages
+      ++ (lib.optional cfg.opencode install-graphify)
       ++ (lib.optionals cfg.pi [
         pkgs.nodejs
         install-pi
@@ -1044,9 +1053,6 @@ in
     '');
 
     # Declare which alien packages are enabled
-    alienPackages.enabledPackages = 
-      (lib.optional cfg.grabcontext "grabcontext") ++
-      (lib.optional cfg.opencode "opencode") ++
-      (lib.optional cfg.copilot "github-copilot-cli");
+    alienPackages.enabledPackages = appSet.alienEnabled;
   };
 }

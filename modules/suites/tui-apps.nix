@@ -2,6 +2,39 @@
 
 let
   cfg = config.suites.tui-apps;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      # Core TUI apps
+      btop = { enable = cfg.btop; pkg = pkgs.btop; };
+      zellij = { enable = cfg.zellij; pkg = pkgs.zellij; };
+      lazygit = { enable = cfg.lazygit; pkg = pkgs.lazygit; };
+      yazi = { enable = cfg.yazi; pkg = pkgs.yazi; };
+      pass = { enable = cfg.pass; pkg = pkgs.pass; };
+      bandwhich = { enable = cfg.bandwhich; pkg = pkgs.bandwhich; };
+      vhs = { enable = cfg.vhs; pkg = pkgs.vhs; };
+      fresh = { enable = cfg.fresh; pkg = pkgs.fresh-editor; alienName = "fresh-editor"; };
+
+      # Email
+      aerc = { enable = cfg.aerc; pkg = pkgs.aerc; };
+      deltachat = { enable = cfg.deltachat; pkg = pkgs.deltachat-desktop; alienName = "deltachat-desktop"; };
+
+      # DTP
+      imagemagick = { enable = cfg.imagemagick; pkg = pkgs.imagemagick; };
+      graphviz = { enable = cfg.graphviz; pkg = pkgs.graphviz; };
+      pandoc = { enable = cfg.pandoc; pkg = pkgs.pandoc; };
+      typst = { enable = cfg.typst; pkg = pkgs.typst; };
+
+      # Network/Utils
+      gping = { enable = cfg.gping; pkg = pkgs.gping; };
+
+      # Social/Utils
+      posting = { enable = cfg.posting; pkg = pkgs.posting; };
+      frogmouth = { enable = cfg.frogmouth; pkg = pkgs.frogmouth; };
+      hledger = { enable = cfg.hledger; pkg = pkgs.hledger; };
+    };
+  };
 in
 {
   options.suites.tui-apps = {
@@ -36,35 +69,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      # Core TUI apps
-      (alien.mkEntry cfg.btop "btop" pkgs.btop)
-      (alien.mkEntry cfg.zellij "zellij" pkgs.zellij)
-      (alien.mkEntry cfg.lazygit "lazygit" pkgs.lazygit)
-      (alien.mkEntry cfg.yazi "yazi" pkgs.yazi)
-      (alien.mkEntry cfg.pass "pass" pkgs.pass)
-      (alien.mkEntry cfg.bandwhich "bandwhich" pkgs.bandwhich)
-      (alien.mkEntry cfg.vhs "vhs" pkgs.vhs)
-      (alien.mkEntry cfg.fresh "fresh-editor" pkgs.fresh-editor)
-
-      # Email
-      (alien.mkEntry cfg.aerc "aerc" pkgs.aerc)
-      (alien.mkEntry cfg.deltachat "deltachat-desktop" pkgs.deltachat-desktop)
-
-      # DTP
-      (alien.mkEntry cfg.imagemagick "imagemagick" pkgs.imagemagick)
-      (alien.mkEntry cfg.graphviz "graphviz" pkgs.graphviz)
-      (alien.mkEntry cfg.pandoc "pandoc" pkgs.pandoc)
-      (alien.mkEntry cfg.typst "typst" pkgs.typst)
-
-      # Network/Utils
-      (alien.mkEntry cfg.gping "gping" pkgs.gping)
-
-      # Social/Utils
-      (alien.mkEntry cfg.posting "posting" pkgs.posting)
-      (alien.mkEntry cfg.frogmouth "frogmouth" pkgs.frogmouth)
-      (alien.mkEntry cfg.hledger "hledger" pkgs.hledger)
-    ];
+    home.packages = appSet.packages;
 
     programs.btop = lib.mkIf cfg.btop {
       settings = {
@@ -220,24 +225,6 @@ in
     };
 
     # Declare alien packages for this suite
-    alienPackages.enabledPackages = 
-      (lib.optional cfg.btop "btop") ++
-      (lib.optional cfg.zellij "zellij") ++
-      (lib.optional cfg.lazygit "lazygit") ++
-      (lib.optional cfg.yazi "yazi") ++
-      (lib.optional cfg.pass "pass") ++
-      (lib.optional cfg.bandwhich "bandwhich") ++
-      (lib.optional cfg.vhs "vhs") ++
-      (lib.optional cfg.fresh "fresh-editor") ++
-      (lib.optional cfg.aerc "aerc") ++
-      (lib.optional cfg.deltachat "deltachat-desktop") ++
-      (lib.optional cfg.imagemagick "imagemagick") ++
-      (lib.optional cfg.graphviz "graphviz") ++
-      (lib.optional cfg.pandoc "pandoc") ++
-      (lib.optional cfg.typst "typst") ++
-      (lib.optional cfg.gping "gping") ++
-      (lib.optional cfg.posting "posting") ++
-      (lib.optional cfg.frogmouth "frogmouth") ++
-      (lib.optional cfg.hledger "hledger");
+    alienPackages.enabledPackages = appSet.alienEnabled;
   };
 }

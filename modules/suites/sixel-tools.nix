@@ -8,6 +8,20 @@ let
     buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.libsixel ];
     mesonFlags = (old.mesonFlags or [ ]) ++ [ "-Dsixel=enabled" ];
   });
+
+  # NOTE: `mpv` is deliberately NOT part of this appSet - it's handled
+  # separately below via programs.mpv with the custom sixelMpvBinary, never
+  # alien-managed.
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      chafa = { enable = cfg.chafa; pkg = pkgs.chafa; };
+      catimg = { enable = cfg.catimg; pkg = pkgs.catimg; };
+      lsix = { enable = cfg.lsix; pkg = pkgs.lsix; };
+      ytdlp = { enable = cfg.ytdlp; pkg = pkgs.yt-dlp; alienName = "yt-dlp"; };
+    };
+  };
 in
 {
   options.suites.sixel-tools = {
@@ -24,13 +38,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      (alien.mkEntry cfg.chafa "chafa" pkgs.chafa)
-      (alien.mkEntry cfg.catimg "catimg" pkgs.catimg)
-      (alien.mkEntry cfg.lsix "lsix" pkgs.lsix)
-      (alien.mkEntry cfg.ytdlp "yt-dlp" pkgs.yt-dlp)
-      pkgs.fontconfig
-    ];
+    home.packages = appSet.packages ++ [ pkgs.fontconfig ];
 
     programs.mpv = lib.mkIf cfg.mpv {
       enable = true;
@@ -57,10 +65,6 @@ in
     } // (lib.mkIf cfg.ytdlp { MPV_YTDL_EXE = "${pkgs.yt-dlp}/bin/yt-dlp"; });
 
     # Declare which alien packages are enabled
-    alienPackages.enabledPackages = 
-      (lib.optional cfg.chafa "chafa") ++
-      (lib.optional cfg.catimg "catimg") ++
-      (lib.optional cfg.lsix "lsix") ++
-      (lib.optional cfg.ytdlp "yt-dlp");
+    alienPackages.enabledPackages = appSet.alienEnabled;
   };
 }

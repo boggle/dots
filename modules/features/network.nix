@@ -2,6 +2,16 @@
 
 let
   cfg = config.features.network;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      nmap = { enable = cfg.nmap; pkg = pkgs.nmap; };
+      rclone = { enable = cfg.rclone; pkg = pkgs.rclone; };
+      doggo = { enable = cfg.doggo; pkg = pkgs.doggo; };
+      xh = { enable = cfg.xh; pkg = pkgs.xh; };
+    };
+  };
 in
 {
   options.features.network = {
@@ -22,18 +32,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      (alien.mkEntry cfg.nmap "nmap" pkgs.nmap)
-      (alien.mkEntry cfg.rclone "rclone" pkgs.rclone)
-      (alien.mkEntry cfg.doggo "doggo" pkgs.doggo)
-      (alien.mkEntry cfg.xh "xh" pkgs.xh)
-    ];
+    home.packages = appSet.packages;
 
-    alienPackages.enabledPackages =
-      (lib.optional cfg.nmap "nmap") ++
-      (lib.optional cfg.rclone "rclone") ++
-      (lib.optional cfg.doggo "doggo") ++
-      (lib.optional cfg.xh "xh");
+    alienPackages.enabledPackages = appSet.alienEnabled;
 
     programs.ssh = {
       enable = true;

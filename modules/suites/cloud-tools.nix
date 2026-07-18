@@ -2,6 +2,15 @@
 
 let
   cfg = config.suites.cloud-tools;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      github = { enable = cfg.github; pkg = pkgs.gh; alienName = "gh"; };
+      azure = { enable = cfg.azure; pkg = pkgs.azure-cli; alienName = "azure-cli"; };
+      lazydocker = { enable = cfg.lazydocker; pkg = pkgs.lazydocker; };
+    };
+  };
 in
 {
   options.suites.cloud-tools = {
@@ -13,16 +22,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = builtins.filter (p: p != null) [
-      (alien.mkEntry cfg.github "gh" pkgs.gh)
-      (alien.mkEntry cfg.azure "azure-cli" pkgs.azure-cli)
-      (alien.mkEntry cfg.lazydocker "lazydocker" pkgs.lazydocker)
-    ];
+    home.packages = appSet.packages;
 
     # Declare which alien packages are enabled
-    alienPackages.enabledPackages = 
-      (lib.optional cfg.github "gh") ++
-      (lib.optional cfg.azure "azure-cli") ++
-      (lib.optional cfg.lazydocker "lazydocker");
+    alienPackages.enabledPackages = appSet.alienEnabled;
   };
 }

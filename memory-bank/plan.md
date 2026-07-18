@@ -350,12 +350,32 @@ etc).
   individual tools). Re-validated chromaden (real) and laputa (synthetic)
   still build correctly after the opener/clipboard/ai-apps import move.
 
-## Phase 4 — `mkAppSet` helper, migrate all suites
-- [ ] Implement `modules/core/lib.nix` helper
-- [ ] Migrate gui-apps, tui-apps, pim-apps, scanning, sixel-tools,
-      cloud-tools, network, dev-tools, ai-apps
-- Validation: `nix eval` + diff `home.packages`/`alienPackages.enabledPackages`
-  before/after per suite (must be identical)
+## Phase 4 — `mkAppSet` helper, migrate all suites `[x] DONE`
+- [x] Implemented `modules/core/lib.nix`'s `mkAppSet { alien; apps; }`
+      helper - takes `apps.<name> = { enable; pkg; alienName ? name; }`,
+      returns `{ packages; alienEnabled; }`. `alienName` handles the cases
+      where the alien-spec key differs from the toggle name (e.g.
+      gui-apps.nix's `newsfeed` -> "newsflash", `libreoffice` ->
+      "libreoffice-fresh"; cloud-tools.nix's `github`/`azure` -> "gh"/
+      "azure-cli")
+- [x] Migrated all 9 target files: gui-apps.nix (26 -> the biggest win,
+      eliminated ~70 lines of repeated triples), tui-apps.nix (18),
+      pim-apps.nix (6), scanning.nix (3), sixel-tools.nix (4, `mpv`
+      deliberately excluded - handled separately via `programs.mpv` with a
+      custom sixel-enabled build, never alien-managed), cloud-tools.nix
+      (3), network.nix (4), dev-tools.nix (3 of its ~20 packages - only
+      marksman/mkcert/caddy are alien-managed, the rest are plain
+      always-Nix entries left untouched), ai-apps.nix (3: grabcontext/
+      opencode/copilot - left the ~800-line embedded Python script and the
+      pi/graphify imperative installers alone, that's Phase 8's job)
+- Validation: comprehensive before/after diff of the FULL resolved
+  `config.home.packages` (all ~120 packages across every suite/feature,
+  not just the 9 touched) and `config.alienPackages.enabledPackages`
+  (captured via `git stash`/`git stash pop` around a single `nix eval` each
+  side) - **byte-for-byte identical** both times. Also: full `nix build
+  .../activationPackage` for chromaden (real) and a re-check of the
+  laputa/work+azurelinux4 synthetic configs from Phase 2/3/addendum - all
+  still resolve correctly after the ai-apps.nix/network.nix/etc changes.
 
 ## Phase 5 — Tuning defaults unification
 - [ ] Single source of truth file (`modules/core/tune-defaults.nix`)

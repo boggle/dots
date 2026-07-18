@@ -300,7 +300,19 @@ Several real Nix/evalModules quirks surfaced while wiring up
    one that happens to be live-checkpointed) with synthetic dots-local
    copies before considering a phase done.
 
-10. **Chromaden's power-toggle.sh script content matched byte-for-byte**
+10. **Phase 4 (`mkAppSet`) validation technique: `git stash`/`git stash pop`
+    around a single `nix eval` each side, diffing the FULL resolved
+    `config.home.packages` + `config.alienPackages.enabledPackages`, not
+    per-suite.** Rather than running 9 separate before/after diffs (one
+    per migrated file), stashed all uncommitted changes at once, captured
+    the fully-original resolved package lists (sorted, JSON) for the whole
+    config, popped the stash back, captured again, diffed. Two diffs total
+    instead of nine, and it incidentally catches cross-suite interactions
+    too (e.g. if migrating one file accidentally affected another's
+    resolution via shared state). Both diffs were empty (byte-identical),
+    giving full confidence across all 9 files' migrations in one step.
+
+11. **Chromaden's power-toggle.sh script content matched byte-for-byte**
    between the old hardcoded version and the new
    `dotsLocal.machine.display`-parametrized one (checked via `nix eval
    --raw` on the generated `home.file` text) - strong confidence the
