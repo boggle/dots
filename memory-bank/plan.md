@@ -26,11 +26,11 @@ found and fixed, retry succeeded - generation 316 confirmed matching the
 validated build exactly. **Phase 7 (script consolidation + shared bash
 lib) complete and LIVE-CHECKPOINTED** - `setup-llama-cpp`/`setup-pi`/
 `setup-graphify` all live-tested on the real system (safe decline-path
-tests + a real idempotent `setup-graphify install` run). **Phase 8
-(externalize large embedded scripts) in progress**: `grabcontext` (Python),
-`viewer.nix`'s `v` script, and `clipboard.nix` done, byte-identical/
-functionally-equivalent output verified for all three; only
-niri-noctalia's helper scripts remain.
+tests + a real idempotent `setup-graphify install` run). **Phase 8 (externalize large embedded scripts)
+complete** - `grabcontext` (Python), `viewer.nix`'s `v` script,
+`clipboard.nix`, and all 4 niri-noctalia helper scripts done,
+byte-identical/functionally-equivalent output verified for all of them,
+plus a `shellcheck` pass over every extracted file.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
@@ -547,7 +547,7 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
   change across the whole config is the 6 old scripts -> 3 new ones -
   nothing else shifted.
 
-## Phase 8 — Externalize large embedded scripts `[~] IN PROGRESS`
+## Phase 8 — Externalize large embedded scripts `[x] DONE`
 - [x] `grabcontext` (~800-line embedded Python in ai-apps.nix) -> real file
       `modules/suites/ai-apps/grabcontext.py`, read via `builtins.readFile`.
       Straight extraction (no Nix interpolations in the body) - verified
@@ -608,15 +608,47 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
       against a real file - all produced correct output. Full `nix build
       .../activationPackage` for chromaden (real dots-local, `wayland`
       backend) also passes cleanly.
-- [ ] niri-noctalia helper scripts (terminal-in-current-column,
-      terminal-scratchpad-toggle, etc.) -> real files
-- Validation so far: `nix eval` + full `nix build` for chromaden (`default`
-  profile) after each extraction; direct `.drv`-path builds of the specific
-  changed package/file (old vs. new) diffed byte-for-byte where feasible;
-  functional smoke tests of the resulting scripts/binaries (including a
-  fake-receiver harness for clipboard.nix's array-based commands). Still to
-  do once niri-noctalia is done: shellcheck/pyflakes pass across all
-  extracted files, update `preserved-features-checklist.md`.
+- [x] niri-noctalia's 4 embedded helper scripts (terminal-in-current-column,
+      terminal-scratchpad-toggle, start-xwayland-satellite, wait-for-x11)
+      -> real files under `modules/features/niri-noctalia/`.
+      terminal-in-current-column/terminal-scratchpad-toggle needed no
+      variable renaming at all - their existing top-of-script local var
+      assignments (`term=`, `appid=`, `py=`, `zellij=`, etc) were already
+      exactly the natural preamble/body split point, so the preamble is
+      just those assignment lines moved into the Nix wrapper unchanged and
+      the extracted file is 100% identical to the original body.
+      start-xwayland-satellite/wait-for-x11 needed real substitution
+      (`${pkgs.xwayland-satellite}/bin/...` -> `$XWAYLAND_SATELLITE_BIN`,
+      `${pkgs.xlsclients}/bin/...` -> `$XLSCLIENTS_BIN`) since those
+      packages are invoked mid-script, not just assigned at the top.
+      Validated: built all 4 old (pre-extraction, via `git stash`) and new
+      derivations directly via `.drv` paths and diffed - whitespace-
+      normalized diffs are byte-identical for the first two, and show only
+      the expected variable substitutions (matching store paths) for the
+      latter two; `bash -n` syntax-checked all 4; functional smoke test of
+      `wait-for-x11` against a real unix socket (correctly waits, sets
+      DISPLAY, execs the passed command).
+- [x] Ran a `shellcheck -s bash` pass over every Phase 8 extracted file
+      (`v.sh`, `clipboard.sh`, all 4 niri-noctalia scripts) - only
+      pre-existing, minor style nits surfaced (unquoted `$size` in a couple
+      of `numfmt` calls, `read` without `-r`, `local x=$(cmd)` masking
+      return values, and expected `SC2154`/"referenced but not assigned"
+      false positives for the niri-noctalia files since shellcheck can't
+      see the Nix-side preamble that assigns those variables when checking
+      the fragment in isolation) - none introduced by the extraction
+      itself, left as-is (out of scope for Phase 8; Phase 8 is about
+      externalizing scripts unchanged in behavior, not a general lint
+      cleanup pass).
+- Updated `memory-bank/preserved-features-checklist.md`'s clipboard/opener/
+  viewer/niri-noctalia entries to reflect Phase 8 re-verification.
+- Validation: `nix eval` + full `nix build .../activationPackage` for
+  chromaden (`default` profile) after each extraction; direct `.drv`-path
+  builds of every specific changed package/file (old vs. new) diffed
+  byte-for-byte (or whitespace-normalized) where feasible; functional smoke
+  tests of the resulting scripts/binaries (including a fake-receiver
+  harness for clipboard.nix's array-based commands, and a real-socket test
+  for wait-for-x11); a final `shellcheck` pass over all extracted files.
+  **Phase 8 fully complete.**
 
 ## Phase 9 — Wire up dead options, close out, final docs
 - [ ] `viewer.nix`'s 5 dead options actually gate script behavior

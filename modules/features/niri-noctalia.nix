@@ -351,9 +351,14 @@ in {
       text = cfg.configText;
     };
 
-    # Helper scripts
+    # Helper scripts - the bulk of each script's logic lives in a real,
+    # static, shellcheck-able file under ./niri-noctalia/ (Phase 8 of the
+    # re-architecture - see memory-bank/architecture.md section 9,
+    # memory-bank/plan.md Phase 8). Each Nix-string preamble below resolves
+    # the Nix-level values (cfg.*/pkgs.* package paths) into plain shell
+    # variables that the static script references.
     home.packages = [
-      (pkgs.writeShellScriptBin "terminal-in-current-column" ''
+      (pkgs.writeShellScriptBin "terminal-in-current-column" (''
         #!/bin/sh
         set -eu
 
@@ -361,28 +366,9 @@ in {
         appid="${cfg.terminalAppId}"
         py="${pkgs.python3}/bin/python3"
 
-        old_id="$(niri msg -j focused-window | "$py" -c 'import sys,json; print(json.load(sys.stdin).get("id",""))')"
+      '' + builtins.readFile ./niri-noctalia/terminal-in-current-column.sh))
 
-        "$term" "$@" >/dev/null 2>&1 &
-
-        i=0
-        while [ $i -lt 80 ]; do
-          fw="$(niri msg -j focused-window 2>/dev/null || true)"
-          new_id="$(printf %s "$fw" | "$py" -c 'import sys,json; d=json.load(sys.stdin); print(d.get("id",""))')"
-          app_id="$(printf %s "$fw" | "$py" -c 'import sys,json; d=json.load(sys.stdin); print(d.get("app_id",""))')"
-
-          if [ -n "$new_id" ] && [ "$new_id" != "$old_id" ] && [ "$app_id" = "$appid" ]; then
-            break
-          fi
-
-          i=$((i + 1))
-          sleep 0.025
-        done
-
-        niri msg action consume-or-expel-window-left >/dev/null 2>&1 || true
-      '')
-      
-      (pkgs.writeShellScriptBin "terminal-scratchpad-toggle" ''
+      (pkgs.writeShellScriptBin "terminal-scratchpad-toggle" (''
         #!/bin/sh
         set -eu
 
@@ -394,86 +380,24 @@ in {
         py="${pkgs.python3}/bin/python3"
         session_name="scratchpad"
 
-        # Ensure zellij session exists (create detached if not)
-        if ! "$zellij" list-sessions 2>/dev/null | grep -q "^$session_name "; then
-          nohup env TERM="xterm-256color" "$zellij" --session "$session_name" </dev/null >/dev/null 2>&1 &
-          sleep 0.5
-        fi
+      '' + builtins.readFile ./niri-noctalia/terminal-scratchpad-toggle.sh))
 
-        # Find existing scratchpad window
-        win_json="$(niri msg -j windows 2>/dev/null | "$py" -c 'import sys,json; wins=json.load(sys.stdin); s=[w for w in wins if w.get("app_id")=="'"$scratch_app_id"'"]; print(json.dumps(s[-1]) if s else "")')" || true
-
-        if [ -n "$win_json" ]; then
-          win_id="$(printf %s "$win_json" | "$py" -c 'import sys,json; print(json.load(sys.stdin).get("id",""))')"
-          is_focused="$(printf %s "$win_json" | "$py" -c 'import sys,json; print("1" if json.load(sys.stdin).get("is_focused") else "0")')"
-          win_pid="$(printf %s "$win_json" | "$py" -c 'import sys,json; print(json.load(sys.stdin).get("pid",""))')"
-
-          if [ "$is_focused" = "1" ]; then
-            kill "$win_pid" 2>/dev/null || true
-            exit 0
-          fi
-
-          target_ws_idx="$(niri msg -j workspaces 2>/dev/null | "$py" -c 'import sys,json; ws=[w for w in json.load(sys.stdin) if w.get("is_focused")]; print(str(ws[0].get("idx","")) if ws else "")')" || target_ws_idx=""
-          
-          niri msg action focus-window --id "$win_id" 2>/dev/null || true
-          if [ -n "$target_ws_idx" ]; then
-            niri msg action move-window-to-workspace "$target_ws_idx" 2>/dev/null || true
-          fi
-          exit 0
-        fi
-
-        "$term" --class="$scratch_app_id" -e "$zellij" attach "$session_name" >/dev/null 2>&1 &
-      '')
-      
-      (pkgs.writeShellScriptBin "start-xwayland-satellite" ''
+      (pkgs.writeShellScriptBin "start-xwayland-satellite" (''
         #!/bin/sh
         set -eu
 
-        display=":0"
-        sock="/tmp/.X11-unix/X0"
+        XWAYLAND_SATELLITE_BIN="${pkgs.xwayland-satellite}/bin/xwayland-satellite"
+        XLSCLIENTS_BIN="${pkgs.xlsclients}/bin/xlsclients"
 
-        "${pkgs.xwayland-satellite}/bin/xwayland-satellite" "$display" &
-        sat_pid=$!
+      '' + builtins.readFile ./niri-noctalia/start-xwayland-satellite.sh))
 
-        ready=0
-        i=0
-        while [ $i -lt 200 ]; do
-          if [ -S "$sock" ] && DISPLAY="$display" ${pkgs.xlsclients}/bin/xlsclients >/dev/null 2>&1; then
-            ready=1
-            break
-          fi
-          i=$((i + 1))
-          sleep 0.05
-        done
-
-        if command -v systemctl >/dev/null 2>&1; then
-          if [ "$ready" -eq 1 ]; then
-            systemctl --user set-environment DISPLAY="$display" >/dev/null 2>&1 || true
-          fi
-        fi
-
-        wait "$sat_pid"
-      '')
-      
-      (pkgs.writeShellScriptBin "wait-for-x11" ''
+      (pkgs.writeShellScriptBin "wait-for-x11" (''
         #!/bin/sh
         set -eu
 
-        display=":0"
-        sock="/tmp/.X11-unix/X0"
+        XLSCLIENTS_BIN="${pkgs.xlsclients}/bin/xlsclients"
 
-        i=0
-        while [ $i -lt 200 ]; do
-          if [ -S "$sock" ] && DISPLAY="$display" ${pkgs.xlsclients}/bin/xlsclients >/dev/null 2>&1; then
-            break
-          fi
-          i=$((i + 1))
-          sleep 0.05
-        done
-
-        export DISPLAY="$display"
-        exec "$@"
-      '')
+      '' + builtins.readFile ./niri-noctalia/wait-for-x11.sh))
     ];
 
     # GTK/Qt theming - commented out, not niri/noctalia specific

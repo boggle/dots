@@ -22,7 +22,14 @@ the re-architecture. Check off once verified post-refactor (not just
       not independently re-verified this phase
 - [x] niri-noctalia desktop (chromaden: enable/terminal/renderDrmDevice all
       confirmed resolving identically via composition-rules.nix; full
-      in-session behavior not live-tested, only config resolution)
+      in-session behavior not live-tested, only config resolution).
+      Phase 8: all 4 embedded helper scripts (terminal-in-current-column,
+      terminal-scratchpad-toggle, start-xwayland-satellite, wait-for-x11)
+      externalized to `modules/features/niri-noctalia/*.sh`; re-verified
+      via before/after derivation diff (byte-identical modulo whitespace
+      and the expected inlined-path-vs-shell-variable substitutions) and
+      a functional smoke test of wait-for-x11 (correctly waits for a real
+      unix socket, sets DISPLAY, execs the passed command)
 - [x] llama-cpp CUDA/Zen5-tuned build (chromaden - cmakeFlags override via
       dots-local/host-chromaden.nix confirmed identical to the original)
 - [x] butterfish AI shell integration (chromaden: features.butterfish.enable
@@ -45,9 +52,18 @@ the re-architecture. Check off once verified post-refactor (not just
 - [ ] git feature (untouched by Phase 2, not independently re-verified)
 - [x] clipboard (`clipin`/`clipout`/`clipfile`/`teeclip`) — wsl backend
       confirmed auto-selected via the `isWsl` composition rule for
-      triomino-synthetic; wayland/x11/macos paths untouched, unaffected
-- [x] opener (`o`) — same as clipboard above
-- [ ] viewer (`v`) — untouched by Phase 2, not independently re-verified
+      triomino-synthetic; wayland/x11/macos paths untouched, unaffected.
+      Phase 8: bash logic externalized to
+      `modules/features/clipboard/clipboard.sh`; re-verified all 4
+      backends' resolved copy/paste commands (correct argv boundaries,
+      including the tricky wsl embedded-quote case) plus a full
+      functional test harness (trim/ANSI-strip/clipfile) - all correct.
+- [x] opener (`o`) — same as clipboard above (untouched by Phase 8)
+- [x] viewer (`v`) — Phase 8: bash logic externalized to
+      `modules/features/viewer/v.sh`; re-verified via before/after
+      derivation diff (byte-identical modulo the expected inlined-path-
+      vs-shell-variable substitution) and functional smoke tests
+      (`--help`, JSON/CSV formatting paths)
 - [ ] fonts feature (untouched by Phase 2, not independently re-verified)
 - [x] sd-switch (now universally imported/enabled by default=true, was
       previously per-host-import-only; confirmed still active)
