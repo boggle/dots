@@ -17,9 +17,14 @@ Linux hardware to live-test). **Phase 4 (`mkAppSet` helper, migrate all
 suites) complete and committed** (`157a691`) - eval/build-validated,
 byte-identical package-list regression check passed. **Phase 5 (tuning
 defaults unification) complete and committed** (`b80b2c3`) -
-byte-identical resolved flags + identical derivation hash confirmed. Phase
-6 (shell bootstrap retarget) not yet started - **this one requires a live
-checkpoint**.
+byte-identical resolved flags + identical derivation hash confirmed.
+**Phase 6 (shell bootstrap retarget) complete, committed, and
+LIVE-CHECKPOINTED** (`01f8568`, fix in `8b0cabc`) - first live attempt hit
+a real bug (HM's built-in `programs.bash` module reclaiming `.bashrc`/
+`.profile` once `nixon.nix`'s override was removed rather than disabled),
+found and fixed, retry succeeded - generation 316 confirmed matching the
+validated build exactly. Phase 7 (script consolidation) not yet started -
+**also requires a live checkpoint**.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
@@ -415,7 +420,7 @@ etc).
   `nix build .../activationPackage` produced the **exact same store path**
   as Phase 4's build, confirming zero derivation-level change.
 
-## Phase 6 — Shell bootstrap: retarget hybrid file only (gutter-eval KEPT) `(live)` `[x] implemented, AWAITING LIVE CHECKPOINT`
+## Phase 6 — Shell bootstrap: retarget hybrid file only (gutter-eval KEPT) `(live)` `[x] DONE, LIVE-CHECKPOINTED`
 - [x] `nixon.nix` keeps writing `.bashrc-nix`/`.profile-nix` unchanged (pure
       HM output, already correctly separated — untouched)
 - [x] `nixon.nix` now writes the NIXON-gatekeeper hybrid script to
@@ -485,7 +490,15 @@ generated `activate` script are the hook's own lines.
 failed at the hook step, after HM's own file-linking had already
 succeeded, so `~/.bashrc`/`~/.profile` still resolved to valid (HM's
 plain, non-nixon) content the whole time. Confirmed via `readlink -f`
-before applying the fix. Awaiting a retry with the fix in place.
+before applying the fix.
+
+### Retry LIVE-CHECKPOINTED SUCCESSFULLY (`8b0cabc`)
+User re-ran `apply-dots` with the fix - succeeded. Generation 316 (current)
+confirmed to match byte-for-byte the store path built and validated before
+the retry. `~/.bashrc` is now a genuine real file (not a symlink)
+containing exactly the expected sentinel comment + `.bashrc-dots` source
+line; `~/.bashrc-dots` correctly symlinked into the new generation's
+`home-manager-files`. **Phase 6 fully complete.**
 
 ## Phase 7 — Script consolidation (`setup-*`) + shared bash lib `(live)`
 - [ ] Rename install-llama-cpp/uninstall-llama-cpp -> `setup-llama-cpp
