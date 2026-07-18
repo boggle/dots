@@ -23,8 +23,11 @@ LIVE-CHECKPOINTED** (`01f8568`, fix in `8b0cabc`) - first live attempt hit
 a real bug (HM's built-in `programs.bash` module reclaiming `.bashrc`/
 `.profile` once `nixon.nix`'s override was removed rather than disabled),
 found and fixed, retry succeeded - generation 316 confirmed matching the
-validated build exactly. Phase 7 (script consolidation) not yet started -
-**also requires a live checkpoint**.
+validated build exactly. **Phase 7 (script consolidation + shared bash
+lib) complete and LIVE-CHECKPOINTED** - `setup-llama-cpp`/`setup-pi`/
+`setup-graphify` all live-tested on the real system (safe decline-path
+tests + a real idempotent `setup-graphify install` run). Phase 8
+(externalize large embedded scripts) not yet started.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
@@ -500,13 +503,46 @@ containing exactly the expected sentinel comment + `.bashrc-dots` source
 line; `~/.bashrc-dots` correctly symlinked into the new generation's
 `home-manager-files`. **Phase 6 fully complete.**
 
-## Phase 7 — Script consolidation (`setup-*`) + shared bash lib `(live)`
-- [ ] Rename install-llama-cpp/uninstall-llama-cpp -> `setup-llama-cpp
-      {install|remove|update}`; same for pi, graphify
-- [ ] Extract shared bash boilerplate (colors/header/gum-detection) into one
-      file sourced by all scripts
-- Validation: `--help`/dry-run per script; live install/remove test for at
-  least llama-cpp (actively used)
+## Phase 7 — Script consolidation (`setup-*`) + shared bash lib `(live)` `[x] DONE, LIVE-CHECKPOINTED`
+- [x] Created `modules/core/scripts/common.sh` - a real, standalone,
+      shellcheck-able bash file (not a Nix string) with the shared colors/
+      `print_header`/`print_section`/`print_error`/`log_*`/gum-detection
+      boilerplate that was previously copy-pasted independently across 5
+      places: `apply-dots`, `update-dots`, `appimage-update` (all 3 in
+      `scripts.nix`), `dots-local.nix`'s activation script, and
+      `alien-packages.nix`'s `update-alien-packages`. Each now does
+      `source` with a Nix path interpolation (embeds the file's store
+      path at build time) instead of redefining it. Minor cosmetic
+      side effect: 2 scripts had slightly different color codes for the
+      same concept (e.g. `print_header` border-foreground 62 vs 69,
+      `print_section` foreground 51 vs 99) - now unified to one look,
+      not a functional change.
+- [x] Consolidated `install-llama-cpp`/`uninstall-llama-cpp` ->
+      `setup-llama-cpp {install|remove|update}` (`update` = force
+      rebuild without the exists-already prompt, matching the old
+      `install -f` behavior)
+- [x] Consolidated `install-pi`/`uninstall-pi` -> `setup-pi
+      {install|remove|update}` (`update` identical to `install` - the
+      original always did a clean reinstall anyway, no separate "lighter"
+      update path existed to preserve)
+- [x] Consolidated `install-graphify`/`uninstall-graphify` ->
+      `setup-graphify {install|remove|update}` (`update` = force git pull
+      + venv reinstall)
+- Validation: full `nix eval`/`nix build`; ran `--help` and an
+  unknown-action error path for all 3 new `setup-*` scripts (correct
+  usage text + exit 1); **live-tested all 3 on the real system**: `setup-
+  llama-cpp remove`/`setup-pi remove`/`setup-graphify remove` each
+  correctly prompted and did nothing when declined (existing installs
+  fully intact after), and `setup-graphify install` was run for real
+  (idempotent - only clones/creates venv if missing) confirming end-to-end
+  correctness without touching the expensive llama.cpp/pi builds. Also
+  ran `apply-dots -- --dry` and `update-alien-packages --dry-run` for
+  real, confirming the shared common.sh sourcing works correctly at
+  runtime (colors/headers render correctly) for the already-Phase-7-
+  touched scripts too. Comprehensive before/after package-list diff
+  (same `git stash`/`pop` technique as Phase 4) confirms the *only*
+  change across the whole config is the 6 old scripts -> 3 new ones -
+  nothing else shifted.
 
 ## Phase 8 — Externalize large embedded scripts
 - [ ] Move grabcontext (~800-line embedded Python in ai-apps.nix), viewer.nix

@@ -16,48 +16,7 @@ in
     DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
     DOTS_LOCAL_DIR="''${DOTS_LOCAL_DIR:-$HOME/dots-local}"
 
-    # Colors
-    BLUE='\033[0;34m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    CYAN='\033[0;36m'
-    PURPLE='\033[0;35m'
-    NC='\033[0m'
-    BOLD='\033[1m'
-    
-    USE_GUM=0
-    if command -v gum >/dev/null 2>&1; then
-      USE_GUM=1
-    fi
-
-    print_header() {
-      local icon="$1"
-      local title="$2"
-      echo ""
-      if [ "$USE_GUM" -eq 1 ]; then
-        gum style --border rounded --border-foreground 62 --padding "0 1" --bold "$icon  $title"
-      else
-        echo "=============================================================="
-        echo "$title"
-        echo "=============================================================="
-      fi
-      echo ""
-    }
-
-    print_section() {
-      local icon="$1"
-      local text="$2"
-      if [ "$USE_GUM" -eq 1 ]; then
-        gum style --foreground 51 --bold "$icon $text"
-      else
-        echo -e "''${CYAN}$text''${NC}"
-      fi
-    }
-
-    BULLET="*"
-    if [ "$USE_GUM" -eq 1 ]; then
-      BULLET="•"
-    fi
+    source ${./scripts/common.sh}
     
     print_header "✦" "DOTS CONFIGURATION"
     

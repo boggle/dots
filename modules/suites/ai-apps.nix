@@ -839,65 +839,91 @@ if __name__ == "__main__":
     ];
 } grabcontextScript;
 
-  install-graphify = pkgs.writeShellScriptBin "install-graphify" ''
+  # Consolidated install-graphify/uninstall-graphify -> setup-graphify
+  # {install|remove|update} (Phase 7 of the re-architecture - see
+  # memory-bank/architecture.md section 8, memory-bank/plan.md Phase 7).
+  # "update" is the same as "install" (re-pulls if the repo already exists,
+  # via `git pull` first) since the original install script already
+  # handled "already cloned" gracefully - update just forces a pull first.
+  setup-graphify = pkgs.writeShellScriptBin "setup-graphify" ''
     set -euo pipefail
+
+    source ${../core/scripts/common.sh}
+
+    ACTION="''${1:-install}"
 
     REPO_URL="https://github.com/safishamsi/graphify.git"
     REPO_DIR="$HOME/.local/share/dots/graphify"
     VENV_DIR="$REPO_DIR/.venv"
     BIN_DIR="$HOME/.local/bin"
 
-    mkdir -p "$(dirname "$REPO_DIR")" "$BIN_DIR"
+    usage() {
+      echo "Usage: setup-graphify [install|remove|update]"
+      echo ""
+      echo "  install  Clone+install if missing, otherwise leave as-is (default)"
+      echo "  update   Pull latest + reinstall venv"
+      echo "  remove   Remove the graphify install"
+    }
 
-    if [ ! -d "$REPO_DIR/.git" ]; then
-      echo ">> Cloning graphify..."
-      git clone --branch v3 --depth 1 "$REPO_URL" "$REPO_DIR"
-    fi
+    do_install() {
+      local pull="$1"
+      mkdir -p "$(dirname "$REPO_DIR")" "$BIN_DIR"
 
-    if [ ! -x "$VENV_DIR/bin/graphify" ]; then
-      echo ">> Creating venv and installing..."
-      python3 -m venv "$VENV_DIR"
-      "$VENV_DIR/bin/pip" install --upgrade pip
-      "$VENV_DIR/bin/pip" install "$REPO_DIR"
-    fi
+      if [ ! -d "$REPO_DIR/.git" ]; then
+        log_info "Cloning graphify..."
+        git clone --branch v3 --depth 1 "$REPO_URL" "$REPO_DIR"
+      elif [ "$pull" -eq 1 ]; then
+        log_info "Pulling latest graphify..."
+        git -C "$REPO_DIR" pull
+        rm -rf "$VENV_DIR"
+      fi
 
-    ln -sf "$VENV_DIR/bin/graphify" "$BIN_DIR/graphify"
+      if [ ! -x "$VENV_DIR/bin/graphify" ]; then
+        log_info "Creating venv and installing..."
+        python3 -m venv "$VENV_DIR"
+        "$VENV_DIR/bin/pip" install --upgrade pip
+        "$VENV_DIR/bin/pip" install "$REPO_DIR"
+      fi
 
-    echo ">> Running platform install..."
-    "$BIN_DIR/graphify" install --platform opencode || true
+      ln -sf "$VENV_DIR/bin/graphify" "$BIN_DIR/graphify"
 
-    echo ">> Install complete. Run 'graphify' to generate knowledge graphs."
+      log_info "Running platform install..."
+      "$BIN_DIR/graphify" install --platform opencode || true
+
+      log_success "Install complete. Run 'graphify' to generate knowledge graphs."
+    }
+
+    do_remove() {
+      log_info "Cleaning graphify install..."
+
+      read -p "Remove $REPO_DIR? (y/N) " -n 1 -r
+      echo
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Cancelled."
+        exit 0
+      fi
+
+      if [ -d "$REPO_DIR" ]; then
+        log_info "Removing $REPO_DIR..."
+        rm -rf "$REPO_DIR"
+      fi
+
+      if [ -L "$BIN_DIR/graphify" ]; then
+        log_info "Removing symlink..."
+        rm -f "$BIN_DIR/graphify"
+      fi
+
+      log_success "Clean complete."
+    }
+
+    case "$ACTION" in
+      install) do_install 0 ;;
+      update) do_install 1 ;;
+      remove) do_remove ;;
+      --help|-h) usage ;;
+      *) log_error "Unknown action: $ACTION"; usage; exit 1 ;;
+    esac
   '';
-
-  uninstall-graphify = pkgs.writeShellScriptBin "uninstall-graphify" ''
-    set -euo pipefail
-
-    REPO_DIR="$HOME/.local/share/dots/graphify"
-    BIN_DIR="$HOME/.local/bin"
-
-    echo ">> Cleaning graphify install..."
-
-    read -p "Remove $REPO_DIR? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo "Cancelled."
-      exit 0
-    fi
-
-    if [ -d "$REPO_DIR" ]; then
-      echo ">> Removing $REPO_DIR..."
-      rm -rf "$REPO_DIR"
-    fi
-
-    if [ -L "$BIN_DIR/graphify" ]; then
-      echo ">> Removing symlink..."
-      rm -f "$BIN_DIR/graphify"
-    fi
-
-    echo ">> Clean complete."
-  '';
-
-  installGraphify = install-graphify;
 
   pi-launcher = pkgs.writeShellScriptBin "pi" ''
     export NPM_CONFIG_PREFIX="$HOME/.local/share/pi-agent"
@@ -907,58 +933,83 @@ if __name__ == "__main__":
     exec "$HOME/.local/share/pi-agent/bin/pi" "$@"
   '';
 
-install-pi = pkgs.writeShellScriptBin "install-pi" ''
+  # Consolidated install-pi/uninstall-pi -> setup-pi {install|remove|update}.
+  # "update" is identical to "install" here - the original install script
+  # already always does a clean rm -rf + reinstall, so there's no separate
+  # "lighter" update path to preserve.
+  setup-pi = pkgs.writeShellScriptBin "setup-pi" ''
     set -euo pipefail
 
-    echo ">> Preparing isolated environment at $HOME/.local/share/pi-agent..."
-    
-    export NPM_CONFIG_PREFIX="$HOME/.local/share/pi-agent"
-    export PATH="$HOME/.nix-profile/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
-    
-    # Clean first
-    rm -rf "$NPM_CONFIG_PREFIX"
-    mkdir -p "$NPM_CONFIG_PREFIX"
+    source ${../core/scripts/common.sh}
 
-    echo ">> Installing pi-coding-agent..."
-    # Use --prefix to install to our target directory
-    npm install -g --prefix "$NPM_CONFIG_PREFIX" @mariozechner/pi-coding-agent
+    ACTION="''${1:-install}"
+    NPM_CONFIG_PREFIX="$HOME/.local/share/pi-agent"
 
-    # Fix: copy the actual pi binary to our bin (npm installs to lib/, we need bin/)
-    if [ -f "$NPM_CONFIG_PREFIX/lib/node_modules/@mariozechner/pi-coding-agent/bin/pi" ]; then
-      cp "$NPM_CONFIG_PREFIX/lib/node_modules/@mariozechner/pi-coding-agent/bin/pi" "$NPM_CONFIG_PREFIX/bin/pi"
-    fi
+    usage() {
+      echo "Usage: setup-pi [install|remove|update]"
+      echo ""
+      echo "  install  Clean install/reinstall pi-coding-agent (default)"
+      echo "  update   Same as install (always reinstalls fresh)"
+      echo "  remove   Remove the pi-agent install"
+    }
 
-    # Install declared packages
-    ${lib.optionalString (cfg.piPackages != []) ''
-      echo ">> Installing declared packages..."
-      ${lib.concatMapStrings (pkg: ''
-        echo " > Adding ${pkg}..."
-        "$NPM_CONFIG_PREFIX/bin/pi" install npm:${pkg} || true
-      '') cfg.piPackages}
-    ''}
+    do_install() {
+      log_info "Preparing isolated environment at $NPM_CONFIG_PREFIX..."
 
-    echo ">> Build complete."
-    echo ">> To add packages: pi install npm:<package-name>"
-  '';
+      export NPM_CONFIG_PREFIX
+      export PATH="$HOME/.nix-profile/bin:$NPM_CONFIG_PREFIX/bin:$PATH"
 
-  uninstall-pi = pkgs.writeShellScriptBin "uninstall-pi" ''
-    set -euo pipefail
-    
-    echo ">> Cleaning pi-agent install..."
-    
-    read -p "Remove $HOME/.local/share/pi-agent? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo "Cancelled."
-      exit 0
-    fi
-    
-    if [ -d "$HOME/.local/share/pi-agent" ]; then
-      echo ">> Removing $HOME/.local/share/pi-agent..."
-      rm -rf "$HOME/.local/share/pi-agent"
-    fi
+      # Clean first
+      rm -rf "$NPM_CONFIG_PREFIX"
+      mkdir -p "$NPM_CONFIG_PREFIX"
 
-    echo ">> Clean complete."
+      log_info "Installing pi-coding-agent..."
+      # Use --prefix to install to our target directory
+      npm install -g --prefix "$NPM_CONFIG_PREFIX" @mariozechner/pi-coding-agent
+
+      # Fix: copy the actual pi binary to our bin (npm installs to lib/, we need bin/)
+      if [ -f "$NPM_CONFIG_PREFIX/lib/node_modules/@mariozechner/pi-coding-agent/bin/pi" ]; then
+        cp "$NPM_CONFIG_PREFIX/lib/node_modules/@mariozechner/pi-coding-agent/bin/pi" "$NPM_CONFIG_PREFIX/bin/pi"
+      fi
+
+      # Install declared packages
+      ${lib.optionalString (cfg.piPackages != []) ''
+        log_info "Installing declared packages..."
+        ${lib.concatMapStrings (pkg: ''
+          echo " > Adding ${pkg}..."
+          "$NPM_CONFIG_PREFIX/bin/pi" install npm:${pkg} || true
+        '') cfg.piPackages}
+      ''}
+
+      log_success "Build complete."
+      echo ">> To add packages: pi install npm:<package-name>"
+    }
+
+    do_remove() {
+      log_info "Cleaning pi-agent install..."
+
+      read -p "Remove $NPM_CONFIG_PREFIX? (y/N) " -n 1 -r
+      echo
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Cancelled."
+        exit 0
+      fi
+
+      if [ -d "$NPM_CONFIG_PREFIX" ]; then
+        log_info "Removing $NPM_CONFIG_PREFIX..."
+        rm -rf "$NPM_CONFIG_PREFIX"
+      fi
+
+      log_success "Clean complete."
+    }
+
+    case "$ACTION" in
+      install) do_install ;;
+      update) do_install ;;
+      remove) do_remove ;;
+      --help|-h) usage ;;
+      *) log_error "Unknown action: $ACTION"; usage; exit 1 ;;
+    esac
   '';
 
   # Legacy - kept for reference but not used
@@ -982,14 +1033,12 @@ in
 
   config = lib.mkIf cfg.enable {
     home.packages = appSet.packages
-      ++ (lib.optional cfg.opencode install-graphify)
+      ++ (lib.optional cfg.opencode setup-graphify)
       ++ (lib.optionals cfg.pi [
         pkgs.nodejs
-        install-pi
-        uninstall-pi
+        setup-pi
         pi-launcher
-      ])
-      ++ (lib.optional cfg.opencode uninstall-graphify);
+      ]);
 
     # Make build/clean scripts immediately usable
     home.sessionPath = [
@@ -1046,7 +1095,7 @@ in
     home.activation.graphifyCheck = lib.mkIf cfg.opencode (lib.hm.dag.entryAfter ["writeBoundary"] ''
       GRAPHIFY_BIN="$HOME/.local/bin/graphify"
       if [ ! -x "$GRAPHIFY_BIN" ]; then
-        echo "graphify not found. Run 'install-graphify' to install."
+        echo "graphify not found. Run 'setup-graphify install' to install."
       else
         echo "graphify ready. Run 'graphify' to generate knowledge graphs."
       fi

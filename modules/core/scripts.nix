@@ -28,58 +28,7 @@
       DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
       DOTS_LOCAL_DIR="''${DOTS_LOCAL_DIR:-$HOME/dots-local}"
 
-      # Colors
-      BLUE='\033[0;34m'
-      GREEN='\033[0;32m'
-      YELLOW='\033[1;33m'
-      CYAN='\033[0;36m'
-      PURPLE='\033[0;35m'
-      RED='\033[0;31m'
-      NC='\033[0m'
-      BOLD='\033[1m'
-
-      USE_GUM=0
-      if command -v gum >/dev/null 2>&1; then
-        USE_GUM=1
-      fi
-
-      print_header() {
-        local icon="$1"
-        local title="$2"
-        echo ""
-        if [ "$USE_GUM" -eq 1 ]; then
-          gum style --border rounded --border-foreground 62 --padding "0 1" --bold "$icon  $title"
-        else
-          echo "=============================================================="
-          echo "$title"
-          echo "=============================================================="
-        fi
-        echo ""
-      }
-
-      print_section() {
-        local icon="$1"
-        local text="$2"
-        if [ "$USE_GUM" -eq 1 ]; then
-          gum style --foreground 51 --bold "$icon $text"
-        else
-          echo -e "''${CYAN}$text''${NC}"
-        fi
-      }
-
-      print_error() {
-        local text="$1"
-        if [ "$USE_GUM" -eq 1 ]; then
-          gum style --foreground 196 --bold "✗ $text"
-        else
-          echo -e "''${RED}✗ $text''${NC}"
-        fi
-      }
-
-      BULLET="*"
-      if [ "$USE_GUM" -eq 1 ]; then
-        BULLET="•"
-      fi
+      source ${./scripts/common.sh}
 
       # Parse arguments: build variant (optional) followed by -- and nh args
       VARIANT=""
@@ -235,28 +184,7 @@
       DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
       DOTS_LOCAL_DIR="''${DOTS_LOCAL_DIR:-$HOME/dots-local}"
 
-      # Colors
-      BLUE='\033[0;34m'
-      GREEN='\033[0;32m'
-      YELLOW='\033[1;33m'
-      CYAN='\033[0;36m'
-      NC='\033[0m'
-      BOLD='\033[1m'
-
-      USE_GUM=0
-      if command -v gum >/dev/null 2>&1; then
-        USE_GUM=1
-      fi
-
-      print_section() {
-        local icon="$1"
-        local text="$2"
-        if [ "$USE_GUM" -eq 1 ]; then
-          gum style --foreground 99 --bold "$icon $text"
-        else
-          echo -e "''${BOLD}$text''${NC}"
-        fi
-      }
+      source ${./scripts/common.sh}
 
       # Parse arguments: input name (optional) followed by -- and nix flake update args
       INPUT_NAME=""
@@ -317,17 +245,7 @@
       DOTS_LOCAL_DIR="''${DOTS_LOCAL_DIR:-$HOME/dots-local}"
       DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
 
-      # Colors
-      GREEN='\033[0;32m'
-      YELLOW='\033[1;33m'
-      CYAN='\033[0;36m'
-      RED='\033[0;31m'
-      NC='\033[0m'
-
-      log_info() { echo -e "''${CYAN}[INFO]''${NC} $1"; }
-      log_success() { echo -e "''${GREEN}[OK]''${NC} $1"; }
-      log_warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
-      log_error() { echo -e "''${RED}[ERROR]''${NC} $1"; }
+      source ${./scripts/common.sh}
 
       # Get profile from dots-local (used below only to locate
       # profiles/$PROFILE/appimages/ - the shared/store-backed AppImages

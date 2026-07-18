@@ -85,25 +85,8 @@ in {
       
       mkdir -p "$INSTALLED_DIR" "$ORPHAN_DIR"
 
-      USE_GUM=0
-      if command -v gum >/dev/null 2>&1; then
-        USE_GUM=1
-      fi
+      source ${./scripts/common.sh}
 
-      print_header() {
-        local icon="$1"
-        local title="$2"
-        echo ""
-        if [ "$USE_GUM" -eq 1 ]; then
-          gum style --border rounded --border-foreground 69 --padding "0 1" --bold "$icon $title"
-        else
-          echo "============================================================"
-          echo "$title"
-          echo "============================================================"
-        fi
-        echo ""
-      }
-      
       # Parse arguments
       TARGET="all"
       ACTION="update"

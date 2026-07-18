@@ -6,97 +6,116 @@ let
   # Properly shell-escaped cmake flags
   cmakeFlagsEscaped = lib.escapeShellArgs cfg.cmakeFlags;
 
-  installCommand = pkgs.writeShellScriptBin "install-llama-cpp" ''
+  # Consolidated install-llama-cpp/uninstall-llama-cpp -> setup-llama-cpp
+  # {install|remove|update} (Phase 7 of the re-architecture - see
+  # memory-bank/architecture.md section 8, memory-bank/plan.md Phase 7).
+  # "update" is the same build logic as "install" but skips the
+  # exists-already prompt (always pulls + rebuilds), matching what
+  # "install -f" used to do.
+  setupCommand = pkgs.writeShellScriptBin "setup-llama-cpp" ''
     set -e
-    
+
+    source ${../core/scripts/common.sh}
+
+    ACTION="''${1:-install}"
+
     INSTALL_DIR="$HOME/.local/share/llama-cpp-chromaden"
     BUILD_DIR="$INSTALL_DIR/build"
-    FORCE_REBUILD=0
-    
-    # Parse args
-    for arg in "$@"; do
-      case "$arg" in
-        -f|--force) FORCE_REBUILD=1 ;;
-      esac
-    done
-    
-    mkdir -p "$INSTALL_DIR/bin"
-    mkdir -p "$BUILD_DIR"
-    
-    cd "$BUILD_DIR"
-    
-    if [ -d "llama.cpp/.git" ]; then
-      if [[ $FORCE_REBUILD -eq 1 ]]; then
-        REPLY="y"
-      elif [ -t 0 ]; then
-        read -p "llama.cpp exists. Rebuild? (y/N) " -n 1 -r
-        echo
+
+    usage() {
+      echo "Usage: setup-llama-cpp [install|remove|update]"
+      echo ""
+      echo "  install  Clone+build if missing, prompt to rebuild if present (default)"
+      echo "  update   Force pull latest + rebuild (no prompt)"
+      echo "  remove   Remove the build and install directories"
+    }
+
+    do_build() {
+      local force_rebuild="$1"
+      mkdir -p "$INSTALL_DIR/bin"
+      mkdir -p "$BUILD_DIR"
+
+      cd "$BUILD_DIR"
+
+      if [ -d "llama.cpp/.git" ]; then
+        if [[ "$force_rebuild" -eq 1 ]]; then
+          REPLY="y"
+        elif [ -t 0 ]; then
+          read -p "llama.cpp exists. Rebuild? (y/N) " -n 1 -r
+          echo
+        else
+          log_warn "llama.cpp exists. Use 'setup-llama-cpp update' to force rebuild."
+          exit 0
+        fi
+
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          echo "Skipping build."
+          exit 0
+        fi
+        log_info "Updating llama.cpp..."
+        cd llama.cpp
+        git pull origin master
+        rm -rf build
       else
-        echo "llama.cpp exists. Use -f to force rebuild."
-        exit 0
+        log_info "Cloning llama.cpp (master branch)..."
+        git clone --depth 1 --branch master https://github.com/ggml-org/llama.cpp.git
+        cd llama.cpp
       fi
-      
-      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "Skipping build."
-        exit 0
-      fi
-      echo "Updating llama.cpp..."
-      cd llama.cpp
-      git pull origin master
-      rm -rf build
-    else
-      echo "Cloning llama.cpp (master branch)..."
-      git clone --depth 1 --branch master https://github.com/ggml-org/llama.cpp.git
-      cd llama.cpp
-    fi
-    
-    echo "Configuring with CMake..."
-    export CUDA_HOME=/opt/cuda
-    export PATH=$CUDA_HOME/bin:$PATH
-    export CC=gcc-15
-    export CXX=g++-15
-    export CUDAHOSTCXX=/usr/bin/g++-15
-    
-    # Ensure nvcc doesn't pick up system gcc-16
-    export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-15"
-    
-    cmake -B build ${cmakeFlagsEscaped}
-    
-    echo "Building (this will take 10-30 minutes)..."
-    cmake --build build --config Release -j$(nproc)
-    
-    echo "Installing..."
-    rm -f "$INSTALL_DIR/bin"/llama-*
-    cp build/bin/llama-* "$INSTALL_DIR/bin/"
-    ln -sf llama-cli "$INSTALL_DIR/bin/llama"
-    
-    # Wrapper scripts for library paths
-    for bin in "$INSTALL_DIR/bin"/llama-*; do
-      if [ -f "$bin" ] && [ ! -L "$bin" ]; then
-        mv "$bin" "$bin.wrapped"
-        cat > "$bin" << EOF
+
+      log_info "Configuring with CMake..."
+      export CUDA_HOME=/opt/cuda
+      export PATH=$CUDA_HOME/bin:$PATH
+      export CC=gcc-15
+      export CXX=g++-15
+      export CUDAHOSTCXX=/usr/bin/g++-15
+
+      # Ensure nvcc doesn't pick up system gcc-16
+      export NVCC_PREPEND_FLAGS="-ccbin /usr/bin/g++-15"
+
+      cmake -B build ${cmakeFlagsEscaped}
+
+      log_info "Building (this will take 10-30 minutes)..."
+      cmake --build build --config Release -j$(nproc)
+
+      log_info "Installing..."
+      rm -f "$INSTALL_DIR/bin"/llama-*
+      cp build/bin/llama-* "$INSTALL_DIR/bin/"
+      ln -sf llama-cli "$INSTALL_DIR/bin/llama"
+
+      # Wrapper scripts for library paths
+      for bin in "$INSTALL_DIR/bin"/llama-*; do
+        if [ -f "$bin" ] && [ ! -L "$bin" ]; then
+          mv "$bin" "$bin.wrapped"
+          cat > "$bin" << EOF
 #!/bin/bash
 export LD_LIBRARY_PATH="/opt/cuda/lib64:/usr/lib:\$LD_LIBRARY_PATH"
 exec "$bin.wrapped" "\$@"
 EOF
-        chmod +x "$bin"
-      fi
-    done
-    
-    date > "$INSTALL_DIR/.build-date"
-    echo "Build complete."
-    echo "Ensure you set caps: sudo setcap 'cap_ipc_lock=+ep' $INSTALL_DIR/bin/llama-*.wrapped"
-  '';
+          chmod +x "$bin"
+        fi
+      done
 
-  uninstall-llama-cpp = pkgs.writeShellScriptBin "uninstall-llama-cpp" ''
-    set -euo pipefail
-    INSTALL_DIR="$HOME/.local/share/llama-cpp-chromaden"
-    read -p "Remove build and install directories? (y/N) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-      rm -rf "$INSTALL_DIR"
-      echo "Clean complete."
-    fi
+      date > "$INSTALL_DIR/.build-date"
+      log_success "Build complete."
+      echo "Ensure you set caps: sudo setcap 'cap_ipc_lock=+ep' $INSTALL_DIR/bin/llama-*.wrapped"
+    }
+
+    do_remove() {
+      read -p "Remove build and install directories? (y/N) " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Yy]$ ]]; then
+        rm -rf "$INSTALL_DIR"
+        log_success "Clean complete."
+      fi
+    }
+
+    case "$ACTION" in
+      install) do_build 0 ;;
+      update) do_build 1 ;;
+      remove) do_remove ;;
+      --help|-h) usage ;;
+      *) log_error "Unknown action: $ACTION"; usage; exit 1 ;;
+    esac
   '';
 
 in {
@@ -134,7 +153,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ installCommand uninstall-llama-cpp pkgs.python313Packages.huggingface-hub ];
+    home.packages = [ setupCommand pkgs.python313Packages.huggingface-hub ];
 
     home.sessionPath = [ 
       "${config.home.homeDirectory}/.local/bin"
