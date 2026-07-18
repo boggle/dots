@@ -1,13 +1,17 @@
+# Always-imported baseline - minimal CLI essentials shared across every
+# context (priv, work, ...). Plain text/CLI focused, no UI or hardware
+# specifics. Ported from profiles/common/home.nix (Phase 2 - see
+# memory-bank/architecture.md section 2); content unchanged, only the
+# location moved (now imported unconditionally by modules/composition.nix
+# rather than via a profile-directory chain).
 { lib, ... }:
-# Common Profile - Minimal CLI essentials shared across all profiles
-# Plain text/CLI focused, no UI or hardware specifics
 
 {
   imports = [
-    ../../modules/features/viewer.nix
-    ../../modules/features/network.nix
-    ../../modules/features/git.nix
-    ../../modules/features/dev-tools.nix
+    ../features/viewer.nix
+    ../features/network.nix
+    ../features/git.nix
+    ../features/dev-tools.nix
   ];
 
   features.tune = {

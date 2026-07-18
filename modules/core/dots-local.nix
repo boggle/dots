@@ -94,15 +94,12 @@ in
       echo ""
     fi
     
-    # Show host-specific config if detected
-    # NOTE: host files live at profiles/<profile>/hosts/<host>.nix, not
-    # modules/hosts/<host>.nix (that path never existed) - was previously
-    # checked at the wrong path, so this section never fired.
-    host="${hostOrEmpty}"
-    profile="${dotsLocal.profile}"
-    if [ -n "$host" ] && [ -f "$DOTS_DIR/profiles/$profile/hosts/$host.nix" ]; then
-      print_section "🔧" "Host-specific config:"
-      echo -e "   ''${GREEN}profiles/$profile/hosts/$host.nix''${NC}"
+    # Show resolved machine axes (Phase 2: no more per-host .nix files to
+    # check for - host-specific config is now expressed via dotsLocal
+    # fields, shown here directly instead).
+    if [ -n "${hostOrEmpty}" ]; then
+      print_section "🔧" "Machine axes:"
+      echo -e "   ''${GREEN}gpu:''${NC} ${if dotsLocal.gpu != null then dotsLocal.gpu else "none"}  ''${GREEN}compositor:''${NC} ${if dotsLocal.compositor != null then dotsLocal.compositor else "none"}  ''${GREEN}isWsl:''${NC} ${if dotsLocal.isWsl then "yes" else "no"}"
       echo ""
     fi
     

@@ -1,18 +1,22 @@
+# "priv" context bundle - personal Linux environment.
+#
+# Ported from profiles/priv/home.nix (Phase 2 of the re-architecture - see
+# memory-bank/architecture.md section 2). The only thing removed from the
+# original is the `hostImport`/per-host directory logic: host-specific
+# config no longer requires a dedicated profiles/priv/hosts/<hostname>.nix
+# file to exist in `dots` - it's now expressed via dotsLocal fields
+# (machine.*, gpu, compositor, ...), composition-rules.nix, and (for truly
+# bespoke needs) dotsLocal.extraModules. See
+# memory-bank/preserved-features-checklist.md for the migration-verification
+# checklist and the per-host migration notes for what moved where.
 { pkgs, lib, dotsLocal, ... }:
-  # Priv Profile - Personal Linux Environment
 
-  let
-    hostname = dotsLocal.host;
-    enableGuiDefaults = dotsLocal.enableGuiDefaults;
-    graphicalBackend = dotsLocal.graphicalBackend;
-    hostImport = if hostname != null 
-      then ./hosts/${hostname}.nix
-      else null;
-  in {
-  
-  imports = lib.filter (x: x != null) [
-    ../common/home.nix
-    
+let
+  enableGuiDefaults = dotsLocal.enableGuiDefaults;
+  graphicalBackend = dotsLocal.graphicalBackend;
+in {
+
+  imports = [
     ../../modules/features/opener.nix
     ../../modules/features/clipboard.nix
     ../../modules/suites/sixel-tools.nix
@@ -24,15 +28,7 @@
     ../../modules/suites/gui-apps.nix
     ../../modules/suites/tui-apps.nix
     ../../modules/suites/ai-apps.nix
-    
-    hostImport
   ];
-
-  # NOTE: the old `validBackend`/assertions block that manually checked
-  # `graphicalBackend` against the 4 valid values is gone - dotsLocal's
-  # schema now types `graphicalBackend` as an enum, so an invalid value is
-  # rejected at flake-evaluation time with a clear error, before this file
-  # even runs.
 
   features.opener = {
       enable = true;
@@ -50,7 +46,9 @@
     enable = true;
     opencode = true;
     grabcontext = true;
-    # Default pi packages - hosts extend with ++
+    # Default pi packages - hosts extend with ++ (via dotsLocal.extraModules
+    # if truly needed; in practice every priv host currently just inherits
+    # this list unmodified)
     piPackages = [
       "pi-btw"
       "pi-subagents"
@@ -74,23 +72,23 @@
       packages = {
         ripgrep = { enable = true; mode = "fast"; lang = "rust"; scope = "global"; };
         fd = { enable = true; mode = "fast"; lang = "rust"; scope = "global"; };
-        
+
         # tesseract = { enable = true; mode = "fast"; lang = "c"; scope = "global"; };
         # simple-scan = { enable = false; mode = "fast"; lang = "c"; scope = "global"; };
         # gscan2pdf = { enable = false; mode = "fast"; lang = "c"; scope = "global"; };
-        
+
         # Example: Wrapped scope with custom suffix (both baseline and tuned available)
         # yazi baseline on PATH, yazi-tuned available for explicit calls
-        # yazi = { 
-        #  enable = true; 
-        #  mode = "fast"; 
-        #  lang = "rust"; 
-        #  scope = "wrapped"; 
+        # yazi = {
+        #  enable = true;
+        #  mode = "fast";
+        #  lang = "rust";
+        #  scope = "wrapped";
         #  suffix = "-tuned";  # Optional, defaults to "-tuned"
         # };
       };
   };
-  
+
   features.viewer = {
       enable = true;
       alias = "v";  # Use 'v' to view files in terminal
@@ -102,7 +100,7 @@
       enableDataFormats = true;     # Pretty print JSON/CSV/YAML
       enableFzfPicker = true;       # Interactive picker when no args
   };
-     
+
   features.network = {
       enable = true;
       sshAgent = true;
@@ -123,7 +121,7 @@
       gh-dash = true;
       gitCredentialManager = true;
   };
-  
+
   features.dev-tools = {
       enable = true;
       rust = true;
@@ -148,7 +146,7 @@
       mpv = true;
       ytdlp = true;
   };
-  
+
   suites.gui-apps = lib.mkIf enableGuiDefaults {
       enable = true;
 
@@ -181,7 +179,7 @@
   features.bookokrat = {
       enable = true;
     };
-   
+
   features.appimages = {
      enable = true;
   };

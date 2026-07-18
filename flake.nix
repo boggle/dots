@@ -75,7 +75,29 @@
           inherit lib dotsLocal; 
       };
 
-      mkProfile = { profileName, optimized ? false, tunePackages ? {} }:
+      # Global-scope tuning packages, keyed by dotsLocal.profile - this used
+      # to be `profileDefinitions.<name>.tunePackages` in a
+      # profile-name-indexed attrset (mirroring the old directory-per-profile
+      # structure); now it's just a lookup table keyed by the same
+      # `dotsLocal.profile` value that modules/composition.nix uses to pick
+      # a contexts/<profile>.nix bundle. Add an entry here if a new context
+      # needs specific global-scope tuning.
+      tunePackagesByContext = {
+        priv = {
+          ripgrep.enable = true; fd.enable = true;
+          # niri.enable = true;  # Disabled - RUSTFLAGS conflict
+          noctalia-qs.enable = true; ghostty.enable = true; tesseract.enable = true;
+        };
+        work = {};
+      };
+      tunePackages = tunePackagesByContext.${dotsLocal.profile} or {};
+
+      # Replaces the old `mkProfile { profileName, ... }` - there's no more
+      # profile-name-selected directory to build from (see
+      # modules/composition.nix), just an optimized/baseline build-perf
+      # axis. Everything context-specific is resolved internally from
+      # dotsLocal by modules/composition.nix itself.
+      mkHomeConfig = { optimized ? false }:
         let
           tuneOverlay = tuning.mkTuneOverlay tunePackages ./modules;
           overlays = [
@@ -99,14 +121,7 @@
           baseModules = [
             { _module.args.pkgs = lib.mkForce pkgs'; }
             noctalia.homeModules.default
-            ./modules/core
-            ./modules/core/dots-local.nix
-            ./modules/core/dots-local-shell.nix
-            ./modules/core/nix-tools.nix
-            ./modules/core/scripts.nix
-            ./modules/core/alien-packages.nix
-            ./modules/core/tune-support.nix
-            ./profiles/${profileName}/home.nix
+            ./modules/composition.nix
             {
               home.username = dotsLocal.username;
               home.homeDirectory = dotsLocal.homeDirectory;
@@ -135,24 +150,19 @@
           };
         };
 
-      profileDefinitions = {
-        work = { tunePackages = {}; };
-        priv = {
-          tunePackages = {
-            ripgrep.enable = true; fd.enable = true;
-            # niri.enable = true;  # Disabled - RUSTFLAGS conflict
-            noctalia-qs.enable = true; ghostty.enable = true; tesseract.enable = true;
-          };
-        };
-      };
-
-      allConfigs = lib.concatLists (lib.mapAttrsToList (name: cfg: [
-        { name = name; value = mkProfile { profileName = name; optimized = false; tunePackages = cfg.tunePackages; }; }
-        { name = "${name}-opt"; value = mkProfile { profileName = name; optimized = true; tunePackages = cfg.tunePackages; }; }
-      ]) profileDefinitions);
-
     in {
-      homeConfigurations = builtins.listToAttrs allConfigs;
+      # Renamed from {priv,work,priv-opt,work-opt} (Phase 2, confirmed with
+      # user - see memory-bank/decisions.md 2026-07-18 "Flake output
+      # renaming: CONFIRMED"). There's no longer a real "profile choice" to
+      # make on the command line - it's fully determined by whatever
+      # dots-local.flake.nix's `profile` (and other axis fields) say, so a
+      # generic name is more honest than keeping priv/work around as
+      # vestigial selectors. `apply-dots` (no argument) / `apply-dots
+      # default-opt` replace `apply-dots priv` / `apply-dots priv-opt`.
+      homeConfigurations = {
+        default = mkHomeConfig { optimized = false; };
+        default-opt = mkHomeConfig { optimized = true; };
+      };
 
       # Exposes the fully-resolved dots-local schema (all defaults filled
       # in) for introspection/debugging, e.g.:

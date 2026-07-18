@@ -197,6 +197,58 @@ Several real Nix/evalModules quirks surfaced while wiring up
    `dotsLocal.march` entirely (would have silently built for the wrong
    microarchitecture on any non-znver5 machine using `apply-dots <profile>-opt`).
 
+### 2026-07-18 — Phase 2 (composition layer) implementation gotchas
+1. **A rule's `when` predicate being a function of `dotsLocal` does NOT
+   mean its `set` output automatically is too.** First draft of
+   `composition-rules.nix` had `{ when = d: ...; set = { ... d.machine.terminal ... }; }`
+   - `set` here is evaluated once when the list is constructed, with `d`
+   completely out of scope (only `when`'s lambda parameter is named `d`).
+   Got "undefined variable 'd'" immediately on eval. Fixed by making `set`
+   a function too (`set = d: {...};`), called as `rule.set dotsLocal` in
+   `composition.nix`'s fold.
+2. **`lib.mkDefault` applied to an entire nested attrset does NOT give
+   correct per-leaf priority semantics.** `lib.mkDefault { features.foo.bar
+   = true; features.foo.baz = "x"; }` wraps the WHOLE tree as a single
+   low-priority definition rather than tagging each leaf - the module
+   system's priority resolution operates per final option path, not per
+   "chunk of config a module happened to return." Needed a small recursive
+   `deepMkDefault` helper (walks nested attrsets, applies `lib.mkDefault`
+   only at non-attrset leaves, skipping anything already tagged with a
+   module-system `_type` to avoid double-wrapping/corrupting an existing
+   override annotation) to make composition-rules.nix's `set` attrsets
+   behave as real per-option defaults.
+3. **Every feature module a per-host file used to import must become a
+   *universal* import once that host file is retired.** Composition-rules.nix
+   referencing `features.llama-cpp.enable` etc. as an *option* isn't enough
+   if the module declaring that option was only ever imported by the
+   specific host file being deleted - "The option `features.llama-cpp' does
+   not exist" (a real eval error, not a silent no-op) resulted until
+   `niri-noctalia.nix`/`llama-cpp.nix`/`butterfish.nix`/`sd-switch.nix`/
+   `scanning.nix` were added to `composition.nix`'s universal imports list
+   (matching the existing convention every other feature file already
+   uses: import unconditionally, gate everything behind the module's own
+   `enable` option).
+4. **Validation technique for hosts this session can't directly reach**
+   (laputa, triomino - separate private dots-local repos on other
+   machines): built synthetic `dots-local` copies in scratch directories
+   mimicking exactly what each real machine's dots-local would need to
+   contain post-migration (same technique as Phase 0's host-swap testing,
+   extended to include the new axis fields), ran full `nix eval` +
+   `nix build .../activationPackage` against each, and spot-checked
+   resolved config values against the original host file's intent
+   (e.g. confirmed triomino's `piPackages` resolves to the same 13-entry
+   list via inheritance from `contexts/priv.nix`, without needing to
+   duplicate it - fixing a previously-flagged bug as a side effect).
+   This is eval/build-level confidence only, not a substitute for an
+   actual live `apply-dots` on those machines - documented clearly in
+   `host-migration-phase2.md` as still-required follow-up.
+5. **Chromaden's power-toggle.sh script content matched byte-for-byte**
+   between the old hardcoded version and the new
+   `dotsLocal.machine.display`-parametrized one (checked via `nix eval
+   --raw` on the generated `home.file` text) - strong confidence the
+   generalization introduced zero behavior change for the one host it was
+   fully validated against.
+
 ### 2026-07-18 — `update-alien-packages` orphan false-positive: `ghostty`
 User reported `update-alien-packages --action remove` wanted to remove
 `ghostty`, which is actively needed/used. Investigated and found a genuine,

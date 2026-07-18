@@ -9,13 +9,19 @@
     (pkgs.writeShellScriptBin "apply-dots" ''
       #!/usr/bin/env bash
       # apply-dots - Apply home-manager configuration with dots-local integration
-      # Usage: apply-dots [profile] [-- <nh-args>...]
+      # Usage: apply-dots [opt] [-- <nh-args>...]
+      #
+      # NOTE (Phase 2 of the re-architecture): the flake no longer has
+      # per-profile outputs (priv/work/priv-opt/work-opt) - which context
+      # bundle you get (priv/work/...) is fully determined by
+      # dots-local.flake.nix's `profile` field, not a CLI argument. The
+      # only remaining CLI choice is baseline vs. optimized build:
       #
       # Examples:
-      #   apply-dots                    # Use default profile
-      #   apply-dots priv               # Use specific profile
+      #   apply-dots                    # homeConfigurations.default (baseline)
+      #   apply-dots opt                # homeConfigurations.default-opt (optimized)
       #   apply-dots -- -b backup       # Pass -b backup to nh home switch
-      #   apply-dots priv -- -b backup  # Profile + nh flags
+      #   apply-dots opt -- -b backup   # Optimized build + nh flags
 
       set -e
 
@@ -75,8 +81,8 @@
         BULLET="•"
       fi
 
-      # Parse arguments: profile name (optional) followed by -- and nh args
-      PROFILE=""
+      # Parse arguments: build variant (optional) followed by -- and nh args
+      VARIANT=""
       NH_ARGS=()
       FOUND_SEP=false
 
@@ -87,29 +93,36 @@
         fi
         if [[ "$FOUND_SEP" == true ]]; then
           NH_ARGS+=("$arg")
-        elif [[ -z "$PROFILE" && ! "$arg" =~ ^- ]]; then
-          PROFILE="$arg"
+        elif [[ -z "$VARIANT" && ! "$arg" =~ ^- ]]; then
+          VARIANT="$arg"
         fi
       done
 
-      # Get profile from dots-local if not provided
-      if [[ -z "$PROFILE" ]]; then
-          PROFILE=$(nix eval "git+file://$DOTS_LOCAL_DIR#profile" 2>/dev/null | tr -d '"' || echo "priv")
-          PROFILE="''${PROFILE:-priv}"
-      fi
+      # Normalize the build-variant argument to an actual flake output name.
+      case "$VARIANT" in
+        ""|default) FLAKE_OUTPUT="default" ;;
+        opt|default-opt) FLAKE_OUTPUT="default-opt" ;;
+        *)
+          print_error "Unknown build variant: '$VARIANT' (expected nothing, 'opt', or 'default-opt')"
+          exit 1
+          ;;
+      esac
 
       print_header "✦" "DOTS CONFIGURATION"
 
-      # Get other info from dots-local
+      # Get info from dots-local (informational only now - dots-local.profile
+      # selects a modules/contexts/<profile>.nix bundle, not a flake output)
       HOST=$(nix eval "git+file://$DOTS_LOCAL_DIR#host" 2>/dev/null | tr -d '"' || echo "unknown")
+      PROFILE=$(nix eval "git+file://$DOTS_LOCAL_DIR#profile" 2>/dev/null | tr -d '"' || echo "priv")
       SYSTEM=$(nix eval "git+file://$DOTS_LOCAL_DIR#system" 2>/dev/null | tr -d '"' || echo "x86_64-linux")
       USER=$(nix eval "git+file://$DOTS_LOCAL_DIR#username" 2>/dev/null | tr -d '"' || echo "$(whoami)")
 
       print_section "📋" "Settings:"
-      echo -e "   ''${YELLOW}Host:''${NC}     ''${GREEN}$HOST''${NC}"
-      echo -e "   ''${YELLOW}Profile:''${NC}  ''${GREEN}$PROFILE''${NC}"
-      echo -e "   ''${YELLOW}System:''${NC}   ''${GREEN}$SYSTEM''${NC}"
-      echo -e "   ''${YELLOW}User:''${NC}     ''${GREEN}$USER''${NC}"
+      echo -e "   ''${YELLOW}Host:''${NC}      ''${GREEN}$HOST''${NC}"
+      echo -e "   ''${YELLOW}Context:''${NC}   ''${GREEN}$PROFILE''${NC}"
+      echo -e "   ''${YELLOW}Build:''${NC}     ''${GREEN}$FLAKE_OUTPUT''${NC}"
+      echo -e "   ''${YELLOW}System:''${NC}    ''${GREEN}$SYSTEM''${NC}"
+      echo -e "   ''${YELLOW}User:''${NC}      ''${GREEN}$USER''${NC}"
       if [[ ''${#NH_ARGS[@]} -gt 0 ]]; then
           echo -e "   ''${YELLOW}NH args:''${NC} ''${CYAN}''${NH_ARGS[*]}''${NC}"
       fi
@@ -142,9 +155,9 @@
 
       # Build the nh command with optional extra args
       if [[ ''${#NH_ARGS[@]} -gt 0 ]]; then
-          nh home switch "$DOTS_DIR" -c "$PROFILE" "''${NH_ARGS[@]}" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>&1 | tee "$BUILD_LOG"
+          nh home switch "$DOTS_DIR" -c "$FLAKE_OUTPUT" "''${NH_ARGS[@]}" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>&1 | tee "$BUILD_LOG"
       else
-          nh home switch "$DOTS_DIR" -c "$PROFILE" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>&1 | tee "$BUILD_LOG"
+          nh home switch "$DOTS_DIR" -c "$FLAKE_OUTPUT" -- --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>&1 | tee "$BUILD_LOG"
       fi
       result=''${PIPESTATUS[0]}
 
@@ -165,34 +178,13 @@
       # Clean up log on success
       rm -f "$BUILD_LOG"
 
-      echo ""
-      print_section "🔗" "Creating convenience symlinks..."
-      
-      # Create current-profile symlink (top-level, for bash navigation)
-      ln -sfn "profiles/$PROFILE" "$DOTS_DIR/current-profile"
-      echo -e "   ''${GREEN}current-profile''${NC} → ''${YELLOW}profiles/$PROFILE''${NC}"
-      
-      # Create host.nix and distro.nix symlinks in profile directory (for bash navigation only)
-      PROFILE_DIR="$DOTS_DIR/profiles/$PROFILE"
-      mkdir -p "$PROFILE_DIR"
-      
-      if [[ -n "$HOST" && "$HOST" != "unknown" ]]; then
-          HOST_FILE="$PROFILE_DIR/hosts/$HOST.nix"
-          if [[ -f "$HOST_FILE" ]]; then
-              ln -sfn "hosts/$HOST.nix" "$PROFILE_DIR/host.nix"
-              echo -e "   ''${GREEN}profiles/$PROFILE/host.nix''${NC} → ''${YELLOW}hosts/$HOST.nix''${NC}"
-          fi
-      fi
-      
-      DISTRO=$(nix eval "git+file://$DOTS_LOCAL_DIR#distro" 2>/dev/null | tr -d '"' || echo "")
-      if [[ -n "$DISTRO" ]]; then
-          DISTRO_FILE="$DOTS_DIR/modules/distros/$DISTRO.nix"
-          if [[ -f "$DISTRO_FILE" ]]; then
-              ln -sfn "../../modules/distros/$DISTRO.nix" "$PROFILE_DIR/distro.nix"
-              echo -e "   ''${GREEN}profiles/$PROFILE/distro.nix''${NC} → ''${YELLOW}modules/distros/$DISTRO.nix''${NC}"
-          fi
-      fi
-      
+      # NOTE (Phase 2): the old "convenience symlinks" step (current-profile
+      # -> profiles/$PROFILE, host.nix/distro.nix inside a profile
+      # directory) is gone - profiles/<profile>/hosts/<host>.nix files no
+      # longer exist at all (host-specific config now comes from
+      # dots-local fields + modules/contexts/<profile>.nix), so there's
+      # nothing meaningful left for these symlinks to point at.
+
       # NOTE: sync.sh already ran automatically during the switch above, via
       # the home.activation.syncUserConfigs hook (modules/core/dots-local.nix)
       # - that hook fires on every activation regardless of entry point, so
@@ -337,12 +329,17 @@
       log_warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; }
       log_error() { echo -e "''${RED}[ERROR]''${NC} $1"; }
 
-      # Get profile from dots-local
+      # Get profile from dots-local (used below only to locate
+      # profiles/$PROFILE/appimages/ - the shared/store-backed AppImages
+      # dir, unrelated to Nix's homeConfigurations output name)
       PROFILE=$(nix eval "git+file://$DOTS_LOCAL_DIR#profile" 2>/dev/null | tr -d '"' || echo "priv")
       PROFILE="''${PROFILE:-priv}"
 
-      # Get localDir from Home Manager config
-      LOCAL_DIR=$(nix eval --raw "$DOTS_DIR#homeConfigurations.$PROFILE.config.features.appimages.localDir" 2>/dev/null || echo "$HOME/Applications/AppImages")
+      # Get localDir from Home Manager config. NOTE: "default" here is the
+      # flake output name (Phase 2 renamed homeConfigurations.{priv,work,...}
+      # -> default/default-opt - see flake.nix) - unrelated to $PROFILE
+      # above. localDir doesn't differ between default/default-opt.
+      LOCAL_DIR=$(nix eval --raw "$DOTS_DIR#homeConfigurations.default.config.features.appimages.localDir" 2>/dev/null || echo "$HOME/Applications/AppImages")
 
       # Parse arguments
       UPDATE_ALL=false

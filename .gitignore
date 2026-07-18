@@ -1,7 +1,2 @@
 result
 result-*
-
-# Convenience symlinks created by apply-dots
-current-profile
-profiles/*/host.nix
-profiles/*/distro.nix

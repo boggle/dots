@@ -284,13 +284,33 @@ completely normal, expected workflow (confirmed in AGENTS.md: "During
 apply-dots, it's overridden with git+file://$DOTS_LOCAL_DIR... allows
 uncommitted changes in dots-local to be picked up").
 
-### 2026-07-18 — Flake output renaming: pending explicit confirmation
-**Decision:** Proposed collapsing `homeConfigurations.{priv,work,priv-opt,
-work-opt}` to something like `default`/`default-opt` once composition is
-axis-driven (no more profile-name selection). User said "roughly right" to
-the overall plan but this specific point wasn't explicitly re-confirmed —
-treat as tentatively approved, but **reconfirm at the Phase 2 checkpoint**
-before actually changing `apply-dots` command surface (breaking muscle
-memory).
-**Rationale:** This changes user-facing commands; worth a final explicit
-go-ahead right before executing, not just inferred from "roughly right".
+### 2026-07-18 — Phase 2 scope: `modules/distros/*` deferred to Phase 3
+**Decision:** Did not repurpose the vestigial `modules/distros/*.nix`
+registry during Phase 2 as originally planned - left as-is (still dead
+code), rescoped to Phase 3 instead.
+**Rationale:** It naturally belongs with the alien-package unification
+work (Phase 3 already touches per-distro spec discovery); doing it in
+Phase 2 would be duplicated effort split across two phases for no benefit.
+
+### 2026-07-18 — WSL shell-integration workaround generalized, not left host-specific
+**Decision:** Triomino's VSCode-Remote-SSH + WSL shell-integration
+workaround (starship PROMPT_COMMAND cleanup, VS Code shellIntegration
+sourcing, zoxide/direnv manual re-init) became a real, reusable
+`modules/features/wsl-shell-integration.nix`, auto-enabled by the `isWsl`
+composition rule - not left as triomino-specific `extraModules` content.
+**Rationale:** This fix has nothing to do with the specific machine named
+"triomino" - any WSL host connected to via VS Code Remote-SSH needs the
+exact same fix. Keeping it host-specific would have meant re-discovering
+and re-solving the same problem on any future WSL machine.
+
+### 2026-07-18 — Flake output renaming: CONFIRMED -> `default`/`default-opt`
+**Decision:** User explicitly confirmed at the Phase 2 checkpoint:
+`homeConfigurations.{priv,work,priv-opt,work-opt}` -> `default`/
+`default-opt`. `apply-dots priv`/`apply-dots priv-opt` becomes
+`apply-dots`/`apply-dots default-opt` (or similar - see Phase 2 work for
+exact final command shape). This is an intentional, confirmed breaking
+change to the command surface.
+**Rationale:** Reflects that composition is now fully axis-driven from
+`dotsLocal` - there's no longer a real "profile choice" to make via the
+command line, so a generic `default` name is more honest than keeping
+`priv`/`work` around as vestigial selectors.

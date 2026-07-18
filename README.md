@@ -17,9 +17,8 @@ A declarative, reproducible home setup for Linux workstations with per-machine o
 ./setup.sh priv    # Creates ~/dots-local with your identity
 
 # Daily workflow
-apply-dots         # Apply your profile
-apply-dots priv    # Explicit baseline (uses cache.nixos.org)
-apply-dots priv-opt # Optimized for your CPU (slower, faster binaries)
+apply-dots         # Apply your config (baseline, uses cache.nixos.org)
+apply-dots opt     # Optimized for your CPU (slower, faster binaries)
 
 # Manage native packages
 update-alien-packages                    # Install missing native packages
@@ -30,9 +29,14 @@ appimage-update                          # Update registered AppImages
 appimage-update --all                    # Update all AppImages
 ```
 
+Which context (priv/work) and machine-specific behavior (GPU, compositor,
+display, etc.) you get is fully determined by `dots-local/flake.nix` -
+there's no longer a profile name to pass on the command line, only the
+baseline-vs-optimized build choice (see Architecture below).
+
 ## Feature System
 
-Enable features in `profiles/priv/home.nix` or `profiles/work/home.nix`:
+Enable features in `modules/contexts/priv.nix` or `modules/contexts/work.nix`:
 
 ```nix
 # Core environment (always enabled via common profile)
@@ -218,17 +222,29 @@ See [OVERVIEW.md](OVERVIEW.md#alien-packages-native-package-management) for deta
 ## Architecture
 
 **Two-repo design:**
-- `dots/` - Shared configuration (this repo)
-- `~/dots-local/` - Private identity (hostname, username, tuning flags)
+- `dots/` - Shared configuration (this repo), contains no machine-specific
+  state
+- `~/dots-local/` - Private identity, hardware/context axes, tuning flags
+  (see `modules/dots-local/schema.nix` for the full typed schema)
 
 **Distro values (in `~/dots-local/flake.nix`):**
 - `cachyos` -> `pacman` + `paru`
 - `opensuse` -> `zypper`
 - `azurelinux3` -> `tdnf`
 
-**Profiles:**
-- `priv`/`work` - Baseline using cache.nixos.org
-- `priv-opt`/`work-opt` - Optimized with `localSystem.gcc.arch` (rebuilds locally)
+**Flake outputs:**
+- `default` - Baseline, uses cache.nixos.org
+- `default-opt` - Optimized with `localSystem.gcc.arch` set from
+  `dots-local`'s `march` (rebuilds locally)
+
+**Composition:** `modules/composition.nix` always imports the common
+baseline plus a `modules/contexts/<dots-local.profile>.nix` bundle (`priv`
+or `work`), then applies `modules/composition-rules.nix` - small,
+declarative rules over `dots-local` axes (GPU, compositor, WSL, ...) that
+enable/configure features as *defaults*. No per-host directory or file is
+required to exist - host-specific config comes from `dots-local` fields
+(`machine.*`, `gpu`, `compositor`, ...) or, for anything too bespoke to
+generalize, `dots-local`'s `extraModules`/`extraOverlays` escape hatches.
 
 ## Environment Variables
 
@@ -243,48 +259,62 @@ These are automatically set if not defined. Useful for non-standard setups.
 
 ## Navigation Tips
 
-**Current Profile Symlink:**
-After running `apply-dots`, a symlink is created at `~/dots/current-profile` pointing to the active profile:
-```bash
-cd ~/dots/current-profile        # Quick access to active profile
-cd ~/dots/current-profile/hosts  # Access host configs
-ls -la ~/dots/current-profile    # See what profile is active
+**Module Structure:**
 ```
-
-**Profile Structure:**
-```
-profiles/
-├── common/          # Minimal CLI baseline (imported by all)
-│   └── home.nix
-├── priv/            # Personal profile (extends common)
-│   ├── home.nix
-│   └── hosts/       # Per-machine configs
-│       ├── chromaden.nix
-│       └── ...
-└── work/            # Work profile (extends common) - create your own
+modules/
+├── contexts/         # Composition bundles, selected by dots-local.profile
+│   ├── common.nix    # Always-imported minimal CLI baseline
+│   ├── priv.nix      # Personal context
+│   └── work.nix      # Work context
+├── composition.nix         # Entry point - imports core + context + rules
+├── composition-rules.nix   # Declarative axis-based rules (GPU, WSL, ...)
+├── dots-local/
+│   └── schema.nix    # Typed schema for dots-local/flake.nix
+├── core/             # Core infrastructure
+├── features/         # Individual capabilities
+└── suites/           # Bundled application groups
 ```
 
 ## Adding a New Host
 
-1. Create host file:
-   ```bash
-   touch profiles/priv/hosts/myhostname.nix
-   ```
+Most new machines need **no changes to `dots` at all** - just a
+`dots-local/flake.nix` declaring that machine's identity and axes:
 
-2. Add to `dots-local/flake.nix`:
-   ```nix
-   host = "myhostname";
-   ```
+```nix
+{
+  outputs = { self, ... }: {
+    host = "myhostname";
+    # ... identity fields (see modules/dots-local/schema.nix) ...
 
-3. Configure the host in the new file:
-   ```nix
-   { config, pkgs, lib, ... }: {
-     # Machine-specific packages and settings
-     home.packages = with pkgs; [ /* ... */ ];
-   }
-   ```
+    # Axes that drive what gets pulled in (all optional):
+    gpu = "nvidia";           # or "amd"/"intel"/omit
+    compositor = "niri";      # or omit for a CLI-only machine
+    isWsl = true;              # if running under WSL
 
-4. Run `apply-dots`
+    machine = {
+      sshIdentityFile = "~/.ssh/id_github_myhostname";
+      terminal = "/usr/bin/ghostty";       # only used if compositor == "niri"
+      renderDrmDevice = null;               # let niri auto-detect, or set explicitly
+      display = {                           # omit entirely to skip power-toggle.sh
+        output = "eDP-1";
+        ecoMode = { resolution = "1920x1200"; brightness = "30%"; };
+        perfMode = { resolution = "1920x1200"; refreshRate = "120.000"; };
+      };
+    };
+  };
+}
+```
+
+For anything too bespoke to express as an axis (e.g. very specific
+CUDA/compiler flags for one particular GPU), add a small module file next
+to `dots-local/flake.nix` and reference it via `extraModules`:
+
+```nix
+extraModules = [ ./host-myhostname.nix ];
+```
+
+Then run `apply-dots`. See `modules/dots-local/schema.nix`'s option
+descriptions for the full list of available fields.
 
 ## Troubleshooting
 

@@ -1,10 +1,12 @@
 # Execution Plan
 
-Status: **Phase 0 complete and committed** (`4c39074`, "Phase 0: memory bank
-+ re-architecture bugfixes"; `9ae4fb8` follow-up). **Phase 1 (`dots-local`
-schema) complete and committed** (`5fb54cb`, "Phase 1: formal dots-local
-schema (lib.evalModules)"). Not yet live-checkpointed with `apply-dots`.
-Phase 2 (composition layer) not yet started.
+Status: **Phase 0 complete and committed** (`4c39074`; `9ae4fb8` follow-up).
+**Phase 1 (`dots-local` schema) complete and committed** (`5fb54cb`).
+**Phase 2 (composition layer) implemented, eval/build-validated, not yet
+committed** - awaiting live-checkpoint confirmation (this phase changes the
+`apply-dots` command surface: `apply-dots priv`/`apply-dots priv-opt` ->
+`apply-dots`/`apply-dots opt`). Phase 3 (alien package unification +
+Debian) not yet started.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
@@ -189,32 +191,92 @@ etc).
   live-checkpointed** - awaiting the next `apply-dots` per user's usual
   validation cadence.
 
-## Phase 2 — Composition layer (replaces profile hierarchy) `(live)`
-- [ ] `modules/composition-rules.nix` (declarative, pure-data rule list)
-- [ ] `modules/composition.nix` (engine: core always + rule folding via
-      `lib.mkIf`/`lib.mkDefault`)
-- [ ] Retire `profiles/common|priv|work/home.nix` and
-      `profiles/*/hosts/*.nix`; port their logic into rules + dotsLocal data
-- [ ] Parametrize currently-hardcoded host quirks (power-toggle display
-      name/resolution, SSH identity file name, CUDA arch) into
-      `dotsLocal.machine.*` fields
-- [ ] Repurpose `modules/distros/*` as real per-distro metadata (feeds
-      composition rules + alien-package layer) instead of dead registry
-- [ ] Import `cloud-tools` universally (axis-defaulted) instead of leaving it
-      dormant/unimported
-- [ ] **Standing rule (see architecture.md 1c)**: for every host file
-      retired (chromaden/laputa/triomino), document its `dots-local`
-      equivalent (e.g. `docs/dots-local-guide.md` or expanded
-      `modules/dots-local/template.nix` examples) in the same change that
-      deletes the old file — covers power-toggle display config, SSH
-      identity filenames, CUDA arch/cmake flags, per-host AppImage lists
-- [ ] **Decision checkpoint**: flake output naming
-      (`homeConfigurations.priv/work/*-opt` -> ?) — confirm with user before
-      changing `apply-dots` muscle memory
-- [ ] Collapse `flake.nix`'s `profileDefinitions` + `mkProfile{profileName}`
-      accordingly
-- Validation: `nix eval` against chromaden's (ported) dotsLocal, then live
-  checkpoint
+## Phase 2 — Composition layer (replaces profile hierarchy) `(live)` `[x] DONE (uncommitted)`
+- [x] **Decision checkpoint resolved**: flake output naming confirmed by
+      user -> `homeConfigurations.{default,default-opt}` (replacing
+      `{priv,work,priv-opt,work-opt}`). `apply-dots priv`/`apply-dots
+      priv-opt` -> `apply-dots`/`apply-dots opt`. `apply-dots`'s argument
+      parsing, symlink logic (removed - no more profile directories to
+      point at), and the `appimage-update` script's flake-output query
+      (hardcoded to `default`, since localDir doesn't differ between
+      variants) all updated in `modules/core/scripts.nix`.
+- [x] `modules/composition-rules.nix` - small, explicit rule list:
+      `compositor == "niri"` -> niri-noctalia + its terminal/renderDrmDevice
+      defaults; `gpu == "nvidia"` -> llama-cpp + ai-apps.pi; `profile ==
+      "work"` -> cloud-tools; `isWsl` -> opener/clipboard wsl backend +
+      wsl-shell-integration + WAYLAND_DISPLAY/DIRENV_LOG_FORMAT. Both
+      `when` and `set` are functions of `dotsLocal` (not just `when` -
+      caught via eval error when `set` needed to read `d.machine.terminal`)
+- [x] `modules/composition.nix` - the engine: always imports core +
+      `contexts/common.nix` + a `contexts/<dotsLocal.profile>.nix` bundle
+      (asserted to exist, with a clear error naming the available contexts
+      if not) + universally-available feature/suite modules that used to
+      require a per-host import (niri-noctalia, llama-cpp, butterfish,
+      sd-switch, scanning, cloud-tools, wsl-shell-integration, the new
+      power-toggle). Folds composition-rules.nix on top via a
+      `deepMkDefault` helper (recursively wraps every LEAF of a rule's
+      `set` attrset in `lib.mkDefault` - a single outer `mkDefault` on a
+      nested attrset does NOT give correct per-option priority semantics)
+- [x] Retired `profiles/common/home.nix` -> `modules/contexts/common.nix`,
+      `profiles/priv/home.nix` -> `modules/contexts/priv.nix` (content
+      unchanged, minus the per-host import logic), created
+      `modules/contexts/work.nix` (previously had zero real content - a
+      genuinely minimal, conservative starter). Deleted
+      `profiles/priv/hosts/{chromaden,laputa,triomino}.nix` entirely -
+      `profiles/<profile>/{appimages,sync.json}` deliberately LEFT ALONE
+      (unrelated to the Nix composition change, still correctly keyed by
+      `dotsLocal.profile` for the sync system and shared-appimages
+      extension point)
+- [x] New schema fields added: `compositor` (nullOr enum ["niri"]),
+      `machine` submodule (`sshIdentityFile`, `terminal`,
+      `renderDrmDevice`, `display` with eco/perf mode settings) -
+      parametrizing exactly the host quirks that used to require a
+      per-host file: SSH identity (now read generically in
+      `features/network.nix`), power-toggle script (new generic
+      `features/power-toggle.nix`, gated on `machine.display != null`),
+      niri terminal/renderDrmDevice defaults (via composition-rules.nix)
+- [x] Generalized triomino's VSCode-Remote-SSH + WSL shell-integration
+      workaround into a real, reusable feature
+      (`modules/features/wsl-shell-integration.nix`), auto-enabled by the
+      `isWsl` composition rule - this was never actually triomino-specific
+- [x] `cloud-tools` now imported universally in composition.nix (was
+      defined but never imported anywhere); axis-defaulted on for
+      `profile == "work"`
+- [x] **Fully migrated + live-eval-validated: chromaden** (the one host
+      this session has direct dots-local access to) - added
+      `gpu`/`compositor`/`machine.*`/`extraModules` to the real
+      `~/dots-local/flake.nix`, created `~/dots-local/host-chromaden.nix`
+      for the genuinely bespoke bits (CUDA/llama.cpp cmakeFlags, SAXON_DIR/
+      XEP_HOME, xdg portal preference, bluez/localsend, fzf protection).
+      Every resolved config value spot-checked against the original
+      chromaden.nix's intent and found identical (llama-cpp.enable,
+      niri-noctalia terminal/renderDrmDevice, ai-apps.pi/opencode,
+      gui-apps.chromium, scanning.enable, ssh IdentityFile, and the
+      power-toggle.sh script's *exact byte-for-byte* generated content).
+- [x] **laputa + triomino: structurally migrated and eval/build-validated
+      via synthetic dots-local copies** (this session has no access to
+      their real, separate dots-local repos) - see
+      `memory-bank/host-migration-phase2.md` for the exact fields/files the
+      user needs to add to each machine's own dots-local. Deferred rather
+      than skipped, per the standing rule (architecture.md 1c) - this
+      constitutes the "document what needs to go into dots-local" delivery
+      for these two hosts, since they can't be migrated directly from here.
+- [ ] ~~Repurpose `modules/distros/*`~~ - **rescoped to Phase 3** (it
+      naturally belongs with the alien-package unification work, which
+      already touches per-distro spec discovery; doing it here would be
+      duplicated effort). Left as-is (still vestigial) for now.
+- [x] Updated README.md (Quick Start, Architecture, Navigation Tips, Adding
+      a New Host sections) and `.gitignore` (removed the now-dead
+      convenience-symlink ignore patterns) to match; removed the stale
+      `current-profile`/`host.nix`/`distro.nix` symlinks left over from the
+      last real `apply-dots` run.
+- Validation: `nix eval` + full `nix build .../activationPackage` for
+  chromaden (real dots-local, both `default` and `default-opt` outputs)
+  AND for laputa/triomino (synthetic dots-local copies matching the
+  migration notes) - all pass, all spot-checked resolved values match
+  original intent exactly. **Not yet live-checkpointed with a real
+  `apply-dots` run** - flagged explicitly to the user given the command
+  syntax change, awaiting confirmation before/alongside that live check.
 
 ## Phase 3 — Alien package unification + Debian support
 - [ ] Merge `alien-package-specs.nix` (flake-level) and `alien-packages.nix`

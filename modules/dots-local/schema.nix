@@ -139,10 +139,104 @@ in {
       type = types.nullOr (types.enum [ "nvidia" "amd" "intel" ]);
       default = null;
       description = ''
-        GPU vendor present on this machine, if any. Not yet consumed by any
-        module - reserved for the Phase 2 composition-rules system (e.g.
-        "if gpu == nvidia, pull in the AI/llama-cpp suite by default").
+        GPU vendor present on this machine, if any. Consumed by
+        composition-rules.nix: gpu == "nvidia" pulls in the llama-cpp
+        feature and the ai-apps "pi" toggle by default.
       '';
+    };
+
+    compositor = mkOption {
+      type = types.nullOr (types.enum [ "niri" ]);
+      default = null;
+      description = ''
+        Which Wayland compositor/desktop this machine uses, if any.
+        Consumed by composition-rules.nix to enable features.niri-noctalia
+        and default its terminal/renderDrmDevice options from
+        `machine.terminal`/`machine.renderDrmDevice`. Null means no
+        compositor-managed desktop (e.g. a CLI-only or WSL machine).
+      '';
+    };
+
+    machine = mkOption {
+      default = { };
+      description = ''
+        Per-machine hardware/peripheral config, consumed by generic
+        (not host-specific) feature modules - this is what used to require
+        a dedicated profiles/priv/hosts/<hostname>.nix file to exist in
+        `dots` for anything host-specific to be expressed at all. Anything
+        NOT covered by a field here and too bespoke to generalize (e.g.
+        exact CUDA/llama.cpp cmakeFlags for one particular GPU) belongs in
+        `extraModules` instead.
+      '';
+      type = types.submodule {
+        options = {
+          sshIdentityFile = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = ''
+              SSH identity file for this host's default `Host *` block
+              (e.g. "~/.ssh/id_github_<host>"). Null skips setting one -
+              consumed by features/network.nix.
+            '';
+          };
+
+          terminal = mkOption {
+            type = types.str;
+            default = "ghostty";
+            description = ''
+              Terminal emulator command, used as the default for
+              features.niri-noctalia.terminal (only meaningful when
+              `compositor == "niri"`).
+            '';
+          };
+
+          renderDrmDevice = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = ''
+              DRM render node for niri (e.g. "/dev/dri/render_amd"). Null
+              lets niri auto-detect. Only meaningful when
+              `compositor == "niri"`.
+            '';
+          };
+
+          display = mkOption {
+            default = null;
+            description = ''
+              Display config for the power-toggle eco/perf script
+              (features/power-toggle.nix). Null disables that feature
+              entirely (no power-toggle.sh installed).
+            '';
+            type = types.nullOr (types.submodule {
+              options = {
+                output = mkOption {
+                  type = types.str;
+                  description = ''wlr-randr output name (e.g. "eDP-1").'';
+                };
+                ecoMode = mkOption {
+                  description = "Display settings applied in eco mode.";
+                  type = types.submodule {
+                    options = {
+                      resolution = mkOption { type = types.str; description = "e.g. \"1920x1200\"."; };
+                      refreshRate = mkOption { type = types.str; default = "60.000"; description = "Refresh rate in Hz (as wlr-randr expects, e.g. \"60.000\")."; };
+                      brightness = mkOption { type = types.str; default = "30%"; description = "brightnessctl set value."; };
+                    };
+                  };
+                };
+                perfMode = mkOption {
+                  description = "Display settings applied in performance mode.";
+                  type = types.submodule {
+                    options = {
+                      resolution = mkOption { type = types.str; description = "e.g. \"1920x1200\"."; };
+                      refreshRate = mkOption { type = types.str; default = "120.000"; description = "Refresh rate in Hz."; };
+                    };
+                  };
+                };
+              };
+            });
+          };
+        };
+      };
     };
 
     # --- Desktop / GUI ---

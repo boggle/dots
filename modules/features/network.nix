@@ -1,4 +1,4 @@
-{ config, lib, pkgs, alien, ... }:
+{ config, lib, pkgs, alien, dotsLocal, ... }:
 
 let
   cfg = config.features.network;
@@ -43,6 +43,14 @@ in
         Include ~/.ssh/config.local
         Include ~/.ssh/config.vscode
       '';
+      # Per-machine default identity file, generalized from what used to
+      # require a host file in profiles/priv/hosts/<hostname>.nix just to
+      # set this one thing. Null (the default) means no host-specific
+      # identity block is added here.
+      settings."*" = lib.mkIf (dotsLocal.machine.sshIdentityFile != null) {
+        IdentityFile = dotsLocal.machine.sshIdentityFile;
+        AddKeysToAgent = "yes";
+      };
     };
 
     home.activation.ensureSshIncludeFiles = lib.hm.dag.entryAfter ["writeBoundary"] ''
