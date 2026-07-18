@@ -5,39 +5,10 @@ let
   # Architecture from dots-local (schema-defaulted to "native")
   march = dotsLocal.march;
   
-  # Module defaults per language and mode
-  moduleDefaults = {
-    c = {
-      safe    = "-O2 -pipe";
-      default = "-O3 -march=${march} -pipe";
-      fast    = "-Ofast -march=${march} -pipe -flto=auto -ffast-math";
-    };
-    "c++" = {
-      safe    = "-O2 -pipe";
-      default = "-O3 -march=${march} -pipe";
-      fast    = "-Ofast -march=${march} -pipe -flto=auto -ffast-math";
-    };
-    rust = {
-      safe    = "-C opt-level=2";
-      default = "-C target-cpu=${march} -C opt-level=3";
-      fast    = "-C target-cpu=${march} -C opt-level=3 -C codegen-units=1";
-    };
-    go = {
-      safe    = "";
-      default = "-gcflags=all=-march=${march}";
-      fast    = "-gcflags=all=-march=${march} -ldflags=-s -w -gcflags=all=-ffast-math";
-    };
-    haskell = {
-      safe    = "--ghc-options=-O1";
-      default = "--ghc-options=-O2 --ghc-options=-march=${march}";
-      fast    = "--ghc-options=-O2 --ghc-options=-march=${march} --ghc-options=-fllvm --ghc-options=-fexcess-precision";
-    };
-    zig = {
-      safe    = "-Doptimize=ReleaseSafe";
-      default = "-Doptimize=ReleaseFast";
-      fast    = "-Doptimize=ReleaseFast";
-    };
-  };
+  # Module defaults per language and mode - shared with
+  # modules/flake/package-tuning.nix (Phase 5, see
+  # modules/core/tune-defaults.nix for the unification rationale)
+  moduleDefaults = import ./tune-defaults.nix { inherit march; };
   
   # Get flags: check dots-local first, fallback to module defaults
   getFlags = lang: mode:

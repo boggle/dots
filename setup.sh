@@ -85,32 +85,16 @@ EOF
       appimagesDir = "${HOME}/Applications/AppImages";
       appimages = import ./appimages.nix;
       
-      # Tuning flags per language and mode
-      # These override module defaults when set
-      tune = {
-        flags = {
-          c = {
-            safe    = "-O2 -pipe";
-            default = "-O3 -march=\${march} -pipe";
-            fast    = "-Ofast -march=\${march} -pipe -flto=auto -ffast-math";
-          };
-          rust = {
-            safe    = "-C opt-level=2";
-            default = "-C target-cpu=\${march} -C opt-level=3";
-            fast    = "-C target-cpu=\${march} -C opt-level=3 -C codegen-units=1";
-          };
-          go = {
-            safe    = "";
-            default = "-gcflags=all=-march=\${march}";
-            fast    = "-gcflags=all=-march=\${march} -ldflags=-s -w -gcflags=all=-ffast-math";
-          };
-          haskell = {
-            safe    = "--ghc-options=-O1";
-            default = "--ghc-options=-O2 --ghc-options=-march=\${march}";
-            fast    = "--ghc-options=-O2 --ghc-options=-march=\${march} --ghc-options=-fllvm --ghc-options=-fexcess-precision";
-          };
-        };
-      };
+      # Tuning flags per language and mode - OPTIONAL overrides only.
+      # dots itself already ships sensible defaults for every
+      # lang/mode combination (see dots/modules/core/tune-defaults.nix) -
+      # you only need to set tune.flags here if you want to override one
+      # of those defaults for this specific machine. Example:
+      # tune = {
+      #   flags = {
+      #     c.fast = "-Ofast -march=\${march} -pipe -flto=auto -ffast-math";
+      #   };
+      # };
       
       # Sync configuration - track handcrafted configs that survive nix rebuilds
       # Uncomment and customize sync.tracked to enable
@@ -147,17 +131,21 @@ else
 fi
 
 # 2. Perform the initial bootstrap
-echo "Running initial Home Manager bootstrap for profile: ${PROFILE}..."
+# NOTE: the flake output is always "default" now (Phase 2 of the
+# re-architecture removed per-profile flake outputs - which context
+# (priv/work/...) you get is fully determined by dots-local's `profile`
+# field above, not by the flake output name).
+echo "Running initial Home Manager bootstrap for context: ${PROFILE}..."
 
 nix run home-manager -- switch \
-  --flake .#"${PROFILE}" \
+  --flake .#default \
   --override-input dots-local git+file://"${DOTS_LOCAL}"
 
 echo "--------------------------------------------------"
 echo "Setup complete! Restart your shell to use 'apply-dots'."
 echo ""
 echo "Next steps:"
-echo "1. Edit ~/dots-local/flake.nix to set your name, email, and tune flags"
+echo "1. Edit ~/dots-local/flake.nix to set your name, email, and (optionally) tune flag overrides"
 echo "2. Add AppImages to ~/dots-local/appimages.nix"
 echo "3. Uncomment and configure sync.tracked if desired"
 echo "4. Run apply-dots to activate changes"

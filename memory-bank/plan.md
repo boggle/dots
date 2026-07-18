@@ -379,11 +379,38 @@ etc).
   laputa/work+azurelinux4 synthetic configs from Phase 2/3/addendum - all
   still resolve correctly after the ai-apps.nix/network.nix/etc changes.
 
-## Phase 5 — Tuning defaults unification
-- [ ] Single source of truth file (`modules/core/tune-defaults.nix`)
-- [ ] `tune-support.nix` + `package-tuning.nix` both consume it
-- [ ] `setup.sh` stops embedding a full copy
-- Validation: `nix eval` + diff resolved flags per package before/after
+## Phase 5 — Tuning defaults unification `[x] DONE`
+- [x] Created `modules/core/tune-defaults.nix` (pure `{ march }: {...}`
+      function) as the single source of truth - kept the fuller
+      (tune-support.nix) table as canonical, since it already had
+      go/haskell/zig and `-ffast-math` in c/c++ fast mode, which
+      package-tuning.nix's copy was missing
+- [x] Both `tune-support.nix` and `package-tuning.nix` now import it;
+      also unified `package-tuning.nix`'s `detectLang` to match
+      tune-support.nix's fuller version (was only checking `cargoDeps`,
+      now also `goPackagePath`/`isHaskellPackage`)
+- [x] `setup.sh` no longer embeds a full copy of the tuning table in the
+      generated `dots-local/flake.nix` template - just a commented
+      override example, with a note that defaults already come from
+      `dots` itself
+- [x] **Found and fixed a real, unrelated bug while touching setup.sh**:
+      the bootstrap `nix run home-manager -- switch --flake .#"${PROFILE}"`
+      line still referenced the old profile-named flake output (broken
+      since Phase 2's rename to `default`/`default-opt`) - fixed to
+      `--flake .#default`, kept `${PROFILE}` for what it's actually still
+      used for (dots-local's `profile` field / context selection, git
+      commit message)
+- Validation: **empirically discovered** that chromaden's real
+  `dots-local` already sets an explicit `tune.flags.c.fast` override
+  (`-Ofast ... -ffast-math`), which fully determines the value regardless
+  of either module's built-in default table - meaning the specific
+  table drift (c/c++ fast mode `-ffast-math`, go/haskell entirely) never
+  actually affected chromaden's live config either before or after this
+  phase. Verified via before/after `nix eval` diff of resolved
+  `RUSTFLAGS`/`NIX_CFLAGS_COMPILE` for every currently-tuned package
+  (ripgrep, fd, ghostty, tesseract, noctalia-qs) - byte-identical. Full
+  `nix build .../activationPackage` produced the **exact same store path**
+  as Phase 4's build, confirming zero derivation-level change.
 
 ## Phase 6 — Shell bootstrap: retarget hybrid file only (gutter-eval KEPT) `(live)`
 - [ ] `nixon.nix` keeps writing `.bashrc-nix`/`.profile-nix` unchanged (pure

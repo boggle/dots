@@ -312,7 +312,29 @@ Several real Nix/evalModules quirks surfaced while wiring up
     resolution via shared state). Both diffs were empty (byte-identical),
     giving full confidence across all 9 files' migrations in one step.
 
-11. **Chromaden's power-toggle.sh script content matched byte-for-byte**
+11. **Phase 5 (tuning unification): a real per-machine override can make a
+    "risky-looking" table drift completely irrelevant in practice.**
+    Before unifying `tune-support.nix`'s and `package-tuning.nix`'s
+    duplicated/drifted default-flags tables, reasoned (correctly, in the
+    end) that chromaden's actual usage (ripgrep/fd in rust "default"/
+    "fast" mode, ghostty in c "default" mode) wouldn't be affected since
+    those specific mode/lang combinations were already identical between
+    the two tables - only c/c++ "fast" mode (missing `-ffast-math` in one
+    copy) and go/haskell (missing entirely in one copy) actually differed.
+    Empirical verification then revealed an even simpler reason those
+    packages were safe: chromaden's real `dots-local/flake.nix` already
+    sets an explicit `tune.flags.c.fast` override, which
+    unconditionally wins over EITHER module's built-in default table via
+    `dotsLocal.tune.flags.${lang}.${mode} or defaults.${lang}.${mode}` -
+    so the drift between the two built-in tables was moot for this
+    specific package/mode regardless. Lesson: when assessing whether a
+    "shared defaults" refactor is safe, check for real per-machine
+    overrides that might already be masking the drift, not just the
+    apparent diff between the two default tables in isolation - and
+    verify with an actual before/after `nix eval` of the resolved values,
+    not just code-reading confidence.
+
+12. **Chromaden's power-toggle.sh script content matched byte-for-byte**
    between the old hardcoded version and the new
    `dotsLocal.machine.display`-parametrized one (checked via `nix eval
    --raw` on the generated `home.file` text) - strong confidence the

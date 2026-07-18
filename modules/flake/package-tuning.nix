@@ -12,12 +12,11 @@ let
          else [ ]
     ) names);
 
-  moduleDefaults = march: {
-    c = { safe = "-O2 -pipe"; default = "-O3 -march=${march} -pipe"; fast = "-Ofast -march=${march} -pipe -flto=auto"; };
-    "c++" = { safe = "-O2 -pipe"; default = "-O3 -march=${march} -pipe"; fast = "-Ofast -march=${march} -pipe -flto=auto"; };
-    rust = { safe = "-C opt-level=2"; default = "-C target-cpu=${march} -C opt-level=3"; fast = "-C target-cpu=${march} -C opt-level=3 -C codegen-units=1"; };
-    zig = { safe = "-Doptimize=ReleaseSafe"; default = "-Doptimize=ReleaseFast"; fast = "-Doptimize=ReleaseFast"; };
-  };
+  # Shared with modules/core/tune-support.nix (Phase 5 - see
+  # modules/core/tune-defaults.nix for the unification rationale; this used
+  # to be a second, already-drifted copy missing go/haskell and the
+  # `-ffast-math` c/c++ fast-mode flag).
+  moduleDefaults = march: import ./../core/tune-defaults.nix { inherit march; };
 
 in {
   mkTuneOverlay = tunePackages: rootDir:
@@ -43,7 +42,15 @@ in {
         let
           pkg = prev.${name} or null;
           getFlags = lang: mode: (dotsLocal.tune.flags.${lang}.${mode} or defaults.${lang}.${mode});
-          detectLang = p: if p ? cargoDeps then "rust" else "c";
+          # Unified with tune-support.nix's fuller detectLang (Phase 5) -
+          # previously only checked cargoDeps here, meaning global-scope
+          # tuning could never auto-detect Go/Haskell packages even though
+          # the flag tables (now shared) support them.
+          detectLang = p:
+            if p ? cargoDeps then "rust"
+            else if p ? goPackagePath then "go"
+            else if p ? isHaskellPackage then "haskell"
+            else "c";
           lang = opt.lang or (if pkg != null then detectLang pkg else "c");
           mode = opt.mode or "default";
           flagStr = if (opt.flags or null) != null then opt.flags else (getFlags lang mode);
