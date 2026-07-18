@@ -284,6 +284,28 @@ completely normal, expected workflow (confirmed in AGENTS.md: "During
 apply-dots, it's overridden with git+file://$DOTS_LOCAL_DIR... allows
 uncommitted changes in dots-local to be picked up").
 
+### 2026-07-18 — Azure Linux 4 alien specs: new `dnf5` manager, same conservatism as v3
+**Decision:** Added `azurelinux4` as a distinct `distro` value using a new
+`dnf5` package-manager backend (not reusing `tdnf`, even though Azure Linux
+4 ships `tdnf`->`dnf5` compatibility symlinks) - Microsoft's own docs
+recommend migrating scripts to `dnf5`/`dnf` rather than relying on the
+legacy shim. Specs mirror `azurelinux3`'s exact existing package set
+(marksman, nmap, gh, azure-cli, graphviz) at the same confidence level -
+deliberately NOT extended further the way Debian's specs were, since Azure
+Linux 4 is explicitly described (by Microsoft's own "what's new" docs and
+third-party reviews) as a lean, cloud/container-focused distro with a
+curated (not general-purpose) package set - lower confidence that generic
+CLI utilities are actually packaged for it compared to Debian's
+general-purpose archive.
+**Rationale:** User asked to "handle azure linux (latest, v4)... try to
+cover alien alternatives as for debian" - interpreted as "extend Azure
+Linux support the way Debian was extended" in spirit (adding a new
+distro/manager combo, structurally ready), but the actual package list
+scope intentionally mirrors the existing, already-conservative azurelinux3
+set rather than Debian's broader list, given the genuinely different
+confidence level between a general-purpose distro (Debian) and an
+intentionally minimal cloud distro (Azure Linux).
+
 ### 2026-07-18 — Debian alien specs: conservative, official-repos-only
 **Decision:** Only added Debian specs for packages confirmed (or high
 confidence) to be in Debian's *official* archive - `nmap`/`rclone`

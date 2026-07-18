@@ -18,6 +18,8 @@ Both default to `~/dots` and `~/dots-local` respectively. Override for custom in
 - `cachyos` -> `pacman`, `paru`
 - `opensuse` -> `zypper`
 - `azurelinux3` -> `tdnf`
+- `azurelinux4` -> `dnf5` (Azure Linux 4.0 replaced tdnf with dnf5; CLI-relevant
+  specs only - see `modules/*/*.azurelinux4-packages.nix`)
 - `debian` -> `apt` (CLI-relevant specs only so far - see
   `modules/*/*.debian-packages.nix`)
 

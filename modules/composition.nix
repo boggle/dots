@@ -62,8 +62,21 @@ in {
     ./features/butterfish.nix
     ./features/sd-switch.nix
     ./features/wsl-shell-integration.nix
+    # opener/clipboard: universal because composition-rules.nix's `isWsl`
+    # rule references features.opener/features.clipboard regardless of
+    # which context is active - a NixOS/HM module option must be declared
+    # (module imported) for ANY module to set values under that path, even
+    # a conditionally-false lib.mkIf. Found via testing `profile = "work"`
+    # with `isWsl = true` for the first time - contexts/work.nix doesn't
+    # import these, contexts/priv.nix does (and still sets their
+    # enable/backend config there, just not the import anymore).
+    ./features/opener.nix
+    ./features/clipboard.nix
     ./suites/scanning.nix
     ./suites/cloud-tools.nix
+    # ai-apps: same reasoning as opener/clipboard above - referenced by
+    # composition-rules.nix's `gpu == "nvidia"` rule regardless of context.
+    ./suites/ai-apps.nix
   ] ++ lib.optional contextExists contextFile;
 
   config = lib.mkMerge ([

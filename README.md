@@ -231,9 +231,12 @@ See [OVERVIEW.md](OVERVIEW.md#alien-packages-native-package-management) for deta
 - `cachyos` -> `pacman` + `paru`
 - `opensuse` -> `zypper`
 - `azurelinux3` -> `tdnf`
-- `debian` -> `apt` (structurally supported; CLI-relevant specs only so
-  far, conservative/official-repos-only - not yet verified on real Debian
-  hardware)
+- `azurelinux4` -> `dnf5` (Azure Linux 4.0 replaced tdnf with dnf5)
+- `debian` -> `apt`
+
+All of `azurelinux3`/`azurelinux4`/`debian` are structurally supported with
+CLI-relevant, conservative/official-repos-only specs - not yet verified on
+real hardware for those distros.
 
 **Flake outputs:**
 - `default` - Baseline, uses cache.nixos.org

@@ -80,7 +80,7 @@ in {
       description = ''
         Linux distro identifier, selects the alien-package backend
         (`*.<distro>-packages.nix` spec suffix). Known values: cachyos,
-        opensuse, azurelinux3, debian.
+        opensuse, azurelinux3, azurelinux4, debian.
       '';
     };
 

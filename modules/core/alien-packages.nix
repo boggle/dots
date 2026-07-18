@@ -209,6 +209,17 @@ HELP
           apt)
             apt-mark showinstall 2>/dev/null | sort || echo ""
             ;;
+          dnf5)
+            # Azure Linux 4.0 replaced tdnf with dnf5 (still RPM-based
+            # underneath, and Azure Linux even ships tdnf->dnf5
+            # compatibility symlinks - but Microsoft's own docs recommend
+            # migrating scripts to dnf5/dnf directly rather than relying on
+            # that legacy shim long-term). Query via `rpm` directly rather
+            # than parsing `dnf5 list installed`'s table output - more
+            # robust, and works identically regardless of which DNF/YUM
+            # generation is actually in front of it.
+            rpm -qa --queryformat '%{NAME}\n' 2>/dev/null | sort -u || echo ""
+            ;;
           *)
             echo ""
             ;;
@@ -295,6 +306,15 @@ HELP
                 ;;
               apt)
                 if sudo apt-get remove -y "$pkg"; then
+                  echo "  ✅ Removed $pkg"
+                  to_remove="$to_remove\n$pkg"
+                  removed_count=$((removed_count + 1))
+                else
+                  echo "  ❌ Failed to remove $pkg"
+                fi
+                ;;
+              dnf5)
+                if sudo dnf5 remove -y "$pkg"; then
                   echo "  ✅ Removed $pkg"
                   to_remove="$to_remove\n$pkg"
                   removed_count=$((removed_count + 1))
@@ -481,6 +501,9 @@ HELP
               ;;
             apt)
               install_cmd="sudo apt-get install -y"
+              ;;
+            dnf5)
+              install_cmd="sudo dnf5 install -y"
               ;;
             *)
               echo "Unknown package manager: $mgr"

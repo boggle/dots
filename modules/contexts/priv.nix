@@ -17,8 +17,9 @@ let
 in {
 
   imports = [
-    ../../modules/features/opener.nix
-    ../../modules/features/clipboard.nix
+    # opener.nix/clipboard.nix moved to modules/composition.nix's universal
+    # imports (see its comment for why) - only the enable/backend config
+    # below is context-specific now, not the import itself.
     ../../modules/suites/sixel-tools.nix
     ../../modules/features/appimages.nix
     ../../modules/features/fonts.nix
@@ -27,7 +28,8 @@ in {
     ../../modules/features/quarkdown.nix
     ../../modules/suites/gui-apps.nix
     ../../modules/suites/tui-apps.nix
-    ../../modules/suites/ai-apps.nix
+    # ai-apps.nix moved to modules/composition.nix's universal imports too
+    # (same reasoning as opener/clipboard above)
   ];
 
   features.opener = {

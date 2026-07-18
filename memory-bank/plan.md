@@ -318,6 +318,37 @@ etc).
   still not done - remains vestigial; low priority, revisit if it becomes
   actually useful rather than doing it preemptively.
 
+### Phase 3 addendum — Azure Linux 4 (`dnf5`) support
+- [x] Added `dnf5` as a new alien-package manager backend (Azure Linux 4.0
+      replaced `tdnf` with `dnf5` - confirmed via Microsoft's own "what's
+      new" docs; kept as a genuinely separate manager rather than reusing
+      `tdnf`, even though Azure Linux ships compatibility symlinks, per
+      Microsoft's own migration guidance)
+- [x] Added `azurelinux4` distro value + `*.azurelinux4-packages.nix` specs
+      mirroring `azurelinux3`'s exact existing package set (marksman, nmap,
+      gh, azure-cli, graphviz) - same conservative confidence level,
+      deliberately not extended further like Debian's specs (Azure Linux 4
+      is an intentionally lean/curated cloud distro, not general-purpose)
+- [x] **Found and fixed a real, pre-existing Phase 2 gap** while testing
+      with `profile = "work"` for the first time: `composition-rules.nix`
+      references `features.opener`/`features.clipboard` (via the `isWsl`
+      rule) and `suites.ai-apps` (via the `gpu == "nvidia"` rule), but
+      those modules were only imported by `contexts/priv.nix`, not
+      universally - `lib.mkIf false` still requires the option to be
+      *declared* somewhere. Moved `opener.nix`/`clipboard.nix`/`ai-apps.nix`
+      to `composition.nix`'s universal imports (matching the existing
+      niri-noctalia/llama-cpp/cloud-tools pattern); their enable/config
+      assignments stay in `contexts/priv.nix`. Re-verified chromaden's
+      resolved config unaffected (spot-checked ai-apps.pi/opencode,
+      opener/clipboard enable+backend - all identical).
+- Validation: synthetic `distro = "azurelinux4"`, `profile = "work"`,
+  `isWsl = false` dots-local copy - full `nix build` succeeds; confirmed
+  `required/dnf5.txt` resolves to exactly `azure-cli`/`gh`/`nmap` once
+  those toggles are explicitly enabled (empty otherwise, correctly -
+  `cloud-tools.enable` only makes the suite reachable, doesn't turn on
+  individual tools). Re-validated chromaden (real) and laputa (synthetic)
+  still build correctly after the opener/clipboard/ai-apps import move.
+
 ## Phase 4 — `mkAppSet` helper, migrate all suites
 - [ ] Implement `modules/core/lib.nix` helper
 - [ ] Migrate gui-apps, tui-apps, pim-apps, scanning, sixel-tools,

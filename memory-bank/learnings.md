@@ -277,7 +277,30 @@ Several real Nix/evalModules quirks surfaced while wiring up
    itself is byte-identical to before this session touched anything, so
    the comment was already stale/inaccurate beforehand.
 
-8. **Chromaden's power-toggle.sh script content matched byte-for-byte**
+9. **A composition-rules.nix rule referencing an option makes that
+   option's module a hard, universal dependency - discovered a real gap
+   this way.** Testing with `profile = "work"` + `isWsl = true` for the
+   first time (previously every synthetic test used `profile = "priv"`)
+   surfaced "The option `features.clipboard' does not exist" /
+   "The option `suites.ai-apps' does not exist" - `composition-rules.nix`'s
+   `isWsl` rule references `features.opener`/`features.clipboard`, and the
+   `gpu == "nvidia"` rule references `suites.ai-apps`, but those modules
+   were only imported by `contexts/priv.nix`, not universally. A `lib.mkIf`
+   with a `false` condition still requires the option path to be *declared*
+   somewhere (module imported) - it just doesn't set a value; NixOS/HM's
+   module system validates declared-vs-defined independently of whether a
+   conditional actually fires. Fixed by moving `opener.nix`/`clipboard.nix`/
+   `ai-apps.nix` to `composition.nix`'s universal imports list (same
+   pattern as niri-noctalia/llama-cpp/cloud-tools), keeping their
+   `enable`/config assignments in `contexts/priv.nix` (context-specific)
+   while making the underlying options always declared. General lesson:
+   any option composition-rules.nix references must have its declaring
+   module universally imported - a good thing to audit whenever a new rule
+   is added, and a strong argument for testing every context (not just the
+   one that happens to be live-checkpointed) with synthetic dots-local
+   copies before considering a phase done.
+
+10. **Chromaden's power-toggle.sh script content matched byte-for-byte**
    between the old hardcoded version and the new
    `dotsLocal.machine.display`-parametrized one (checked via `nix eval
    --raw` on the generated `home.file` text) - strong confidence the
