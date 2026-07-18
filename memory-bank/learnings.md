@@ -525,3 +525,28 @@ pre-existing bug (not user-specific config) in
   exercising a couple of real code paths like JSON/CSV formatting) since a
   byte-diff alone doesn't prove the shell variables are correctly quoted/
   scoped at runtime.
+- **Follow-up gotcha, hit while extracting `clipboard.nix`**: when a
+  Nix-computed "command line" string itself contains an *internally
+  quoted* argument (e.g. the wsl paste command: `powershell.exe -NoProfile
+  -Command "Get-Clipboard -Raw"` - note "Get-Clipboard -Raw" must stay
+  ONE argument), do **not** just dump it into a plain shell variable and
+  reference it unquoted later. In the original embedded-Nix-string form
+  this worked by accident: Nix interpolation splices the literal text
+  directly into the bash source *before bash ever parses it*, so the
+  quotes are genuinely syntactic quotes to bash. But once that same text
+  is assigned to a bash variable (`VAR="powershell.exe ... \"Get-Clipboard
+  -Raw\""`) and later expanded unquoted (`$VAR`), the quote characters are
+  by then just inert data in the variable's value - bash does NOT
+  re-parse them, and word-splitting on whitespace will incorrectly break
+  `"Get-Clipboard` and `-Raw"` into two separate words. Fixed by using a
+  real bash **array** instead of a string
+  (`COPY_CMD=("powershell.exe" "-NoProfile" "-Command" "Get-Clipboard
+  -Raw")`, generated from a Nix list of individually-double-quoted
+  literal elements), referenced as `"${COPY_CMD[@]}"` - this preserves
+  argument boundaries exactly regardless of embedded spaces, and is
+  actually more robust than the original implicit-splice behavior (no
+  reliance on eval-like semantics at all). General rule for any future
+  Phase-8-style extraction: if a Nix-computed value represents multiple
+  shell words/arguments (not just one atomic path), pass it through as a
+  bash array, not a string - only use a plain string variable for truly
+  atomic values (a single path, a single flag, a single word).

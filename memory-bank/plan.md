@@ -27,9 +27,10 @@ validated build exactly. **Phase 7 (script consolidation + shared bash
 lib) complete and LIVE-CHECKPOINTED** - `setup-llama-cpp`/`setup-pi`/
 `setup-graphify` all live-tested on the real system (safe decline-path
 tests + a real idempotent `setup-graphify install` run). **Phase 8
-(externalize large embedded scripts) in progress**: `grabcontext` (Python)
-and `viewer.nix`'s `v` script (bash) done, byte-identical output verified
-for both; `clipboard.nix` and niri-noctalia's helper scripts still to do.
+(externalize large embedded scripts) in progress**: `grabcontext` (Python),
+`viewer.nix`'s `v` script, and `clipboard.nix` done, byte-identical/
+functionally-equivalent output verified for all three; only
+niri-noctalia's helper scripts remain.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
@@ -576,17 +577,46 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
       the JSON (`jq`) and CSV (`column`) code paths - both produced correct
       output. Full `nix build .../activationPackage` for chromaden (real
       dots-local) also passes cleanly after this change.
-- [ ] `clipboard.nix` bash (~140 lines) -> real file, same
-      preamble-plus-readFile pattern if it has Nix interpolations too
+- [x] `clipboard.nix` bash (~130 lines) -> real file
+      `modules/features/clipboard/clipboard.sh`. Also has real Nix
+      interpolations (`${sed}`/`${pkgs.perl}`/`${backend}`, plus the
+      backend-selected `copyCmdBase`/`pasteCmdBase` commands). The wsl
+      paste command is the interesting case: `powershell.exe -NoProfile
+      -Command "Get-Clipboard -Raw"` has an embedded, internally-quoted
+      argument - naively storing it as a single shell-variable string and
+      unquoted-expanding it would incorrectly word-split "Get-Clipboard"
+      and "-Raw" into two separate argv entries (the quotes become inert
+      data once already inside a variable's value - bash doesn't re-parse
+      them). Fixed by using real bash ARRAYS instead of strings
+      (`COPY_CMD=(...)`, generated from Nix as
+      `copyCmdArray`/`pasteCmdArray` - Nix-level lists of individually
+      double-quoted array-literal elements), referenced as
+      `"${COPY_CMD[@]}"` - preserves argument boundaries exactly, more
+      robust than the original approach (which only worked because Nix
+      string interpolation happens before bash ever parses the script,
+      equivalent to an implicit one-time `eval`).
+      Validated: eval'd the resolved array text for all 4 backends
+      directly (wayland/x11/wsl/macos) - correct argv boundaries in every
+      case, including the tricky wsl one; built the real `.bashrc-nix`
+      derivation before/after via `git stash` and diffed - only
+      differences are the expected inlined-path-vs-variable substitutions
+      (matching store paths on both sides) plus cosmetic indentation from
+      the string-concatenation join point; ran a full functional test
+      harness (fake COPY_CMD/PASTE_CMD receivers) confirming argv
+      splitting is correct for the wsl case, default single-trailing-
+      newline trim behavior, `--strip` ANSI stripping, and `clipfile`
+      against a real file - all produced correct output. Full `nix build
+      .../activationPackage` for chromaden (real dots-local, `wayland`
+      backend) also passes cleanly.
 - [ ] niri-noctalia helper scripts (terminal-in-current-column,
       terminal-scratchpad-toggle, etc.) -> real files
 - Validation so far: `nix eval` + full `nix build` for chromaden (`default`
   profile) after each extraction; direct `.drv`-path builds of the specific
-  changed package (old vs. new) diffed byte-for-byte where feasible;
-  functional smoke tests of the resulting binaries. Still to do once all
-  four targets are done: shellcheck/pyflakes pass, functional smoke test of
-  `clipin`/`clipout` and the niri-noctalia helpers, update
-  `preserved-features-checklist.md`.
+  changed package/file (old vs. new) diffed byte-for-byte where feasible;
+  functional smoke tests of the resulting scripts/binaries (including a
+  fake-receiver harness for clipboard.nix's array-based commands). Still to
+  do once niri-noctalia is done: shellcheck/pyflakes pass across all
+  extracted files, update `preserved-features-checklist.md`.
 
 ## Phase 9 — Wire up dead options, close out, final docs
 - [ ] `viewer.nix`'s 5 dead options actually gate script behavior
