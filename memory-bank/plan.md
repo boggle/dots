@@ -2,14 +2,16 @@
 
 Status: **Phase 0 complete and committed** (`4c39074`; `9ae4fb8` follow-up).
 **Phase 1 (`dots-local` schema) complete and committed** (`5fb54cb`).
-**Phase 2 (composition layer) complete and committed** (`ce481c7` in
-`dots`, `fded4bb` in `dots-local` for chromaden's migrated host config) -
-eval/build-validated, **not yet live-checkpointed with `apply-dots`**
-(command surface changed: `apply-dots priv`/`apply-dots priv-opt` ->
-`apply-dots`/`apply-dots opt` - flagged explicitly, awaiting confirmation).
-laputa/triomino need manual follow-up on their own machines - see
-`host-migration-phase2.md`. Phase 3 (alien package unification + Debian)
-not yet started.
+**Phase 2 (composition layer) complete, committed, and LIVE-CHECKPOINTED**
+(`ce481c7` in `dots`, `fded4bb` in `dots-local`) - chromaden's generation
+312 (current) confirmed byte-identical to the build validated during this
+phase. One bootstrapping snag hit and resolved: the previously-installed
+`apply-dots` was still the old profile-based version until the first
+switch to the renamed `default` output regenerated it (expected, one-time,
+due to the rename - fixed by running `nh home switch ... -c default`
+directly once). laputa/triomino need manual follow-up on their own
+machines - see `host-migration-phase2.md`. Phase 3 (alien package
+unification + Debian) not yet started.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
