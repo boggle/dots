@@ -231,6 +231,9 @@ See [OVERVIEW.md](OVERVIEW.md#alien-packages-native-package-management) for deta
 - `cachyos` -> `pacman` + `paru`
 - `opensuse` -> `zypper`
 - `azurelinux3` -> `tdnf`
+- `debian` -> `apt` (structurally supported; CLI-relevant specs only so
+  far, conservative/official-repos-only - not yet verified on real Debian
+  hardware)
 
 **Flake outputs:**
 - `default` - Baseline, uses cache.nixos.org

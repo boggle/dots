@@ -1,29 +1,15 @@
 { config, lib, pkgs, dotsLocal, ... }:
 
 let
-  distro = dotsLocal.distro;
-  
-  # Find all alien package spec files recursively
-  collectAlienSpecsFiles = dir:
-    let
-      entries = builtins.readDir dir;
-      names = builtins.attrNames entries;
-      suffix = ".${distro}-packages.nix";
-    in builtins.concatLists (map (name:
-      let 
-        ty = entries.${name}; 
-        p = dir + "/${name}";
-      in 
-        if ty == "directory" then collectAlienSpecsFiles p
-        else if ty == "regular" && lib.hasSuffix suffix name then [ p ]
-        else [ ]
-    ) names);
-  
-  # Load alien specs for current distro
-  modulesDir = ../../modules;
-  alienSpecFiles = collectAlienSpecsFiles modulesDir;
-  rawAlienSpecs = lib.foldl' (acc: p: acc // (import p)) {} alienSpecFiles;
-  
+  # Shared with modules/flake/alien-package-specs.nix (Phase 3 - see
+  # memory-bank/architecture.md section 4) - previously each independently
+  # implemented the exact same recursive spec-file discovery.
+  discovery = import ../flake/alien-discovery.nix { inherit lib; };
+  rawAlienSpecs = discovery.collectAlienSpecs {
+    dir = ../../modules;
+    distro = dotsLocal.distro;
+  };
+
   # Get all package managers from specs
   allManagers = lib.unique (lib.concatLists (lib.mapAttrsToList (pkgName: spec:
     builtins.attrNames (spec.packages or {})
@@ -220,6 +206,9 @@ HELP
           tdnf)
             tdnf list installed 2>/dev/null | awk 'NR>2 {print $1}' | cut -d'.' -f1 | sort -u || echo ""
             ;;
+          apt)
+            apt-mark showinstall 2>/dev/null | sort || echo ""
+            ;;
           *)
             echo ""
             ;;
@@ -297,6 +286,15 @@ HELP
                 ;;
               tdnf)
                 if sudo tdnf remove -y "$pkg"; then
+                  echo "  ✅ Removed $pkg"
+                  to_remove="$to_remove\n$pkg"
+                  removed_count=$((removed_count + 1))
+                else
+                  echo "  ❌ Failed to remove $pkg"
+                fi
+                ;;
+              apt)
+                if sudo apt-get remove -y "$pkg"; then
                   echo "  ✅ Removed $pkg"
                   to_remove="$to_remove\n$pkg"
                   removed_count=$((removed_count + 1))
@@ -480,6 +478,9 @@ HELP
               ;;
             tdnf)
               install_cmd="sudo tdnf install -y"
+              ;;
+            apt)
+              install_cmd="sudo apt-get install -y"
               ;;
             *)
               echo "Unknown package manager: $mgr"

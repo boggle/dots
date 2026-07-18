@@ -284,6 +284,22 @@ completely normal, expected workflow (confirmed in AGENTS.md: "During
 apply-dots, it's overridden with git+file://$DOTS_LOCAL_DIR... allows
 uncommitted changes in dots-local to be picked up").
 
+### 2026-07-18 — Debian alien specs: conservative, official-repos-only
+**Decision:** Only added Debian specs for packages confirmed (or high
+confidence) to be in Debian's *official* archive - `nmap`/`rclone`
+(network) and `btop`/`lazygit`/`imagemagick`/`graphviz`/`pandoc`/`pass`/
+`hledger` (tui-apps). Explicitly excluded `doggo`/`xh` (network) and
+`zellij`/`yazi` (tui-apps) - web search confirmed the latter two are only
+reliably available through unofficial third-party apt repos
+(deb.griffo.io), not Debian's own archive.
+**Rationale:** Matches the existing, deliberately conservative
+`azurelinux3` precedent - dots's alien-package convention assumes official
+distro repos, not third-party ones (that would be a much bigger
+architectural decision - introducing external repo configuration - not
+something to slip in as a side effect of adding Debian support). Better to
+under-declare and let a package silently fall through to plain Nix than to
+declare a spec for something apt can't actually install.
+
 ### 2026-07-18 — Phase 2 scope: `modules/distros/*` deferred to Phase 3
 **Decision:** Did not repurpose the vestigial `modules/distros/*.nix`
 registry during Phase 2 as originally planned - left as-is (still dead

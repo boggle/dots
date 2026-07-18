@@ -18,6 +18,8 @@ Both default to `~/dots` and `~/dots-local` respectively. Override for custom in
 - `cachyos` -> `pacman`, `paru`
 - `opensuse` -> `zypper`
 - `azurelinux3` -> `tdnf`
+- `debian` -> `apt` (CLI-relevant specs only so far - see
+  `modules/*/*.debian-packages.nix`)
 
 Azure Linux 3 package mappings are intentionally conservative and only include packages verified to exist in the official Azure Linux 3 repositories.
 

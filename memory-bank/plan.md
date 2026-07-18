@@ -10,8 +10,9 @@ phase. One bootstrapping snag hit and resolved: the previously-installed
 switch to the renamed `default` output regenerated it (expected, one-time,
 due to the rename - fixed by running `nh home switch ... -c default`
 directly once). laputa/triomino need manual follow-up on their own
-machines - see `host-migration-phase2.md`. Phase 3 (alien package
-unification + Debian) not yet started.
+machines - see `host-migration-phase2.md`. **Phase 3 (alien package
+unification + Debian support) complete, eval/build-validated (no Debian
+hardware to live-test), not yet committed.**
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
@@ -283,15 +284,38 @@ etc).
   `apply-dots` run** - flagged explicitly to the user given the command
   syntax change, awaiting confirmation before/alongside that live check.
 
-## Phase 3 — Alien package unification + Debian support
-- [ ] Merge `alien-package-specs.nix` (flake-level) and `alien-packages.nix`
-      (HM-level) discovery into one shared function
-- [ ] Add `apt` backend to `update-alien-packages`
-- [ ] Add `*.debian-packages.nix` convention; backfill CLI-relevant specs
-      (git, network, dev-tools, clipboard/opener essentials, tui-apps CLI
-      subset)
-- [ ] Document Debian support as structurally-ready-but-runtime-unverified
-- Validation: `nix eval` only (no Debian hardware available yet)
+## Phase 3 — Alien package unification + Debian support `[x] DONE`
+- [x] Merged `alien-package-specs.nix` (flake-level) and `alien-packages.nix`
+      (HM-level) discovery into one shared `modules/flake/alien-discovery.nix`
+      function - both now call `collectAlienSpecs { dir; distro; }` instead
+      of each independently implementing the same recursive directory walk
+- [x] Added `apt` backend to `update-alien-packages` (all three call sites:
+      `get_installed_packages` via `apt-mark showinstall`, the removal
+      case statement via `apt-get remove -y`, the install case statement
+      via `apt-get install -y`) - preserves the existing
+      `get_all_required()` cross-manager orphan-safety fix from Phase 0
+      automatically, since that logic doesn't hardcode manager names
+- [x] Added `*.debian-packages.nix` convention; backfilled **conservatively**
+      (matching the existing azurelinux3 precedent of official-repos-only):
+      `network.debian-packages.nix` (nmap, rclone - deliberately excluded
+      doggo/xh, not confirmed in Debian's official archive),
+      `tui-apps.debian-packages.nix` (btop, lazygit - confirmed via
+      packages.debian.org, imagemagick, graphviz, pandoc, pass, hledger -
+      deliberately excluded zellij/yazi, confirmed via web search to only
+      be reliably available through unofficial third-party repos like
+      deb.griffo.io, not Debian's own archive)
+- [x] Updated README.md/OVERVIEW.md's distro-backend tables to mention
+      `debian -> apt`
+- Validation: `nix eval` + full `nix build .../activationPackage` against
+  a synthetic `distro = "debian"` dots-local copy (no real Debian hardware
+  available) - confirmed the resolved `required/apt.txt` contains exactly
+  the packages for currently-enabled toggles (btop/graphviz/imagemagick/
+  lazygit/rclone), correctly excluding disabled ones. **Documented as
+  structurally-ready-but-runtime-unverified** - flagged in
+  `memory-bank/open-questions.md`, to be revisited once real Debian
+  hardware exists. `modules/distros/*` repurposing (deferred from Phase 2)
+  still not done - remains vestigial; low priority, revisit if it becomes
+  actually useful rather than doing it preemptively.
 
 ## Phase 4 — `mkAppSet` helper, migrate all suites
 - [ ] Implement `modules/core/lib.nix` helper

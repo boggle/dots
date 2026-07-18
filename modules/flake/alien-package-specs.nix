@@ -1,29 +1,11 @@
 { lib, dotsLocal }:
 
 let
-  distro = dotsLocal.distro;
-  
-  # Find all alien package spec files recursively
-  collectAlienSpecsFiles = dir:
-    let
-      entries = builtins.readDir dir;
-      names = builtins.attrNames entries;
-      suffix = ".${distro}-packages.nix";
-    in builtins.concatLists (map (name:
-      let 
-        ty = entries.${name}; 
-        p = dir + "/${name}";
-      in 
-        if ty == "directory" then collectAlienSpecsFiles p
-        else if ty == "regular" && lib.hasSuffix suffix name then [ p ]
-        else [ ]
-    ) names);
-  
-  # Load alien specs for current distro
-  modulesDir = ../../modules;
-  alienSpecFiles = collectAlienSpecsFiles modulesDir;
-  alienSpecs = lib.foldl' (acc: p: acc // (import p)) {} alienSpecFiles;
-  
+  discovery = import ./alien-discovery.nix { inherit lib; };
+  alienSpecs = discovery.collectAlienSpecs {
+    dir = ../../modules;
+    distro = dotsLocal.distro;
+  };
 in {
   # Helper function for features to check if alien package exists
   has = pkgName: alienSpecs ? ${pkgName};
