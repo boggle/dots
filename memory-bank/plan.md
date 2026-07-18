@@ -1,7 +1,10 @@
 # Execution Plan
 
 Status: **Phase 0 complete and committed** (`4c39074`, "Phase 0: memory bank
-+ re-architecture bugfixes"). Phase 1 (`dots-local` schema) not yet started.
++ re-architecture bugfixes"; `9ae4fb8` follow-up). **Phase 1 (`dots-local`
+schema) implemented and validated, not yet committed** - awaiting final
+review/live-checkpoint before commit. Phase 2 (composition layer) not yet
+started.
 
 Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(live)` = needs a
 live `apply-dots` checkpoint on chromaden, not just `nix eval`/`nix build`.
@@ -134,21 +137,52 @@ etc).
       live - not yet applied as of this note (next live checkpoint will
       cover it).
 
-## Phase 1 — `dots-local` schema
-- [ ] Design `modules/dots-local/schema.nix` (lib.evalModules, full axis set)
-- [ ] Wire into `flake.nix`: evaluate dots-local against schema, pass
-      `dotsLocal` as specialArg to all modules
-- [ ] Migrate all ad-hoc `inputs.dots-local.X or default` reads (~30+ sites)
-      to `dotsLocal.X`
-- [ ] Create `modules/dots-local/template.nix`, used by `setup.sh` to
-      scaffold new dots-local checkouts
-- [ ] Add a lightweight `nix eval` sanity check that the template validates
-      against the schema (prevents doc/template drift)
-- [ ] **Standing rule (see architecture.md 1c)**: any config removed from
-      `dots` in this phase gets a documented `dots-local` replacement in the
-      *same* commit, not after
-- Validation: `nix eval` only (schema is additive; defaults preserve current
-  chromaden values)
+## Phase 1 — `dots-local` schema `[x] DONE (uncommitted)`
+- [x] Design `modules/dots-local/schema.nix` (lib.evalModules) - kept
+      additive/backward-compatible (existing fields stay flat) rather than
+      the fully-nested design originally sketched; see decisions.md
+      2026-07-18 "dots-local schema: additive/backward-compatible"
+- [x] Wire into `flake.nix`: evaluate dots-local against schema (stripping
+      flake-introspection metadata attrs first - see learnings.md), pass
+      `dotsLocal` as specialArg to all HM modules + the gutter-eval; also
+      wired `dotsLocal.extraModules`/`extraOverlays` escape hatches in
+      (appended, empty by default, no behavior change)
+- [x] Migrated every `inputs.dots-local`/`local.X or default` read site to
+      `dotsLocal.X`: flake.nix, alien-package-specs.nix, package-tuning.nix,
+      tune-support.nix, alien-packages.nix, dots-local.nix, nixon.nix,
+      appimages.nix, dev-tools.nix, git.nix, butterfish.nix,
+      chromaden.nix, priv/home.nix - confirmed via grep, zero
+      `inputs.dots-local` references remain in modules/profiles
+- [x] Added `modules/core/dots-local-shell.nix` - the new low-ceremony
+      `dotsLocal.shell.{sessionVariables,shellAliases,initExtra}` path,
+      flows through the existing gutter-eval automatically via HM's normal
+      cross-module merging
+- [x] Bonus fixes enabled by the schema: removed the dead `graphical`
+      legacy-alias fallback; removed the manual `graphicalBackend`
+      validBackend/assertions block (schema's enum type now does this);
+      unified the `march` default to "native" (was inconsistently "znver5"
+      in package-tuning.nix only) and fixed the `-opt` profile build
+      hardcoding `gcc.arch = "znver5"` regardless of `dotsLocal.march`;
+      fixed `dev-tools.nix`'s hardcoded `/home/${username}` path to use
+      `config.home.homeDirectory` instead; fixed a real typo in the live
+      `dots-local/appimages.nix` (`dektopName` -> `desktopName`, tolaria's
+      desktop entry was silently getting the wrong display name)
+- [x] Fixed a real bug surfaced by the schema itself: `appimages.nix`'s
+      `app.desktopName or name`/`app.categories or [...]` fallbacks broke
+      once `dotsLocal.appimages` became schema-typed (always-present
+      null/[] rather than sometimes-missing) - only caught by a full
+      `nix build .../activationPackage`, not by a shallow `nix eval`; see
+      learnings.md for the full trail and the general lesson about eval
+      vs. build validation depth
+- [ ] ~~Create `modules/dots-local/template.nix`~~ - deferred to Phase 2
+      (nothing lost its home in Phase 1; see open-questions.md)
+- Validation: `nix eval` for chromaden (real dots-local, both clean and
+  uncommitted-change git states), laputa + triomino (temp dots-local
+  copies), priv-opt, and the (still expectedly-broken, unrelated) `work`
+  profile; full `nix build` of `config.home.path` +
+  `config.home.activationPackage` for chromaden and laputa. **Not yet
+  live-checkpointed** - awaiting the next `apply-dots` per user's usual
+  validation cadence.
 
 ## Phase 2 — Composition layer (replaces profile hierarchy) `(live)`
 - [ ] `modules/composition-rules.nix` (declarative, pure-data rule list)

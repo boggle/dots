@@ -1,12 +1,10 @@
-{ pkgs, lib, inputs, ... }:
+{ pkgs, lib, dotsLocal, ... }:
   # Priv Profile - Personal Linux Environment
 
   let
-    local = inputs.dots-local;
-    hostname = local.host or null;
-    enableGuiDefaults = local.enableGuiDefaults or (local.graphical or false);
-    graphicalBackend = local.graphicalBackend or "wayland";
-    validBackend = builtins.elem graphicalBackend [ "wayland" "x11" "wsl" "macos" ];
+    hostname = dotsLocal.host;
+    enableGuiDefaults = dotsLocal.enableGuiDefaults;
+    graphicalBackend = dotsLocal.graphicalBackend;
     hostImport = if hostname != null 
       then ./hosts/${hostname}.nix
       else null;
@@ -29,23 +27,21 @@
     
     hostImport
   ];
-  
-  # Package-specific tuning
-  assertions = [
-    {
-      assertion = validBackend;
-      message = "dots-local.graphicalBackend must be one of: wayland, x11, wsl, macos";
-    }
-  ];
+
+  # NOTE: the old `validBackend`/assertions block that manually checked
+  # `graphicalBackend` against the 4 valid values is gone - dotsLocal's
+  # schema now types `graphicalBackend` as an enum, so an invalid value is
+  # rejected at flake-evaluation time with a clear error, before this file
+  # even runs.
 
   features.opener = {
-      enable = validBackend;
+      enable = true;
       backend = graphicalBackend;
       alias = "o";
   };
 
   features.clipboard = {
-    enable = validBackend;
+    enable = true;
     backend = graphicalBackend;
   };
 

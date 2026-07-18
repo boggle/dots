@@ -1,8 +1,7 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, dotsLocal, ... }:
 
 let
-  local = inputs.dots-local;
-  distro = local.distro or "unknown";
+  distro = dotsLocal.distro;
   
   # Find all alien package spec files recursively
   collectAlienSpecsFiles = dir:

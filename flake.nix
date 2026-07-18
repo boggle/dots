@@ -29,6 +29,35 @@
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
+
+      # Formal, typed dots-local schema (Phase 1 of the re-architecture -
+      # see memory-bank/architecture.md section 1, memory-bank/plan.md
+      # Phase 1). Evaluates the raw dots-local flake output against
+      # modules/dots-local/schema.nix, giving every field a documented
+      # default instead of the ~30 scattered `inputs.dots-local.X or
+      # default` reads this replaces. `dotsLocal` (the evaluated config) is
+      # passed to all Home Manager modules via extraSpecialArgs below,
+      # alongside (not instead of) `inputs`, since some non-dots-local
+      # inputs (niri, noctalia, nixgl, ...) are still read directly.
+      # `dots-local` (the flake input) carries flake-introspection metadata
+      # alongside its actual data fields (_type, inputs, outPath, outputs,
+      # rev, sourceInfo, ...) - these must be stripped before handing it to
+      # evalModules, which otherwise tries to validate them as declared
+      # options and fails ("The option `_type' does not exist").
+      dotsLocalData = builtins.removeAttrs dots-local [
+        "_type" "inputs" "lastModified" "lastModifiedDate" "narHash"
+        "outPath" "outputs" "rev" "revCount" "shortRev" "sourceInfo"
+        "submodules" "dirtyRev" "dirtyShortRev"
+      ];
+
+      dotsLocalEval = lib.evalModules {
+        # Wrapped as `{ config = dotsLocalData; }` (rather than passed
+        # bare) to make the intent explicit to evalModules: these are
+        # config values, not a module function.
+        modules = [ ./modules/dots-local/schema.nix { config = dotsLocalData; } ];
+      };
+      dotsLocal = dotsLocalEval.config;
+
         externalOverlay = final: prev: {
            external.snippets-ls = snippets-ls.packages.${prev.stdenv.hostPlatform.system}.snippets-ls;
            external.bookokrat = bookokrat.packages.${prev.stdenv.hostPlatform.system}.default.overrideAttrs (oldAttrs: {
@@ -39,11 +68,11 @@
            quarto = inputs.nixpkgs-quarto-pin.legacyPackages.${prev.stdenv.hostPlatform.system}.quarto;
            pandoc = inputs.nixpkgs-quarto-pin.legacyPackages.${prev.stdenv.hostPlatform.system}.pandoc;
          };
-      tuning = import ./modules/flake/package-tuning.nix { inherit lib dots-local; };
+      tuning = import ./modules/flake/package-tuning.nix { inherit lib dotsLocal; };
       
       # Alien package helpers (need to be available early for imports)
       alien = import ./modules/flake/alien-package-specs.nix { 
-          inherit lib dots-local; 
+          inherit lib dotsLocal; 
       };
 
       mkProfile = { profileName, optimized ? false, tunePackages ? {} }:
@@ -54,10 +83,14 @@
             niri.overlays.niri
             noctalia-qs.overlays.default
             externalOverlay
-          ]  ++ (lib.optional (tuneOverlay != null) tuneOverlay);
+          ]  ++ (lib.optional (tuneOverlay != null) tuneOverlay)
+             ++ dotsLocal.extraOverlays;
           
           pkgs' = import nixpkgs (if optimized then { 
-            localSystem = { inherit system; gcc.arch = "znver5"; gcc.tune = "znver5"; }; 
+            # Previously hardcoded "znver5" here regardless of the
+            # machine's actual dots-local.march - meaning the -opt profile
+            # silently ignored per-machine tuning entirely. Now parametrized.
+            localSystem = { inherit system; gcc.arch = dotsLocal.march; gcc.tune = dotsLocal.march; }; 
             config.allowUnfree = true; inherit overlays; 
           } else { 
             config.allowUnfree = true; inherit system overlays; 
@@ -68,24 +101,25 @@
             noctalia.homeModules.default
             ./modules/core
             ./modules/core/dots-local.nix
+            ./modules/core/dots-local-shell.nix
             ./modules/core/nix-tools.nix
             ./modules/core/scripts.nix
             ./modules/core/alien-packages.nix
             ./modules/core/tune-support.nix
             ./profiles/${profileName}/home.nix
             {
-              home.username = dots-local.username;
-              home.homeDirectory = dots-local.homeDirectory;
+              home.username = dotsLocal.username;
+              home.homeDirectory = dotsLocal.homeDirectory;
               programs.bash.enable = true;
               targets.genericLinux.enable = true;
             }
-          ];
+          ] ++ dotsLocal.extraModules;
 
           # Gutter Eval to capture clean HM bashrc/profile
           gutterEval = home-manager.lib.homeManagerConfiguration {
             pkgs = pkgs';
             modules = baseModules;
-            extraSpecialArgs = { inherit inputs pkgs' alien; };
+            extraSpecialArgs = { inherit inputs pkgs' alien dotsLocal; };
           };
 
         in
@@ -95,7 +129,7 @@
             ./modules/core/nixon.nix
           ];
           extraSpecialArgs = { 
-            inherit inputs pkgs' alien; 
+            inherit inputs pkgs' alien dotsLocal; 
             bashrcDerivation = gutterEval.config.home.file.".bashrc".source;
             profileDerivation = gutterEval.config.home.file.".profile".source;
           };
@@ -119,5 +153,11 @@
 
     in {
       homeConfigurations = builtins.listToAttrs allConfigs;
+
+      # Exposes the fully-resolved dots-local schema (all defaults filled
+      # in) for introspection/debugging, e.g.:
+      #   nix eval .#dotsLocal --override-input dots-local git+file://$HOME/dots-local
+      #   nix eval .#dotsLocal.march --override-input dots-local git+file://$HOME/dots-local
+      dotsLocal = dotsLocal;
     };
 }

@@ -1,10 +1,14 @@
 # dots-local integration module
 # Displays configuration info and runs sync on activation for all profiles
 
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, dotsLocal, ... }:
 
 let
-  local = inputs.dots-local;
+  # dotsLocal.host is nullable (no default host file) - `or` only helps for
+  # missing attrs, not a present-but-null value, so this needs an explicit
+  # check rather than `dotsLocal.host or "unknown"`.
+  hostOrUnknown = if dotsLocal.host != null then dotsLocal.host else "unknown";
+  hostOrEmpty = if dotsLocal.host != null then dotsLocal.host else "";
 in
 {
   # Pretty print dots-local configuration on activation
@@ -59,10 +63,10 @@ in
     
     # Basic settings from dots-local
     print_section "📋" "Basic Settings:"
-    echo -e "   ''${YELLOW}Host:''${NC}     ''${GREEN}${local.host or "unknown"}''${NC}"
-    echo -e "   ''${YELLOW}Profile:''${NC}  ''${GREEN}${local.profile or "default"}''${NC}"
-    echo -e "   ''${YELLOW}System:''${NC}   ''${GREEN}${local.system or "x86_64-linux"}''${NC}"
-    echo -e "   ''${YELLOW}User:''${NC}     ''${GREEN}${local.username or "$(whoami)"}''${NC}"
+    echo -e "   ''${YELLOW}Host:''${NC}     ''${GREEN}${hostOrUnknown}''${NC}"
+    echo -e "   ''${YELLOW}Profile:''${NC}  ''${GREEN}${dotsLocal.profile}''${NC}"
+    echo -e "   ''${YELLOW}System:''${NC}   ''${GREEN}${dotsLocal.system}''${NC}"
+    echo -e "   ''${YELLOW}User:''${NC}     ''${GREEN}${dotsLocal.username}''${NC}"
     echo ""
     
     # Show sync patterns if config exists
@@ -94,8 +98,8 @@ in
     # NOTE: host files live at profiles/<profile>/hosts/<host>.nix, not
     # modules/hosts/<host>.nix (that path never existed) - was previously
     # checked at the wrong path, so this section never fired.
-    host="${local.host or ""}"
-    profile="${local.profile or "priv"}"
+    host="${hostOrEmpty}"
+    profile="${dotsLocal.profile}"
     if [ -n "$host" ] && [ -f "$DOTS_DIR/profiles/$profile/hosts/$host.nix" ]; then
       print_section "🔧" "Host-specific config:"
       echo -e "   ''${GREEN}profiles/$profile/hosts/$host.nix''${NC}"

@@ -1,8 +1,7 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, dotsLocal, ... }:
 
 let
   cfg = config.features.butterfish;
-  local = inputs.dots-local;
 
   # Butterfish shell wrapper for local LLMs
   # https://butterfi.sh - OpenAI-compatible CLI shell
@@ -34,19 +33,19 @@ in {
 
     baseUrl = lib.mkOption {
       type = lib.types.str;
-      default = local.butterfishEndpoint or "http://127.0.0.1:5001/v1";
+      default = dotsLocal.butterfishEndpoint;
       description = "OpenAI-compatible API base URL";
     };
 
     apiKey = lib.mkOption {
       type = lib.types.str;
-      default = local.butterfishApiKey or "talk-to-me";
+      default = dotsLocal.butterfishApiKey;
       description = "API key for the endpoint";
     };
 
     model = lib.mkOption {
       type = lib.types.str;
-      default = local.butterfishModel or "default";
+      default = dotsLocal.butterfishModel;
       description = "Model name to use (should match the model loaded in llama.cpp)";
     };
 

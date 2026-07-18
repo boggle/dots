@@ -1,10 +1,9 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, dotsLocal, ... }:
 let
   cfg = config.features.tune;
-  local = inputs.dots-local;
-  
-  # Architecture from dots-local
-  march = local.march or "native";
+
+  # Architecture from dots-local (schema-defaulted to "native")
+  march = dotsLocal.march;
   
   # Module defaults per language and mode
   moduleDefaults = {
@@ -42,7 +41,7 @@ let
   
   # Get flags: check dots-local first, fallback to module defaults
   getFlags = lang: mode:
-    (local.tune.flags.${lang}.${mode} or moduleDefaults.${lang}.${mode});
+    (dotsLocal.tune.flags.${lang}.${mode} or moduleDefaults.${lang}.${mode});
   
   # Simple language detection (KISS)
   detectLang = pkg:

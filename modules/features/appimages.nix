@@ -1,7 +1,6 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, dotsLocal, ... }:
 let
   cfg = config.features.appimages;
-  local = inputs.dots-local;
 
   # Load shared manifests (profiles/common, profiles/<profile>)
   loadSharedManifests = { profile }: 
@@ -19,8 +18,9 @@ let
     in
       merged;
 
-  # Load host-local appimages from dots-local flake output
-  hostLocalApps = local.appimages or {};
+  # Load host-local appimages from dots-local flake output (schema-typed,
+  # defaults to {} - no `or` fallback needed)
+  hostLocalApps = dotsLocal.appimages;
 
   # Check if app should be enabled
   isEnabled = name: app:
@@ -32,11 +32,21 @@ let
       else manifestEnabled;
 
   # Create wrapper for shared (store-backed) AppImage
+  #
+  # NOTE on `(app.field or null) != null` below rather than `app.field or
+  # default`: `app` can come from either dotsLocal.appimages (schema-typed,
+  # where desktopName/categories ALWAYS exist as attrs - possibly with
+  # their default null/[] value) or a raw imported shared manifest (not
+  # schema-validated, where the attr may genuinely be missing). A plain
+  # `or` only helps when the attribute is absent, not when it's present
+  # with a null/empty value - so it silently stopped providing a real
+  # fallback for the schema-typed path once the schema was introduced
+  # (Phase 1). This pattern handles both origins correctly.
   mkSharedWrapper = name: app:
     let
       command = app.command or name;
-      desktopName = app.desktopName or name;
-      categories = app.categories or [ "Utility" ];
+      desktopName = if (app.desktopName or null) != null then app.desktopName else name;
+      categories = if (app.categories or []) != [] then app.categories else [ "Utility" ];
       icon = app.icon or (lib.toLower command);
       
       wrapper = pkgs.writeShellScriptBin command ''
@@ -58,11 +68,13 @@ let
       };
 
   # Create wrapper for host-local (runtime) AppImage
+  # (see mkSharedWrapper's comment above for why desktopName/categories use
+  # an explicit null/empty check instead of a plain `or`)
   mkHostLocalWrapper = name: app:
     let
       command = app.command or name;
-      desktopName = app.desktopName or name;
-      categories = app.categories or [ "Utility" ];
+      desktopName = if (app.desktopName or null) != null then app.desktopName else name;
+      categories = if (app.categories or []) != [] then app.categories else [ "Utility" ];
       icon = app.icon or (lib.toLower command);
       filePattern = app.file;  # e.g., "Steam-*.AppImage" or "Steam.AppImage"
       
@@ -119,7 +131,7 @@ let
     else null;
 
   # Load and merge all apps
-  sharedApps = loadSharedManifests { profile = local.profile or "priv"; };
+  sharedApps = loadSharedManifests { profile = dotsLocal.profile; };
   allApps = sharedApps // hostLocalApps;
   
   # Filter enabled and create packages
@@ -132,7 +144,9 @@ in
     
     localDir = lib.mkOption {
       type = lib.types.str;
-      default = local.appimagesDir or "${config.home.homeDirectory}/Applications/AppImages";
+      default =
+        if dotsLocal.appimagesDir != null then dotsLocal.appimagesDir
+        else "${config.home.homeDirectory}/Applications/AppImages";
       description = ''
         Directory where host-local AppImages are stored at runtime.
         These AppImages are not imported into the Nix store.

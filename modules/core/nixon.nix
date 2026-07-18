@@ -1,9 +1,7 @@
-{ config, lib, pkgs, inputs, bashrcDerivation, profileDerivation, ... }:
+{ config, lib, pkgs, dotsLocal, bashrcDerivation, profileDerivation, ... }:
 
 let
-  local = inputs.dots-local;
-  nixonDefault = if local ? nixonDefault then local.nixonDefault else false;
-  nixonDefaultStr = if nixonDefault then "1" else "0";
+  nixonDefaultStr = if dotsLocal.nixonDefault then "1" else "0";
 in
 
 {

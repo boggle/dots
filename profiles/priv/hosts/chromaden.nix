@@ -1,11 +1,14 @@
 # Chromaden Machine Configuration
 # Machine-specific hardware and settings for the chromaden desktop
 
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, dotsLocal, ... }:
 
 let
-  local = inputs.dots-local;
-  enableGuiDefaults = local.enableGuiDefaults or local.graphical;
+  # NOTE: previously `local.enableGuiDefaults or local.graphical` - a legacy
+  # alias fallback to an undocumented `graphical` key that isn't part of the
+  # schema (and was already unused on this machine). `enableGuiDefaults` is
+  # now the sole canonical field, schema-defaulted to `false`.
+  enableGuiDefaults = dotsLocal.enableGuiDefaults;
 in
 
 {

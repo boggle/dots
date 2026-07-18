@@ -1,7 +1,6 @@
-{ config, lib, pkgs, inputs, alien, ... }:
+{ config, lib, pkgs, alien, ... }:
 
 let
-  local = inputs.dots-local;
   cfg = config.features.dev-tools;
 in
 {
@@ -83,16 +82,23 @@ in
       (lib.optional cfg.caddy "caddy");
 
     # nixd config
+    # NOTE: previously hardcoded "/home/${local.username}/dots" - broke if
+    # homeDirectory wasn't under /home. Now derived from
+    # config.home.homeDirectory (already resolved from dotsLocal in
+    # flake.nix) instead. This still assumes `dots` is checked out directly
+    # in $HOME/dots (matches DOTS_DIR's own default in scripts.nix) - not
+    # fully general if someone uses a custom DOTS_DIR, but no longer
+    # hardcodes /home/ specifically.
     home.file.".nixd.json" = lib.mkIf cfg.nixd {
       text = builtins.toJSON {
         options = {
           home-manager = {
-            expr = "(builtins.getFlake \"/home/${local.username}/dots\").homeConfigurations.\"${local.username}\".options";
+            expr = "(builtins.getFlake \"${config.home.homeDirectory}/dots\").homeConfigurations.\"${config.home.username}\".options";
           };
         };
         
         nixpkgs = {
-          expr = "import (builtins.getFlake \"/home/${local.username}/dots\").inputs.nixpkgs { }";
+          expr = "import (builtins.getFlake \"${config.home.homeDirectory}/dots\").inputs.nixpkgs { }";
         };
 
         formatting = {

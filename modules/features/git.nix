@@ -1,7 +1,6 @@
-{ config, lib, pkgs, inputs, ... }:
+{ config, lib, pkgs, dotsLocal, ... }:
 
 let
-  local = inputs.dots-local;
   cfg = config.features.git;
 in
 {
@@ -36,8 +35,8 @@ in
       signing.format = null;
       settings = {
         user = {
-          name = local.realname;
-          email = local.realmail;
+          name = dotsLocal.realname;
+          email = dotsLocal.realmail;
         };
       };
     };

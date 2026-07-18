@@ -208,6 +208,82 @@ solution (e.g. auto-detecting reverse-deps via `pacman -Qi`) would be more
 robust but is unnecessary complexity for what's currently a one-package
 need; revisit if this comes up often enough to justify automation.
 
+### 2026-07-18 — `dots-local` schema: additive/backward-compatible, not fully nested
+**Decision:** Implemented `modules/dots-local/schema.nix` with existing
+fields kept flat (host, distro, march, barch, realname, realmail,
+username, uid, gid, homeDirectory, profile, enableGuiDefaults,
+graphicalBackend, butterfishEndpoint/ApiKey/Model, appimagesDir, appimages,
+tune.flags, sync.tracked, nixonDefault) - exactly matching the live
+`dots-local/flake.nix`'s current shape - rather than the fully-nested
+`identity.*`/`machine.*`/`system.*` design originally sketched in
+architecture.md. New axis fields (gpu, isWsl, location, tags, shell.*,
+extraModules, extraOverlays) are added inertly alongside the existing flat
+ones.
+**Rationale:** The nested redesign would have required rewriting the live
+`dots-local/flake.nix` as part of Phase 1 just to satisfy an aesthetic
+preference, adding risk to the daily-driver machine for no functional
+gain. Additive-only keeps Phase 1 low-risk (verified: zero changes needed
+to the real `dots-local/flake.nix` to satisfy the new schema) while still
+delivering the real goals (typed options, defaults, self-documentation,
+new escape-hatch fields). The nested design can still happen later if a
+concrete need arises (e.g. Phase 2's composition rules could introduce
+`machine.*`/`system.*` groupings at that point if warranted) - not
+foreclosed, just not done preemptively.
+
+### 2026-07-18 — Dropped the `graphical` legacy alias
+**Decision:** `enableGuiDefaults` is now the sole canonical field (schema
+default `false`); the `local.enableGuiDefaults or local.graphical` fallback
+chain in `chromaden.nix`/`priv/home.nix` is removed.
+**Rationale:** `graphical` was an undocumented, already-dead legacy key
+(the live `dots-local/flake.nix` only ever set `enableGuiDefaults`) -
+carrying it forward would just be dead code the schema can't even validate
+meaningfully.
+
+### 2026-07-18 — Removed manual `graphicalBackend` validation
+**Decision:** Deleted the hand-rolled `validBackend`/`assertions` block in
+`profiles/priv/home.nix` that checked `graphicalBackend` against 4 valid
+strings.
+**Rationale:** The schema now types `graphicalBackend` as
+`enum ["wayland" "x11" "wsl" "macos"]`, so an invalid value is rejected at
+flake-evaluation time with a clear built-in error - the manual check became
+redundant (and its own error message was less clear than the module
+system's built-in one).
+
+### 2026-07-18 — Unified `march` default to "native" (was inconsistently "znver5")
+**Decision:** `dotsLocal.march` defaults to `"native"` in the schema.
+`package-tuning.nix` (flake-level) previously defaulted this to `"znver5"`
+specifically for its own reads, inconsistent with `tune-support.nix`
+(home-level)'s `"native"` default for the exact same field - both now read
+`dotsLocal.march` directly with no competing default.
+**Rationale:** `"znver5"` is a specific AMD Zen 5 string that would fail to
+build on any other CPU - a poor default for a machine that doesn't
+explicitly set `march`. `"native"` is safe/portable. Chromaden is
+unaffected (explicitly sets `march = "znver5"` in its real dots-local).
+Also fixed a related bug while here: the `-opt` profile build in
+`flake.nix` previously hardcoded `gcc.arch = "znver5"; gcc.tune = "znver5";`
+directly, completely ignoring `dotsLocal.march` - meaning every machine's
+`-opt` build was silently building for znver5 regardless of its actual
+CPU. Now reads `dotsLocal.march` instead.
+
+### 2026-07-18 — `dots-local`'s flake-metadata attrs must be stripped before `evalModules`
+**Decision:** `flake.nix` explicitly `removeAttrs`s a known list of
+flake-introspection keys (`_type`, `inputs`, `lastModified`,
+`lastModifiedDate`, `narHash`, `outPath`, `outputs`, `rev`, `revCount`,
+`shortRev`, `sourceInfo`, `submodules`, `dirtyRev`, `dirtyShortRev`) from
+the raw `dots-local` flake-input value before handing it to
+`lib.evalModules`.
+**Rationale:** Accessing a flake input directly (`inputs.dots-local`)
+returns the flake's output attrset *plus* a set of hidden
+introspection/metadata attributes Nix attaches for its own bookkeeping.
+Passed bare into `evalModules`, these get validated as if they were
+declared config options and fail ("The option `_type'/`dirtyRev' does not
+exist"). The `dirtyRev`/`dirtyShortRev` variants only appear when
+`dots-local` itself has uncommitted changes - both clean and dirty states
+needed to be handled since editing `dots-local` without committing is a
+completely normal, expected workflow (confirmed in AGENTS.md: "During
+apply-dots, it's overridden with git+file://$DOTS_LOCAL_DIR... allows
+uncommitted changes in dots-local to be picked up").
+
 ### 2026-07-18 — Flake output renaming: pending explicit confirmation
 **Decision:** Proposed collapsing `homeConfigurations.{priv,work,priv-opt,
 work-opt}` to something like `default`/`default-opt` once composition is

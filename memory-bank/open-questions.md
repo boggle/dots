@@ -47,6 +47,23 @@ Phase 2/3.
 
 ### `sync.sh` / `setup.sh` deeper improvements
 Explicitly deferred by the user ("stash this for later"). Only touched
-where a phase directly requires it (Phase 1 template generation, Phase 5
-tuning-table removal). Full sync.sh/setup.sh overhaul is a distinct future
-project, not part of this one.
+where a phase directly requires it (Phase 5 tuning-table removal). Full
+sync.sh/setup.sh overhaul is a distinct future project, not part of this
+one. **Update (Phase 1)**: decided NOT to create `modules/dots-local/
+template.nix` in Phase 1 after all - nothing was actually removed from
+`dots-local`'s responsibility in Phase 1 (schema formalizes existing fields
++ adds new inert ones), so there's no new "config that lost its home"
+requiring a fresh template yet. `schema.nix`'s option descriptions serve as
+the self-documentation for now. Deferred to Phase 2, when host files
+actually get retired and dots-local gains genuinely new required fields
+(display config, CUDA arch, etc.) - that's when a real template becomes
+necessary, per architecture.md section 1c's standing rule.
+
+### `barch` remains unused/dead
+Confirmed during Phase 1: `dotsLocal.barch` (baseline arch level, e.g.
+"x86_64-v3") is still not consumed by any module - only `march` is (now
+correctly wired into the `-opt` profile build, see decisions.md). Kept as a
+schema field for forward-compat since it costs nothing, but there's no
+current concrete use. Revisit if a real need emerges (e.g. distinguishing
+"tuned for my exact CPU" from "compatible with this baseline level" for
+binary distribution scenarios).

@@ -1,4 +1,4 @@
-{ lib, dots-local }:
+{ lib, dotsLocal }:
 
 let
   collectTuneSpecsFiles = dir:
@@ -26,7 +26,15 @@ in {
       tuneSpecs = lib.foldl' (acc: p: acc // (import p)) {} tuneSpecsFiles;
       enabled = lib.filterAttrs (_: v: (v.enable or false) == true) tunePackages;
       enabledWithSpecs = lib.mapAttrs (name: v: (tuneSpecs.${name} or {}) // (builtins.removeAttrs v [ "enable" ])) enabled;
-      march = dots-local.march or "znver5";
+      # NOTE: previously defaulted to "znver5" here specifically (vs.
+      # tune-support.nix's "native" default for the same field) - an
+      # inconsistency now resolved by both consumers reading
+      # dotsLocal.march directly, which the schema defaults to "native".
+      # dots-local machines that set march explicitly (e.g. chromaden's
+      # "znver5") are unaffected; machines that don't now get the safer
+      # "native" default instead of a specific-CPU string that would fail
+      # to build on anything but that exact chip.
+      march = dotsLocal.march;
       defaults = moduleDefaults march;
     in
     if enabledWithSpecs == {} then null
@@ -34,7 +42,7 @@ in {
       lib.mapAttrs (name: opt:
         let
           pkg = prev.${name} or null;
-          getFlags = lang: mode: (dots-local.tune.flags.${lang}.${mode} or defaults.${lang}.${mode});
+          getFlags = lang: mode: (dotsLocal.tune.flags.${lang}.${mode} or defaults.${lang}.${mode});
           detectLang = p: if p ? cargoDeps then "rust" else "c";
           lang = opt.lang or (if pkg != null then detectLang pkg else "c");
           mode = opt.mode or "default";

@@ -139,6 +139,64 @@ packages, no error).
   files (only brand-new untracked files are invisible), so most of Phase
   0's other fixes were validated correctly.
 
+### 2026-07-18 — Phase 1 (dots-local schema) implementation gotchas
+Several real Nix/evalModules quirks surfaced while wiring up
+`modules/dots-local/schema.nix` into `flake.nix`:
+
+1. **A flake input can't be passed bare into `lib.evalModules`'s `modules`
+   list.** `inputs.dots-local` isn't just the plain data attrset dots-local's
+   `outputs` function returns - Nix attaches hidden introspection/metadata
+   attributes to it (`_type = "flake"`, `inputs`, `outPath`, `outputs`,
+   `rev`, `sourceInfo`, `lastModified`, ...). Passed directly, evalModules
+   errors with "Expected a module, but found a value of type 'flake'."
+   Fixed by wrapping as `{ config = dotsLocalData; }` (making the intent
+   explicit) AND stripping the metadata attrs first via
+   `builtins.removeAttrs` (otherwise each metadata attr fails independently
+   as "The option `_type'/`outPath'/etc does not exist", since evalModules
+   validates every config key against declared options).
+2. **Dirty git state adds MORE metadata attrs.** When `dots-local` itself
+   has uncommitted changes, Nix additionally attaches `dirtyRev` and
+   `dirtyShortRev` - discovered when fixing an unrelated typo in the real
+   `dots-local/appimages.nix` (`dektopName` -> `desktopName`) without
+   committing it first, which immediately broke the eval with "The option
+   `dirtyRev' does not exist." Both clean and dirty states needed handling
+   since editing dots-local without committing is explicitly a supported,
+   expected workflow (per AGENTS.md's Nix Evaluation section).
+3. **`option or default` only helps for a *missing* attribute, not a
+   *present-but-null* one - and schema-validated submodules make previously
+   "missing" fields always-present.** `modules/features/appimages.nix`'s
+   `mkSharedWrapper`/`mkHostLocalWrapper` used `app.desktopName or name` and
+   `app.categories or [ "Utility" ]` to provide fallbacks. Once
+   `dotsLocal.appimages` became a schema-typed submodule (with
+   `desktopName` defaulting to `null` and `categories` defaulting to `[]`),
+   those keys are now ALWAYS present on every entry - so `or` never
+   triggers anymore, and a `null`/`[]` value flows straight through into
+   `pkgs.makeDesktopItem`, causing "cannot coerce null to a string: null"
+   deep inside the `home-manager-generation` derivation's build (NOT caught
+   by a plain `nix eval .#homeConfigurations.priv.config.home.username` -
+   only surfaced when building the full `activationPackage`, since that's
+   what actually forces evaluation of the desktop-item derivations). Fixed
+   with an explicit `if (app.field or null) != null then app.field else
+   default` pattern, which correctly handles both origins (schema-typed
+   host-local apps AND raw, non-schema-validated shared-manifest imports
+   that might genuinely be missing the key).
+   - **Process lesson**: `nix eval .#homeConfigurations.<x>.config.home.username`
+     (or similar shallow attribute reads) is a fast sanity check but does
+     NOT force evaluation of most derivations (packages, activation
+     scripts, desktop items, etc.) - it only proves the *module system*
+     resolves without error. A full `nix build
+     .#homeConfigurations.<x>.config.home.activationPackage` (and/or
+     `config.home.path`) is necessary to catch errors that only manifest
+     when derivations are actually forced. Use both: cheap eval first for
+     fast iteration, full build before considering a phase done.
+4. **The exact same `dots-local.march` "znver5" vs "native" default
+   inconsistency flagged during the original inventory was real and is now
+   fixed** - see decisions.md. Also fixed a related, previously-undiscovered
+   bug in the same area: the `-opt` profile build hardcoded
+   `gcc.arch = "znver5"` directly in `flake.nix`, ignoring
+   `dotsLocal.march` entirely (would have silently built for the wrong
+   microarchitecture on any non-znver5 machine using `apply-dots <profile>-opt`).
+
 ### 2026-07-18 — `update-alien-packages` orphan false-positive: `ghostty`
 User reported `update-alien-packages --action remove` wanted to remove
 `ghostty`, which is actively needed/used. Investigated and found a genuine,
