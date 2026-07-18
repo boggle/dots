@@ -481,3 +481,47 @@ pre-existing bug (not user-specific config) in
   real (non-dry-run) `update` action self-healed the stale orphan file,
   removing the `ghostty` entry automatically with no manual file editing
   needed.
+
+### 2026-07-19 — Phase 8: externalizing scripts that have real Nix interpolations
+- Not every embedded script can be a straight `builtins.readFile` swap like
+  grabcontext.py was. `viewer.nix`'s `v` script genuinely needs Nix-evaluated
+  content baked in: several `${pkgs.X}/bin/Y` package paths, plus
+  `imageViewer`/`pdfViewer`/`videoViewer` which are themselves *conditional
+  Nix expressions* (picking between chafa/catimg/bat based on which sixel
+  features are enabled), not just static package references.
+- Pattern used: keep a **small** (~10 line) Nix-string preamble that resolves
+  every such value into a plain shell variable (e.g.
+  `BAT_BIN="${pkgs.bat}/bin/bat"`, `IMAGE_VIEWER="${imageViewer}"`), then
+  string-concatenate `builtins.readFile ./somewhere/script.sh` after it:
+  `pkgs.writeShellScriptBin "name" (''...preamble...'' + builtins.readFile
+  ./script.sh)`. The externalized file itself becomes 100% plain,
+  shellcheck-able bash referencing only the shell variables (`$BAT_BIN` etc)
+  - zero Nix syntax. This cleanly separates "Nix-level wiring" (which
+  package/conditional value to use) from "bash logic" (what to actually do),
+  and is the right template to reuse for `clipboard.nix` and any
+  niri-noctalia helper scripts that also reference `pkgs.*`/config values.
+- Gotcha: watch for `''${...}` Nix-string escapes inside the script body
+  that exist ONLY to stop Nix from interpreting a legitimate bash parameter
+  expansion (like `${file##*.}`) as Nix interpolation. Once the body moves
+  to a real standalone `.sh` file, these must be unescaped back to plain
+  `${...}` — leaving the doubled `''$` in place produces invalid/wrong bash
+  in the extracted file (this exact case: `local ext="''${file##*.}"` ->
+  `local ext="${file##*.}"`).
+- Gotcha: if the original embedded string started with its own
+  `#!/usr/bin/env bash` line, and the new preamble also needs one (since
+  `pkgs.writeShellScriptBin`'s first argument is just concatenated text, no
+  automatic shebang), remember to delete the duplicate from the extracted
+  file - the preamble's shebang. is the one that stays.
+- Verification technique for "is the extracted script still behaviorally
+  identical" when a byte-diff isn't trivially expected to be empty (unlike
+  grabcontext's case): get each version's derivation via `nix eval
+  ...--apply 'pkgs: (builtins.head (builtins.filter (p: (p.name or "") ==
+  "<name>") pkgs)).drvPath' --raw`, `nix build "$DRV^*"` each one (stashing/
+  unstashing the working tree in between to get the "before" version), then
+  `diff -r` the two output directories. Confirms the *only* differences are
+  the expected inlined-store-path-vs-shell-variable substitutions, with
+  identical resolved store paths appearing on both sides. Followed up with
+  actually running the new binary (`--help`, plus functional smoke tests
+  exercising a couple of real code paths like JSON/CSV formatting) since a
+  byte-diff alone doesn't prove the shell variables are correctly quoted/
+  scoped at runtime.

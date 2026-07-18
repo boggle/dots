@@ -26,8 +26,10 @@ found and fixed, retry succeeded - generation 316 confirmed matching the
 validated build exactly. **Phase 7 (script consolidation + shared bash
 lib) complete and LIVE-CHECKPOINTED** - `setup-llama-cpp`/`setup-pi`/
 `setup-graphify` all live-tested on the real system (safe decline-path
-tests + a real idempotent `setup-graphify install` run). Phase 8
-(externalize large embedded scripts) not yet started.
+tests + a real idempotent `setup-graphify install` run). **Phase 8
+(externalize large embedded scripts) in progress**: `grabcontext` (Python)
+and `viewer.nix`'s `v` script (bash) done, byte-identical output verified
+for both; `clipboard.nix` and niri-noctalia's helper scripts still to do.
 
 Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
 the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
@@ -544,12 +546,47 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
   change across the whole config is the 6 old scripts -> 3 new ones -
   nothing else shifted.
 
-## Phase 8 — Externalize large embedded scripts
-- [ ] Move grabcontext (~800-line embedded Python in ai-apps.nix), viewer.nix
-      bash (~360 lines), clipboard.nix bash (~140 lines), niri-noctalia
-      helper scripts to real files, read via `builtins.readFile`
-- Validation: `nix eval` + shellcheck/pyflakes where applicable + functional
-  smoke test of `v`, `clipin`/`clipout`, `grabcontext`
+## Phase 8 — Externalize large embedded scripts `[~] IN PROGRESS`
+- [x] `grabcontext` (~800-line embedded Python in ai-apps.nix) -> real file
+      `modules/suites/ai-apps/grabcontext.py`, read via `builtins.readFile`.
+      Straight extraction (no Nix interpolations in the body) - verified
+      byte-identical output, same derivation hash as before extraction.
+- [x] `viewer.nix`'s `v` script (~290-line embedded bash) -> real file
+      `modules/features/viewer/v.sh`. Unlike grabcontext, this script DOES
+      reference genuine Nix-evaluated values (`${pkgs.bat}/bin/bat`,
+      `${imageViewer}`, `${pdfViewer}`, `${videoViewer}`, etc. - the latter
+      three themselves being conditional expressions, not just package
+      paths). Handled with a small Nix-level preamble (10 lines: resolves
+      each into a plain shell variable, e.g. `BAT_BIN="${pkgs.bat}/bin/bat"`)
+      prepended via string concatenation to `builtins.readFile ./viewer/v.sh`
+      - the static file itself references only the shell variables
+      (`$BAT_BIN`, `$IMAGE_VIEWER`, etc.), no Nix syntax at all. Also found
+      and fixed one incidental issue while extracting: a `''${file##*.}`
+      Nix-string escape (needed inside the old embedded Nix string to
+      prevent Nix from parsing the bash parameter expansion as
+      interpolation) had to be unescaped to plain `${file##*.}` now that
+      it lives in a real standalone bash file.
+      Validated: `bash -n` syntax check; built both old (pre-extraction,
+      via `git stash`) and new derivations directly via their `.drv` paths
+      and diffed `bin/v` - the only differences are the expected
+      inlined-store-path vs. shell-variable substitutions, with matching
+      resolved store paths on both sides (e.g. same `bat-0.26.1`,
+      `chafa-1.18.2-bin`, `mpv-with-scripts-0.41.0` hashes appear in both).
+      Ran the new script for real: `--help`, and functional smoke tests of
+      the JSON (`jq`) and CSV (`column`) code paths - both produced correct
+      output. Full `nix build .../activationPackage` for chromaden (real
+      dots-local) also passes cleanly after this change.
+- [ ] `clipboard.nix` bash (~140 lines) -> real file, same
+      preamble-plus-readFile pattern if it has Nix interpolations too
+- [ ] niri-noctalia helper scripts (terminal-in-current-column,
+      terminal-scratchpad-toggle, etc.) -> real files
+- Validation so far: `nix eval` + full `nix build` for chromaden (`default`
+  profile) after each extraction; direct `.drv`-path builds of the specific
+  changed package (old vs. new) diffed byte-for-byte where feasible;
+  functional smoke tests of the resulting binaries. Still to do once all
+  four targets are done: shellcheck/pyflakes pass, functional smoke test of
+  `clipin`/`clipout` and the niri-noctalia helpers, update
+  `preserved-features-checklist.md`.
 
 ## Phase 9 — Wire up dead options, close out, final docs
 - [ ] `viewer.nix`'s 5 dead options actually gate script behavior
