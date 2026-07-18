@@ -2,9 +2,14 @@
 
 Status: **Phase 0 complete and committed** (`4c39074`, "Phase 0: memory bank
 + re-architecture bugfixes"; `9ae4fb8` follow-up). **Phase 1 (`dots-local`
-schema) implemented and validated, not yet committed** - awaiting final
-review/live-checkpoint before commit. Phase 2 (composition layer) not yet
-started.
+schema) complete and committed** (`5fb54cb`, "Phase 1: formal dots-local
+schema (lib.evalModules)"). Not yet live-checkpointed with `apply-dots`.
+Phase 2 (composition layer) not yet started.
+
+Note: a one-line typo fix (`dektopName` -> `desktopName`) was also made in
+the *private* `~/dots-local/appimages.nix` repo as part of Phase 1 - that's
+a separate git repo and is left **uncommitted** there for the user to
+review/commit themselves.
 
 Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `(live)` = needs a
 live `apply-dots` checkpoint on chromaden, not just `nix eval`/`nix build`.
