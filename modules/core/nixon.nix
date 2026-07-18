@@ -5,19 +5,32 @@ let
 in
 
 {
+  # .bashrc-nix / .profile-nix: pure Home Manager output (via the
+  # "gutter eval" in flake.nix) - unchanged, kept exactly as before. Phase 6
+  # of the re-architecture (see memory-bank/architecture.md section 7)
+  # explicitly kept the gutter-eval mechanism as-is per user feedback -
+  # only the *hybrid gatekeeper* file below was retargeted.
   home.file.".bashrc-nix".source = bashrcDerivation;
   home.file.".profile-nix".source = profileDerivation;
 
-  home.file.".profile" = lib.mkForce {
+  # .profile-dots / .bashrc-dots: the hand-authored NIXON-gatekeeper hybrid
+  # script (was previously .profile/.bashrc directly, force-owning the
+  # user's real dotfiles entirely). Now dots-owned files under a different
+  # name - the REAL ~/.profile/~/.bashrc are left for the user, with a
+  # small idempotent activation hook (below) ensuring they source these
+  # files, appended only if not already present, never overwriting
+  # existing content. This is what "leave hooking in to the local user"
+  # meant in the original ask.
+  home.file.".profile-dots" = {
     text = ''
       if [ -z "''${NIXON+x}" ]; then export NIXON=${nixonDefaultStr}; fi
       [[ -f ~/.profile-core ]] && . ~/.profile-core
       if [ "$NIXON" = "1" ]; then [[ -f ~/.profile-nix ]] && . ~/.profile-nix; fi
-      [[ -f ~/.bashrc ]] && . ~/.bashrc
+      [[ -f ~/.bashrc-dots ]] && . ~/.bashrc-dots
     '';
   };
 
-  home.file.".bashrc" = lib.mkForce {
+  home.file.".bashrc-dots" = {
     text = ''
       if [ -z "''${NIXON+x}" ]; then export NIXON=${nixonDefaultStr}; fi
 
@@ -92,10 +105,13 @@ in
         alias fm='f() { if [ $# -eq 0 ]; then frogmouth .; else frogmouth "$@"; fi; }; f'
       fi
 
-      # Butterfish AI shell (local LLM via llama.cpp)
-      if command -v butterfish >/dev/null 2>&1; then
-        alias bf="butterfish shell -u 'http://127.0.0.1:5001/v1' -b ${pkgs.bash}/bin/bash"
-      fi
+      # NOTE: the `bf` butterfish alias used to be hardcoded here too
+      # (with a fixed endpoint/model, diverging from features/butterfish.nix's
+      # option-driven version) - removed as part of Phase 6. It's already
+      # set correctly by butterfish.nix's `programs.bash.shellAliases.bf`,
+      # which flows through the real Home Manager bash config into
+      # .bashrc-nix - sourced above whenever NIXON=1, no need to duplicate
+      # it here.
 
       # Pager & Previewer Logic
       if command -v moor >/dev/null 2>&1; then
@@ -188,4 +204,32 @@ in
       exec "$@"
     '';
   };
+
+  # Idempotent, additive-only hook ensuring the REAL ~/.bashrc/~/.profile
+  # source .bashrc-dots/.profile-dots. Appends the source line only if a
+  # sentinel comment isn't already present - creates the file fresh if it
+  # doesn't exist yet (first-run bootstrap), but never touches/removes any
+  # other content a user has in these files. This runs after Home Manager's
+  # own file linking (writeBoundary), by which point HM has already
+  # unlinked its OLD .bashrc/.profile symlinks (no longer declared as of
+  # this phase) - see memory-bank/architecture.md section 7.
+  home.activation.ensureDotsShellHook = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    BASHRC_SENTINEL="# dots-managed: source ~/.bashrc-dots (see ~/dots/modules/core/nixon.nix)"
+    if [ ! -f "$HOME/.bashrc" ] || ! grep -qF "$BASHRC_SENTINEL" "$HOME/.bashrc" 2>/dev/null; then
+      {
+        echo ""
+        echo "$BASHRC_SENTINEL"
+        echo '[[ -f ~/.bashrc-dots ]] && . ~/.bashrc-dots'
+      } >> "$HOME/.bashrc"
+    fi
+
+    PROFILE_SENTINEL="# dots-managed: source ~/.profile-dots (see ~/dots/modules/core/nixon.nix)"
+    if [ ! -f "$HOME/.profile" ] || ! grep -qF "$PROFILE_SENTINEL" "$HOME/.profile" 2>/dev/null; then
+      {
+        echo ""
+        echo "$PROFILE_SENTINEL"
+        echo '[[ -f ~/.profile-dots ]] && . ~/.profile-dots'
+      } >> "$HOME/.profile"
+    fi
+  '';
 }

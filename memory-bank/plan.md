@@ -415,25 +415,46 @@ etc).
   `nix build .../activationPackage` produced the **exact same store path**
   as Phase 4's build, confirming zero derivation-level change.
 
-## Phase 6 — Shell bootstrap: retarget hybrid file only (gutter-eval KEPT) `(live)`
-- [ ] `nixon.nix` keeps writing `.bashrc-nix`/`.profile-nix` unchanged (pure
-      HM output, already correctly separated — do not touch)
-- [ ] `nixon.nix` writes the NIXON-gatekeeper hybrid script to
+## Phase 6 — Shell bootstrap: retarget hybrid file only (gutter-eval KEPT) `(live)` `[x] implemented, AWAITING LIVE CHECKPOINT`
+- [x] `nixon.nix` keeps writing `.bashrc-nix`/`.profile-nix` unchanged (pure
+      HM output, already correctly separated — untouched)
+- [x] `nixon.nix` now writes the NIXON-gatekeeper hybrid script to
       `.bashrc-dots`/`.profile-dots` instead of `lib.mkForce`-ing the real
       `.bashrc`/`.profile`
-- [ ] Idempotent, additive-only activation step (or `setup.sh` step) ensures
-      real `~/.bashrc`/`~/.profile` source `.bashrc-dots`/`.profile-dots`
-      (append-if-missing via sentinel comment; never overwrite/remove
-      existing user content)
-- [ ] Fix `~/.bashrc_core` (underscore) -> `~/.bashrc-core` (hyphen) typo so
-      the GTK/QT theme env vars actually get sourced (can land in Phase 0
-      too, independent bug)
-- [ ] Remove hardcoded duplicate `bf` alias in the gatekeeper script (let it
-      come from `butterfish.nix`'s real config instead)
-- [ ] Do NOT touch the `noctalia-qs` input override in `flake.nix` — confirmed
-      intentional despite the "non-existent input" eval warning
-- Validation: **live checkpoint required** (shell bootstrap correctness is
-  hard to verify via `nix eval` alone)
+- [x] Idempotent, additive-only `home.activation.ensureDotsShellHook` step
+      ensures real `~/.bashrc`/`~/.profile` source `.bashrc-dots`/
+      `.profile-dots` (append-if-missing via a sentinel comment; never
+      overwrites/removes existing user content) - creates the file fresh
+      if it doesn't exist yet (first-run bootstrap)
+- [x] Fixed `~/.bashrc_core` -> `~/.bashrc-core` typo - done earlier in
+      Phase 0
+- [x] Removed the hardcoded duplicate `bf` alias in the gatekeeper script -
+      it's already set correctly by `butterfish.nix`'s
+      `programs.bash.shellAliases.bf` (option-driven, respects
+      dots-local's endpoint/model), which flows through `.bashrc-nix` via
+      the gutter eval
+- [x] Did NOT touch the `noctalia-qs` input override - confirmed
+      intentional, untouched
+- Validation: full `nix eval`/`nix build` for chromaden; **isolated
+  sandbox testing of the activation-hook bash logic itself** (not the
+  full activation script) against a fake `$HOME` - verified: (a) existing
+  `.bashrc`/`.profile` content is fully preserved, source line correctly
+  appended; (b) running it 3x more produces zero duplication (properly
+  idempotent via the sentinel-comment grep check); (c) a from-scratch
+  (no pre-existing file) `$HOME` gets the file created fresh. **What
+  could NOT be verified without a real switch**: whether Home Manager
+  cleanly unlinks the *old*, previously-force-owned `.bashrc`/`.profile`
+  symlinks during the actual generation transition from a pre-Phase-6
+  generation - this is standard HM behavior for any removed `home.file`
+  declaration, but the isolated bash-logic tests above can't simulate an
+  actual old-generation-to-new-generation transition. **Live checkpoint
+  still required and explicitly flagged to the user before running
+  `apply-dots`** - recommend opening a fresh terminal after switching to
+  confirm shell startup still works before relying on it, given
+  `home-manager generations` rollback remains available as a safety net
+  if something goes wrong (would hit HM's normal file-collision handling,
+  not silent data loss, since the target would no longer be a bare
+  symlink after this change).
 
 ## Phase 7 — Script consolidation (`setup-*`) + shared bash lib `(live)`
 - [ ] Rename install-llama-cpp/uninstall-llama-cpp -> `setup-llama-cpp

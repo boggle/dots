@@ -334,7 +334,28 @@ Several real Nix/evalModules quirks surfaced while wiring up
     verify with an actual before/after `nix eval` of the resolved values,
     not just code-reading confidence.
 
-12. **Chromaden's power-toggle.sh script content matched byte-for-byte**
+13. **Phase 6 (shell bootstrap retarget): isolated bash-logic sandbox
+    testing is a good substitute for "can I fully live-test this without
+    touching the real system", but has a specific limit worth naming.**
+    Tested the new `ensureDotsShellHook` activation script's actual bash
+    logic (not the whole activation script) against fake `$HOME`
+    directories with `HOME=/tmp/... bash -c '...'` - confirmed
+    idempotency (3 repeated runs produce zero duplication), non-
+    destructiveness (pre-existing `.bashrc`/`.profile` content untouched,
+    source line correctly appended), and fresh-bootstrap behavior (file
+    created from scratch when absent). This gives strong confidence in
+    the hook's *own* logic. What it can NOT verify: whether Home Manager
+    correctly unlinks the OLD, previously-force-owned `.bashrc`/`.profile`
+    symlinks during the actual transition from a pre-Phase-6 generation to
+    this one - that's standard HM behavior for any removed `home.file`
+    declaration, but simulating it properly would require an actual
+    generation transition, which only a real `apply-dots` switch provides.
+    General lesson: sandbox-testing extracted logic is valuable and worth
+    doing before a risky live change, but be precise about what it does
+    and doesn't cover when reporting confidence to the user - don't let
+    "I tested it in a sandbox" imply more coverage than it actually has.
+
+14. **Chromaden's power-toggle.sh script content matched byte-for-byte**
    between the old hardcoded version and the new
    `dotsLocal.machine.display`-parametrized one (checked via `nix eval
    --raw` on the generated `home.file` text) - strong confidence the
