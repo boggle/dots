@@ -4,7 +4,7 @@
 # starship's PROMPT_COMMAND hook so it doesn't fight with VS Code's own
 # prompt handling, re-initializing zoxide/direnv after) applies to any WSL
 # host connected to via VS Code's Remote-SSH extension. Enabled by default
-# whenever dotsLocal.isWsl is true (see composition-rules.nix), like every
+# whenever dotsLocal.isWsl is true (see rules.nix), like every
 # other feature module here - can still be disabled explicitly if not
 # wanted.
 { config, lib, pkgs, ... }:

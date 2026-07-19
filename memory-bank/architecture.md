@@ -45,7 +45,7 @@ dotsLocal = {
 ```
 
 Benefits: self-documenting (option descriptions double as docs); a
-`modules/dots-local/template.nix` living in `dots` stays in sync with the
+`modules/local/template.nix` living in `dots` stays in sync with the
 schema by construction (this is the "current template stored in dots for
 easy setup" the user asked for); typos/misconfig caught at eval time instead
 of silently falling through to a stale default; no more scattered `or`
@@ -120,7 +120,7 @@ manifests). Whenever this happens:
 
 - **Do not just delete it and move on.** Add/update a documentation file in
   the `dots` checkout (near the relevant schema/template, e.g.
-  `modules/dots-local/template.nix` plus prose docs) that shows exactly
+  `modules/local/template.nix` plus prose docs) that shows exactly
   what to add to `dots-local/flake.nix` to reproduce that config.
 - This is in addition to (not instead of) the schema itself being
   self-documenting via option descriptions — concrete worked examples
@@ -129,7 +129,7 @@ manifests). Whenever this happens:
   overrides) and are now data in `dots-local`.
 - Practically: maintain a per-axis "how to configure this in `dots-local`"
   reference (could be a `docs/dots-local-guide.md` in `dots`, or expanded
-  inline examples in `modules/dots-local/template.nix`) that's updated in
+  inline examples in `modules/local/template.nix`) that's updated in
   the same commit that removes the old home for that config. Never let
   "it's now overridable via dots-local" be an undocumented, tribal-knowledge
   fact.
@@ -148,10 +148,10 @@ values inline.
 New: `modules/composition.nix` always imports `modules/core/*` (the true
 minimal, fast-bootstrap baseline — no GUI/AI/tuning unless an axis asks for
 it), then applies a small ordered list of **declarative rules** —
-`modules/composition-rules.nix`, pure data, easy to read/extend:
+`modules/rules.nix`, pure data, easy to read/extend:
 
 ```nix
-# modules/composition-rules.nix
+# modules/rules.nix
 { dotsLocal, lib, ... }:
 [
   { when = d: d.context == "priv";          set.suites.tui-apps.enable = true; }

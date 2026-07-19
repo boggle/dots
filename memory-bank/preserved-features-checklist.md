@@ -38,7 +38,7 @@ the re-architecture. Check off once verified post-refactor (not just
       global ignore patterns + 2 tracked patterns, and correctly reported
       unchanged/changed files for every real tracked noctalia config path.
 - [x] niri-noctalia desktop (chromaden: enable/terminal/renderDrmDevice all
-      confirmed resolving identically via composition-rules.nix; full
+      confirmed resolving identically via rules.nix; full
       in-session behavior not live-tested, only config resolution).
       Phase 8: all 4 embedded helper scripts (terminal-in-current-column,
       terminal-scratchpad-toggle, start-xwayland-satellite, wait-for-x11)

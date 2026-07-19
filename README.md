@@ -229,7 +229,7 @@ See [OVERVIEW.md](OVERVIEW.md#alien-packages-native-package-management) for deta
 - `dots/` - Shared configuration (this repo), contains no machine-specific
   state
 - `~/dots-local/` - Private identity, hardware/context axes, tuning flags
-  (see `modules/dots-local/schema.nix` for the full typed schema)
+  (see `modules/local/schema.nix` for the full typed schema)
 
 **Distro values (in `~/dots-local/flake.nix`):**
 - `cachyos` -> `pacman` + `paru`
@@ -249,12 +249,12 @@ real hardware for those distros.
 
 **Composition:** `modules/composition.nix` always imports the common
 baseline plus a `modules/contexts/<dots-local.profile>.nix` bundle (`priv`
-or `work`), then applies `modules/composition-rules.nix` - small,
-declarative rules over `dots-local` axes (GPU, compositor, WSL, ...) that
-enable/configure features as *defaults*. No per-host directory or file is
-required to exist - host-specific config comes from `dots-local` fields
-(`machine.*`, `gpu`, `compositor`, ...) or, for anything too bespoke to
-generalize, `dots-local`'s `extraModules`/`extraOverlays` escape hatches.
+or `work`), then applies `modules/rules.nix` - small, declarative rules
+over `dots-local` axes (GPU, compositor, WSL, ...) that enable/configure
+features as *defaults*. No per-host directory or file is required to
+exist - host-specific config comes from `dots-local` fields (`machine.*`,
+`gpu`, `compositor`, ...) or, for anything too bespoke to generalize,
+`dots-local`'s `extraModules`/`extraOverlays` escape hatches.
 
 ## Environment Variables
 
@@ -276,9 +276,9 @@ modules/
 │   ├── common.nix    # Always-imported minimal CLI baseline
 │   ├── priv.nix      # Personal context
 │   └── work.nix      # Work context
-├── composition.nix         # Entry point - imports core + context + rules
-├── composition-rules.nix   # Declarative axis-based rules (GPU, WSL, ...)
-├── dots-local/
+├── composition.nix   # Entry point - imports core + context + rules
+├── rules.nix         # Declarative axis-based rules (GPU, WSL, ...)
+├── local/
 │   └── schema.nix    # Typed schema for dots-local/flake.nix
 ├── core/             # Core infrastructure
 ├── features/         # Individual capabilities
@@ -294,7 +294,7 @@ Most new machines need **no changes to `dots` at all** - just a
 {
   outputs = { self, ... }: {
     host = "myhostname";
-    # ... identity fields (see modules/dots-local/schema.nix) ...
+    # ... identity fields (see modules/local/schema.nix) ...
 
     # Axes that drive what gets pulled in (all optional):
     gpu = "nvidia";           # or "amd"/"intel"/omit
@@ -323,7 +323,7 @@ to `dots-local/flake.nix` and reference it via `extraModules`:
 extraModules = [ ./host-myhostname.nix ];
 ```
 
-Then run `apply-dots`. See `modules/dots-local/schema.nix`'s option
+Then run `apply-dots`. See `modules/local/schema.nix`'s option
 descriptions for the full list of available fields.
 
 ## Troubleshooting

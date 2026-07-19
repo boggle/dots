@@ -5,7 +5,7 @@
 # both import this file instead of each maintaining their own copy.
 #
 # `dotsLocal.tune.flags.<lang>.<mode>` overrides can still override any of
-# these per-machine (see modules/dots-local/schema.nix) - this file is
+# these per-machine (see modules/local/schema.nix) - this file is
 # just the fallback when no override is set.
 { march }:
 {

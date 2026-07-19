@@ -2,7 +2,7 @@
 #
 # A genuinely minimal, conservative starter: common's baseline plus
 # slightly fuller git/dev-tools defaults typical of a work machine, with
-# GUI/AI/TUI suites left off by default (composition-rules.nix enables
+# GUI/AI/TUI suites left off by default (rules.nix enables
 # suites.cloud-tools by default for this context; everything else is
 # opt-in via dotsLocal.extraModules or by editing this file directly).
 #

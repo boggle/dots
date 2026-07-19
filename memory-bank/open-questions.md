@@ -62,7 +62,7 @@ answer first - user has twice confirmed dots needs it for something.
 Explicitly deferred by the user ("stash this for later"). Only touched
 where a phase directly requires it (Phase 5 tuning-table removal). Full
 sync.sh/setup.sh overhaul is a distinct future project, not part of this
-one. **Update (Phase 1)**: decided NOT to create `modules/dots-local/
+one. **Update (Phase 1)**: decided NOT to create `modules/local/
 template.nix` in Phase 1 after all - nothing was actually removed from
 `dots-local`'s responsibility in Phase 1 (schema formalizes existing fields
 + adds new inert ones), so there's no new "config that lost its home"

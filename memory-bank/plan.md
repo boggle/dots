@@ -50,7 +50,7 @@ treating any `nix eval`/`nix build` against it as real validation.** Local
 flake evaluation only sees git-tracked/staged files - a new untracked file
 is silently invisible, with no error. This will recur in every phase that
 adds new files (Phase 1's schema.nix/template.nix, Phase 2's
-composition.nix/composition-rules.nix, Phase 8's externalized scripts,
+composition.nix/rules.nix, Phase 8's externalized scripts,
 etc).
 
 ---
@@ -169,7 +169,7 @@ etc).
       cover it).
 
 ## Phase 1 — `dots-local` schema `[x] DONE (uncommitted)`
-- [x] Design `modules/dots-local/schema.nix` (lib.evalModules) - kept
+- [x] Design `modules/local/schema.nix` (lib.evalModules) - kept
       additive/backward-compatible (existing fields stay flat) rather than
       the fully-nested design originally sketched; see decisions.md
       2026-07-18 "dots-local schema: additive/backward-compatible"
@@ -205,7 +205,7 @@ etc).
       `nix build .../activationPackage`, not by a shallow `nix eval`; see
       learnings.md for the full trail and the general lesson about eval
       vs. build validation depth
-- [ ] ~~Create `modules/dots-local/template.nix`~~ - deferred to Phase 2
+- [ ] ~~Create `modules/local/template.nix`~~ - deferred to Phase 2
       (nothing lost its home in Phase 1; see open-questions.md)
 - Validation: `nix eval` for chromaden (real dots-local, both clean and
   uncommitted-change git states), laputa + triomino (temp dots-local
@@ -224,7 +224,7 @@ etc).
       point at), and the `appimage-update` script's flake-output query
       (hardcoded to `default`, since localDir doesn't differ between
       variants) all updated in `modules/core/scripts.nix`.
-- [x] `modules/composition-rules.nix` - small, explicit rule list:
+- [x] `modules/rules.nix` - small, explicit rule list:
       `compositor == "niri"` -> niri-noctalia + its terminal/renderDrmDevice
       defaults; `gpu == "nvidia"` -> llama-cpp + ai-apps.pi; `profile ==
       "work"` -> cloud-tools; `isWsl` -> opener/clipboard wsl backend +
@@ -237,7 +237,7 @@ etc).
       if not) + universally-available feature/suite modules that used to
       require a per-host import (niri-noctalia, llama-cpp, butterfish,
       sd-switch, scanning, cloud-tools, wsl-shell-integration, the new
-      power-toggle). Folds composition-rules.nix on top via a
+      power-toggle). Folds rules.nix on top via a
       `deepMkDefault` helper (recursively wraps every LEAF of a rule's
       `set` attrset in `lib.mkDefault` - a single outer `mkDefault` on a
       nested attrset does NOT give correct per-option priority semantics)
@@ -258,7 +258,7 @@ etc).
       per-host file: SSH identity (now read generically in
       `features/network.nix`), power-toggle script (new generic
       `features/power-toggle.nix`, gated on `machine.display != null`),
-      niri terminal/renderDrmDevice defaults (via composition-rules.nix)
+      niri terminal/renderDrmDevice defaults (via rules.nix)
 - [x] Generalized triomino's VSCode-Remote-SSH + WSL shell-integration
       workaround into a real, reusable feature
       (`modules/features/wsl-shell-integration.nix`), auto-enabled by the
@@ -347,7 +347,7 @@ etc).
       deliberately not extended further like Debian's specs (Azure Linux 4
       is an intentionally lean/curated cloud distro, not general-purpose)
 - [x] **Found and fixed a real, pre-existing Phase 2 gap** while testing
-      with `profile = "work"` for the first time: `composition-rules.nix`
+      with `profile = "work"` for the first time: `rules.nix`
       references `features.opener`/`features.clipboard` (via the `isWsl`
       rule) and `suites.ai-apps` (via the `gpu == "nvidia"` rule), but
       those modules were only imported by `contexts/priv.nix`, not
@@ -827,7 +827,7 @@ README.md/OVERVIEW.md (already accurate from Phase 9's docs pass).
 
 **Also found and fixed a few comments that were stale AND now factually
 wrong** (not just narrating history, but describing something no longer
-true): `modules/dots-local/schema.nix`'s `host`/`machine`/`isWsl`/
+true): `modules/local/schema.nix`'s `host`/`machine`/`isWsl`/
 `graphicalBackend`/`enableGuiDefaults` option descriptions (claimed things
 like "not yet consumed", "manual assertion previously needed", or
 referenced selecting per-host files that don't exist anywhere anymore -

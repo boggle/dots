@@ -90,7 +90,7 @@ up with that so I'm reluctant to just drop it." Noted and respected —
 do not re-litigate this without new information.
 
 ### 2026-07-18 — Composition = explicit declarative dependency rules
-**Decision:** `modules/composition-rules.nix` as a small, explicit,
+**Decision:** `modules/rules.nix` as a small, explicit,
 greppable list of `{ when = predicate; set = {...}; }` rules over
 `dotsLocal` axes, folded via `mkIf`/`mkDefault` in `modules/composition.nix`.
 **Rationale:** User's explicit ask: "I can write simple dependency rules
@@ -209,7 +209,7 @@ robust but is unnecessary complexity for what's currently a one-package
 need; revisit if this comes up often enough to justify automation.
 
 ### 2026-07-18 — `dots-local` schema: additive/backward-compatible, not fully nested
-**Decision:** Implemented `modules/dots-local/schema.nix` with existing
+**Decision:** Implemented `modules/local/schema.nix` with existing
 fields kept flat (host, distro, march, barch, realname, realmail,
 username, uid, gid, homeDirectory, profile, enableGuiDefaults,
 graphicalBackend, butterfishEndpoint/ApiKey/Model, appimagesDir, appimages,

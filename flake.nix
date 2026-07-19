@@ -31,7 +31,7 @@
       lib = nixpkgs.lib;
 
       # Formal, typed dots-local schema. Evaluates the raw dots-local flake
-      # output against modules/dots-local/schema.nix, giving every field a
+      # output against modules/local/schema.nix, giving every field a
       # documented default. `dotsLocal` (the evaluated config) is passed to
       # all Home Manager modules via extraSpecialArgs below, alongside (not
       # instead of) `inputs`, since some non-dots-local inputs (niri,
@@ -51,7 +51,7 @@
         # Wrapped as `{ config = dotsLocalData; }` (rather than passed
         # bare) to make the intent explicit to evalModules: these are
         # config values, not a module function.
-        modules = [ ./modules/dots-local/schema.nix { config = dotsLocalData; } ];
+        modules = [ ./modules/local/schema.nix { config = dotsLocalData; } ];
       };
       dotsLocal = dotsLocalEval.config;
 

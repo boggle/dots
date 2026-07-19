@@ -130,7 +130,7 @@ packages, no error).
   `git add <newfile>` **immediately** after creating any new file with the
   `write` tool, before considering any `nix eval`/`nix build` against it a
   real validation. This will come up repeatedly in later phases (schema.nix,
-  composition.nix, composition-rules.nix, template.nix, externalized
+  composition.nix, rules.nix, template.nix, externalized
   scripts in Phase 8, etc.) - each is a new file and each needs this same
   discipline. Consider running `git add -A` (or targeted `git add`) as a
   standard first step whenever a phase's work includes new files, before
@@ -141,7 +141,7 @@ packages, no error).
 
 ### 2026-07-18 — Phase 1 (dots-local schema) implementation gotchas
 Several real Nix/evalModules quirks surfaced while wiring up
-`modules/dots-local/schema.nix` into `flake.nix`:
+`modules/local/schema.nix` into `flake.nix`:
 
 1. **A flake input can't be passed bare into `lib.evalModules`'s `modules`
    list.** `inputs.dots-local` isn't just the plain data attrset dots-local's
@@ -200,7 +200,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
 ### 2026-07-18 — Phase 2 (composition layer) implementation gotchas
 1. **A rule's `when` predicate being a function of `dotsLocal` does NOT
    mean its `set` output automatically is too.** First draft of
-   `composition-rules.nix` had `{ when = d: ...; set = { ... d.machine.terminal ... }; }`
+   `rules.nix` had `{ when = d: ...; set = { ... d.machine.terminal ... }; }`
    - `set` here is evaluated once when the list is constructed, with `d`
    completely out of scope (only `when`'s lambda parameter is named `d`).
    Got "undefined variable 'd'" immediately on eval. Fixed by making `set`
@@ -215,7 +215,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
    `deepMkDefault` helper (walks nested attrsets, applies `lib.mkDefault`
    only at non-attrset leaves, skipping anything already tagged with a
    module-system `_type` to avoid double-wrapping/corrupting an existing
-   override annotation) to make composition-rules.nix's `set` attrsets
+   override annotation) to make rules.nix's `set` attrsets
    behave as real per-option defaults.
 3. **Every feature module a per-host file used to import must become a
    *universal* import once that host file is retired.** Composition-rules.nix
@@ -277,12 +277,12 @@ Several real Nix/evalModules quirks surfaced while wiring up
    itself is byte-identical to before this session touched anything, so
    the comment was already stale/inaccurate beforehand.
 
-9. **A composition-rules.nix rule referencing an option makes that
+9. **A rules.nix rule referencing an option makes that
    option's module a hard, universal dependency - discovered a real gap
    this way.** Testing with `profile = "work"` + `isWsl = true` for the
    first time (previously every synthetic test used `profile = "priv"`)
    surfaced "The option `features.clipboard' does not exist" /
-   "The option `suites.ai-apps' does not exist" - `composition-rules.nix`'s
+   "The option `suites.ai-apps' does not exist" - `rules.nix`'s
    `isWsl` rule references `features.opener`/`features.clipboard`, and the
    `gpu == "nvidia"` rule references `suites.ai-apps`, but those modules
    were only imported by `contexts/priv.nix`, not universally. A `lib.mkIf`
@@ -294,7 +294,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
    pattern as niri-noctalia/llama-cpp/cloud-tools), keeping their
    `enable`/config assignments in `contexts/priv.nix` (context-specific)
    while making the underlying options always declared. General lesson:
-   any option composition-rules.nix references must have its declaring
+   any option rules.nix references must have its declaring
    module universally imported - a good thing to audit whenever a new rule
    is added, and a strong argument for testing every context (not just the
    one that happens to be live-checkpointed) with synthetic dots-local

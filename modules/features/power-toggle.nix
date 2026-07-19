@@ -1,5 +1,5 @@
 # Generic eco/performance power-toggle script, driven entirely by
-# dotsLocal.machine.display (see modules/dots-local/schema.nix). A host
+# dotsLocal.machine.display (see modules/local/schema.nix). A host
 # with no display config (dotsLocal.machine.display == null) simply
 # doesn't get this script installed - no host-specific Nix file needed.
 { config, lib, pkgs, dotsLocal, ... }:

@@ -2,7 +2,7 @@
 #
 # Host-specific config doesn't require a dedicated per-host file in `dots`
 # - it's expressed via dotsLocal fields (machine.*, gpu, compositor, ...),
-# composition-rules.nix, and (for truly bespoke needs)
+# rules.nix, and (for truly bespoke needs)
 # dotsLocal.extraModules. See memory-bank/preserved-features-checklist.md
 # for the per-host migration notes.
 { pkgs, lib, dotsLocal, ... }:

@@ -3,7 +3,7 @@
 # Always imports the common baseline + core, then:
 #   1. Imports exactly one modules/contexts/<dotsLocal.profile>.nix bundle
 #      (the bulk, hand-authored per-context config).
-#   2. Folds composition-rules.nix's declarative axis-based rules on top,
+#   2. Folds rules.nix's declarative axis-based rules on top,
 #      as *defaults* (an explicit setting anywhere else always wins).
 #   3. Imports dotsLocal.extraModules (already appended at the flake.nix
 #      level too, for anything not folded through here - see flake.nix).
@@ -11,20 +11,20 @@
 # No per-host file is required to exist for any machine - host-specific
 # config is expressed via dotsLocal fields (machine.*, gpu, compositor,
 # ...) consumed generically by feature modules (features/power-toggle.nix,
-# features/network.nix's sshIdentityFile, composition-rules.nix, ...), or,
+# features/network.nix's sshIdentityFile, rules.nix, ...), or,
 # for truly bespoke needs too specific to generalize, via
 # dotsLocal.extraModules (kept in the private dots-local repo, never in
 # this shared one).
 { config, lib, dotsLocal, ... }:
 
 let
-  rules = import ./composition-rules.nix { inherit lib dotsLocal; };
+  rules = import ./rules.nix { inherit lib dotsLocal; };
 
   contextFile = ./contexts + "/${dotsLocal.profile}.nix";
   contextExists = builtins.pathExists contextFile;
 
   # Recursively wraps every LEAF value of a nested attrset in
-  # `lib.mkDefault`, so composition-rules.nix's `set` attrsets behave as
+  # `lib.mkDefault`, so rules.nix's `set` attrsets behave as
   # defaults at every option path they touch - not as one single
   # low-priority definition for an entire nested tree (which is not how
   # the module system's per-leaf priority resolution works). Skips
@@ -47,7 +47,7 @@ in {
 
     # Universally imported - each module's own `enable` option, defaulting
     # to false/off, controls whether anything actually happens. Enabled
-    # either by a composition-rules.nix rule (e.g. compositor == "niri" ->
+    # either by a rules.nix rule (e.g. compositor == "niri" ->
     # niri-noctalia) or directly by dotsLocal.extraModules for anything
     # more bespoke.
     ./features/power-toggle.nix
@@ -56,7 +56,7 @@ in {
     ./features/butterfish.nix
     ./features/sd-switch.nix
     ./features/wsl-shell-integration.nix
-    # opener/clipboard: universal because composition-rules.nix's `isWsl`
+    # opener/clipboard: universal because rules.nix's `isWsl`
     # rule references features.opener/features.clipboard regardless of
     # which context is active - a NixOS/HM module option must be declared
     # (module imported) for ANY module to set values under that path, even
@@ -68,7 +68,7 @@ in {
     ./suites/scanning.nix
     ./suites/cloud-tools.nix
     # ai-apps: same reasoning as opener/clipboard above - referenced by
-    # composition-rules.nix's `gpu == "nvidia"` rule regardless of context.
+    # rules.nix's `gpu == "nvidia"` rule regardless of context.
     ./suites/ai-apps.nix
     # fonts: same reasoning again - niri-noctalia.nix contributes to
     # features.fonts.required, and niri-noctalia is itself universal.

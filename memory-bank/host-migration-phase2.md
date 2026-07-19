@@ -122,7 +122,7 @@ Create `dots-local/host-triomino.nix`:
   PROMPT_COMMAND cleanup, sourcing VS Code's shellIntegration-bash.sh,
   zoxide/direnv manual re-init) - generalized into
   `modules/features/wsl-shell-integration.nix`, auto-enabled by
-  `composition-rules.nix` whenever `isWsl = true`.
+  `rules.nix` whenever `isWsl = true`.
 - `WAYLAND_DISPLAY`/`DIRENV_LOG_FORMAT` session variables - now set by the
   same `isWsl` composition rule.
 - `sd-switch` - now universally imported/enabled (previously required an

@@ -10,7 +10,7 @@
 # (host, distro, march, realname, ...) rather than a fully-nested
 # identity.*/machine.*/system.* design, to avoid requiring a rewrite of the
 # live dots-local/flake.nix. Axis fields (gpu, isWsl, location, tags,
-# shell.*, extraModules, extraOverlays) feed composition-rules.nix and
+# shell.*, extraModules, extraOverlays) feed rules.nix and
 # beyond.
 
 { lib, ... }:
@@ -87,7 +87,7 @@ in {
       description = ''
         Whether this machine is running under WSL. Orthogonal to `distro`
         (e.g. a Debian distro running inside WSL is `distro = "debian";
-        isWsl = true;`). Consumed by composition-rules.nix's `isWsl` rule.
+        isWsl = true;`). Consumed by rules.nix's `isWsl` rule.
       '';
     };
 
@@ -136,7 +136,7 @@ in {
       default = null;
       description = ''
         GPU vendor present on this machine, if any. Consumed by
-        composition-rules.nix: gpu == "nvidia" pulls in the llama-cpp
+        rules.nix: gpu == "nvidia" pulls in the llama-cpp
         feature and the ai-apps "pi" toggle by default.
       '';
     };
@@ -146,7 +146,7 @@ in {
       default = null;
       description = ''
         Which Wayland compositor/desktop this machine uses, if any.
-        Consumed by composition-rules.nix to enable features.niri-noctalia
+        Consumed by rules.nix to enable features.niri-noctalia
         and default its terminal/renderDrmDevice options from
         `machine.terminal`/`machine.renderDrmDevice`. Null means no
         compositor-managed desktop (e.g. a CLI-only or WSL machine).

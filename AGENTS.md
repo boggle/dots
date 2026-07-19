@@ -36,7 +36,7 @@ The system uses a split repository design:
   tuning flags, and any bespoke per-host modules
 
 `dots-local` is passed as a flake input, evaluated against
-`modules/dots-local/schema.nix` (`lib.evalModules`), and the resulting
+`modules/local/schema.nix` (`lib.evalModules`), and the resulting
 typed config is passed to every module as the `dotsLocal` specialArg (not
 `inputs.dots-local` directly - that still carries raw flake-introspection
 metadata alongside the actual fields).
@@ -47,13 +47,13 @@ metadata alongside the actual fields).
 dots/
 ├── flake.nix                 # Entry point, defines homeConfigurations.{default,default-opt}
 ├── modules/
-│   ├── composition.nix       # Entry point - imports core + context + composition-rules
-│   ├── composition-rules.nix # Declarative axis-based rules (gpu, compositor, isWsl, ...)
+│   ├── composition.nix       # Entry point - imports core + context + rules
+│   ├── rules.nix              # Declarative axis-based rules (gpu, compositor, isWsl, ...)
 │   ├── contexts/             # Composition bundles, selected by dotsLocal.profile
 │   │   ├── common.nix        # Always-imported minimal CLI baseline
 │   │   ├── priv.nix          # Personal context
 │   │   └── work.nix          # Work context
-│   ├── dots-local/
+│   ├── local/
 │   │   └── schema.nix        # Typed schema for dots-local/flake.nix
 │   ├── core/                 # Core infrastructure
 │   │   ├── default.nix       # Core packages and settings
@@ -82,12 +82,12 @@ feature modules, or, for anything too bespoke to generalize, via
 
 `modules/composition.nix` always imports the common baseline plus exactly
 one `modules/contexts/<dotsLocal.profile>.nix` bundle (`priv` or `work`),
-then folds `modules/composition-rules.nix`'s declarative axis-based rules
+then folds `modules/rules.nix`'s declarative axis-based rules
 on top as *defaults* (an explicit setting anywhere else always wins). A
 handful of feature/suite modules (niri-noctalia, llama-cpp, butterfish,
 sd-switch, opener, clipboard, scanning, cloud-tools, ai-apps, fonts,
 wsl-shell-integration, power-toggle) are imported universally rather than
-per-context, since `composition-rules.nix` or another universal module may
+per-context, since `rules.nix` or another universal module may
 need to set their options regardless of which context is active.
 
 ### Module Types
@@ -205,7 +205,7 @@ Commands like `apply-dots` are generated in `modules/core/scripts.nix` using `pk
 3. Import in the relevant context (`modules/contexts/priv.nix` or
    `work.nix`), or in `modules/composition.nix`'s universal imports if it
    needs to be reachable regardless of context (e.g. because
-   `composition-rules.nix` references it)
+   `rules.nix` references it)
 
 ### Adding a New Suite
 
@@ -241,7 +241,7 @@ Most new machines need **no changes to `dots` at all** - just a
 {
   outputs = { self, ... }: {
     host = "myhostname";
-    # ... identity fields (see modules/dots-local/schema.nix) ...
+    # ... identity fields (see modules/local/schema.nix) ...
 
     # Axes that drive what gets pulled in (all optional):
     gpu = "nvidia";           # or "amd"/"intel"/omit
@@ -270,7 +270,7 @@ to `dots-local/flake.nix` and reference it via `extraModules`:
 extraModules = [ ./host-myhostname.nix ];
 ```
 
-Then run `apply-dots`. See `modules/dots-local/schema.nix`'s option
+Then run `apply-dots`. See `modules/local/schema.nix`'s option
 descriptions for the full list of available fields.
 
 ### Nix Evaluation
