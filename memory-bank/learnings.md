@@ -550,3 +550,23 @@ pre-existing bug (not user-specific config) in
   shell words/arguments (not just one atomic path), pass it through as a
   bash array, not a string - only use a plain string variable for truly
   atomic values (a single path, a single flag, a single word).
+
+### 2026-07-19 — AGENTS.md's own "keep in sync each phase" instruction was never honored
+AGENTS.md carried an explicit self-instruction from the start of this
+re-architecture: update its Repository Structure/Architecture sections "as
+each phase lands so the two [AGENTS.md and memory-bank/architecture.md]
+never drift for long." In practice this never happened across any of the
+9 phases - by the time the user asked for a stale-comment cleanup pass
+post-live-checkpoint, AGENTS.md's actual body content (not just isolated
+comments) still described the entire pre-Phase-2 system end to end:
+`profiles/priv/home.nix`, `profiles/<profile>/hosts/<hostname>.nix`,
+`profileDefinitions` in flake.nix, `homeConfigurations.priv`,
+`apply-dots priv`, deprecated `programs.ssh.matchBlocks`. None of it had
+been touched since Phase 0. Lesson: a standing "update X as you go"
+instruction embedded in a doc is easy to silently defer indefinitely once
+attention is on the phase's actual code changes - if this pattern
+recurs (a living doc meant to track a multi-phase effort), it's worth
+either (a) actually updating it at the end of every phase as promised, or
+(b) being honest that it won't happen incrementally and explicitly
+scheduling one consolidated pass near the end instead, rather than leaving
+a disclaimer that quietly goes stale.

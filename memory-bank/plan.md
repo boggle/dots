@@ -795,13 +795,50 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
   one decision that needs the user's input before (or as part of) that
   checkpoint.
 
-**All 9 phases of the re-architecture are now structurally complete.**
-Remaining before this can be considered fully closed out: (1) the user's
-decision on `features.fonts.enable` (open-questions.md), (2) a final live
-`apply-dots` checkpoint covering everything since generation 316 (Phase 6),
-(3) the laputa/triomino follow-up already documented in
-`host-migration-phase2.md` (unchanged - still needs the user to add the
-documented fields to those machines' own `dots-local` repos).
+**All 9 phases of the re-architecture are now structurally complete AND
+LIVE-CHECKPOINTED** - user confirmed running `apply-dots` covering
+everything through Phase 9's commits. `features.fonts.enable` decision:
+user confirmed leave it off for now, revisit later (see decisions.md
+2026-07-19). Remaining: only the laputa/triomino follow-up already
+documented in `host-migration-phase2.md` (unchanged - still needs the user
+to add the documented fields to those machines' own `dots-local` repos,
+since this session has no access to them).
+
+## Post-Phase-9 cleanup — remove stale re-architecture narrative comments
+After the live checkpoint, the user asked to remove every comment
+referencing the old (pre-re-architecture) state of the system - "Phase N"
+references, "used to be"/"previously"/"no longer" narrative,
+memory-bank cross-references, etc. - keeping only comments that describe
+current behavior/design rationale. Swept the entire codebase (35 files:
+`AGENTS.md`, `README.md`, `OVERVIEW.md`, `flake.nix`, `setup.sh`, and ~28
+files under `modules/`).
+
+**Biggest finding**: `AGENTS.md` itself had drifted the most - its
+"Repository Structure"/"Architecture"/"Common Tasks"/"Testing Changes"/
+"Important Notes" sections still described the entire pre-Phase-2 system
+(`profiles/priv/home.nix`, `profiles/<profile>/hosts/<hostname>.nix`,
+`profileDefinitions`, `homeConfigurations.priv`, `apply-dots priv`,
+deprecated `programs.ssh.matchBlocks`, ...) despite AGENTS.md's own
+"transitional state" disclaimer explicitly saying to keep it in sync as
+each phase landed - that upkeep never actually happened across any phase.
+Rewrote these sections from scratch to describe the real current
+architecture, cross-checked against the actual file structure and
+README.md/OVERVIEW.md (already accurate from Phase 9's docs pass).
+
+**Also found and fixed a few comments that were stale AND now factually
+wrong** (not just narrating history, but describing something no longer
+true): `modules/dots-local/schema.nix`'s `host`/`machine`/`isWsl`/
+`graphicalBackend`/`enableGuiDefaults` option descriptions (claimed things
+like "not yet consumed", "manual assertion previously needed", or
+referenced selecting per-host files that don't exist anywhere anymore -
+all now actually wired up or simply untrue), and
+`modules/core/tune-defaults.nix` (claimed tuning tables were "not yet
+unified" - Phase 5 already did that).
+
+Validation: comment-only changes - confirmed via a before/after
+`config.home.packages` diff (`git worktree` against the prior commit)
+that output is byte-for-byte identical, plus a full
+`nix build .../activationPackage` still succeeds cleanly.
 
 ---
 
