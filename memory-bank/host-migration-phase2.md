@@ -3,7 +3,8 @@
 Status: **action required by the user on these two machines**
 
 `profiles/priv/hosts/{chromaden,laputa,triomino}.nix` were all retired in
-Phase 2 (see `plan.md`) - `dots` no longer contains per-host files at all.
+the composition-layer rework (see `decisions.md`) - `dots` no longer
+contains per-host files at all.
 Chromaden's equivalent config was fully migrated into the real
 `~/dots-local` on this machine (this checkout has access to it) and
 live-validated. **laputa and triomino have their own separate, private

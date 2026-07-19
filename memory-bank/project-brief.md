@@ -1,9 +1,10 @@
 # Project Brief: dots Re-architecture
 
 Status: **Complete** - all 9 phases done and live-checkpointed, plus
-~20 rounds of post-completion follow-up work (see `plan.md`). Kept as
-the foundational "why" reference; ongoing work is now smaller, discrete,
-user-requested changes rather than a phased rewrite. Started: 2026-07-18.
+~20 rounds of post-completion follow-up work (see `decisions.md`). Kept
+as the foundational "why" reference; ongoing work is now smaller,
+discrete, user-requested changes rather than a phased rewrite.
+Started: 2026-07-18.
 
 ## Why
 
@@ -82,7 +83,7 @@ been used long enough in practice to expose real limits:
 ## Success Criteria
 
 - `nix eval`/`nix build` succeeds for every phase before moving to the next.
-- No existing feature regresses (see `preserved-features-checklist.md`).
+- No existing feature regresses (verified throughout - see `decisions.md`).
 - A new machine (or a new feature on an existing machine) can be onboarded by
   editing only `dots-local` (schema-driven), without touching `dots` in the
   common case.
@@ -95,8 +96,6 @@ been used long enough in practice to expose real limits:
 
 - `AGENTS.md` — repo-wide agent guide (revised to point here)
 - `memory-bank/architecture.md` — target design detail
-- `memory-bank/plan.md` — phase-by-phase execution tracker
 - `memory-bank/decisions.md` — decision log with rationale
-- `memory-bank/preserved-features-checklist.md` — regression checklist
 - `memory-bank/learnings.md` — gotchas discovered while executing
 - `memory-bank/open-questions.md` — unresolved items

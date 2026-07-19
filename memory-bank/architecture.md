@@ -1,8 +1,7 @@
 # Target Architecture
 
 Living document — refined as design decisions solidify during execution.
-See `decisions.md` for the dated rationale behind each choice, and `plan.md`
-for how this maps to execution phases.
+See `decisions.md` for the dated rationale behind each choice.
 
 ---
 
@@ -106,7 +105,7 @@ gets it applied on the next `apply-dots`, no `dots` changes required.
 package sources, and the like** throughout the schema/composition rework
 (these are exactly the kind of thing that's easy to accidentally drop while
 restructuring `flake.nix`). Current inventory that MUST survive unchanged
-in behavior (see `preserved-features-checklist.md` for the checklist form):
+in behavior:
 
 - Flake inputs: `nixpkgs`, `nixpkgs-quarto-pin` (pinned quarto 1.8.26 +
   pandoc 3.1.11.1 combo), `home-manager`, `nur`, `nixgl`, `niri`,
@@ -426,8 +425,7 @@ user wants kept.
 
 ## 11. Bug fixes bundled along the way
 
-See `preserved-features-checklist.md` and `plan.md` Phase 0 for the concrete
-list (laputa's `features.scanning` typo, copy-pasted "Laputa Machine
+Concrete list (laputa's `features.scanning` typo, copy-pasted "Laputa Machine
 Configuration" header comments on chromaden.nix/triomino.nix, missing
 `gcc15`/`gcc15-libs` alien spec, dead `niriPkg` conditional in
 niri-noctalia.nix, `dots-local.nix`'s dead sync-config.json path reference,

@@ -6,13 +6,12 @@ This document provides architecture and development guidance for AI agents worki
 
 Before making any non-trivial change, **read `memory-bank/*.md`**, at minimum:
 
-1. `memory-bank/plan.md` — the phased execution tracker with current status.
-2. `memory-bank/decisions.md` — dated decision log with rationale. Do not
+1. `memory-bank/decisions.md` — dated decision log with rationale. Do not
    re-litigate or silently contradict a logged decision; if you think one
    should change, ask the user and log the outcome.
-3. `memory-bank/open-questions.md` — unresolved items that need user input
+2. `memory-bank/open-questions.md` — unresolved items that need user input
    before proceeding on the related work.
-4. `memory-bank/architecture.md` section 12 ("Standing 'keep-in-sync'
+3. `memory-bank/architecture.md` section 12 ("Standing 'keep-in-sync'
    rules") — a consolidated checklist of every "if you change X, you must
    also touch Y" rule discovered so far (schema changes → template file,
    tuning defaults → per-machine overrides, new syncable-worthy config →
@@ -21,17 +20,18 @@ Before making any non-trivial change, **read `memory-bank/*.md`**, at minimum:
    memory - this list exists specifically because that kind of drift kept
    happening silently across multiple phases before it did.
 
+The original multi-phase re-architecture this memory bank was built for
+is complete (see `project-brief.md`) - there's no longer a phased
+execution tracker to consult. Ongoing work is smaller, discrete,
+user-requested changes.
+
 As you work:
-- Update `memory-bank/plan.md` checkboxes/status as tasks progress (mark
-  in-progress/done in real time, not batched).
 - Append new entries to `memory-bank/decisions.md` for any consequential
   choice, and to `memory-bank/learnings.md` for gotchas/workarounds
   discovered along the way.
 - Add anything unresolved to `memory-bank/open-questions.md` rather than
   guessing and moving on.
-- See `memory-bank/architecture.md` for the full design reference and
-  `memory-bank/preserved-features-checklist.md` for the regression-checked
-  feature list.
+- See `memory-bank/architecture.md` for the full design reference.
 
 ## Repository Structure
 

@@ -368,9 +368,9 @@ command line, so a generic `default` name is more honest than keeping
 revisit later. Fonts continue to be an alien/pacman-managed concern on
 chromaden, not a Nix/Home-Manager-managed one.
 **Rationale:** User's explicit call. `features.fonts.required` (now
-actually wired - `niri-noctalia.nix` contributes `pkgs.inter`, see
-Phase 9 in `plan.md`) stays structurally correct but inert until/unless
-this is revisited - `cfg.base ++ cfg.required` never gets added to
+actually wired - `niri-noctalia.nix` contributes `pkgs.inter`) stays
+structurally correct but inert until/unless this is revisited -
+`cfg.base ++ cfg.required` never gets added to
 `home.packages` while `enable` is `false`. No further action needed
 unless the user brings this back up.
 
