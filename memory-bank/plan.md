@@ -1081,6 +1081,28 @@ full story). Validated via full build + byte-diff of
 `config.home.packages` against `bd1b2e7` - confirms only the intended
 5 duplicate-package removals changed, nothing else.
 
+## Post-Phase-9 adjustments — jj/Jujutsu package fix, NIXON PATH fix, nixonDefault reliability
+User caught two real bugs directly: (1) `suites.git-tools.jj` was
+installing nixpkgs' `pkgs.jj` (tidwall/jj, a JSON Stream Editor) instead
+of the real Jujutsu VCS (`pkgs.jujutsu`) - fixed, `pkgs.jjui` was
+unaffected; swept every other short nixpkgs attribute name in the repo
+for the same class of collision, none found. (2) A live `apply-dots`
+failure (`nh`: "No output from nix --version command") traced to
+`modules/core/nixon.nix`'s `NIXON=1` branch never guaranteeing the raw
+system Nix installation (`/nix/var/nix/profiles/default/bin`) was on
+PATH - only the `NIXON=0` branch did. Fixed with an unconditional,
+idempotent PATH guard ahead of the if/else; validated with a real
+`apply-dots` run on chromaden that reproduced, then resolved, the exact
+failure. Also fixed chromaden's own `dots-local/flake.nix`, which had a
+half-finished, disabled, mistyped `nixonDefault` attempt
+(`#nixonDefault = "1";`) - corrected to an active `nixonDefault = true;`
+matching evident intent; confirmed `templates/dots-local/flake.nix`
+already sets this field reliably for new machines. Added a `$NIXON`
+section to README.md (previously undocumented anywhere) and a
+`nixonDefault` mention to `setup.sh`'s next-steps output. Full
+write-up: `decisions.md`'s two matching 2026-07-19 entries; new
+architecture.md section 12 rule #6 for future PATH-logic changes here.
+
 ## Cross-cutting, not yet scheduled to a phase
 - Shared platform/OS detection (`modules/core/platform.nix`) consolidating
   clipboard.nix + opener.nix's duplicated `backend` enum — natural fit

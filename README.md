@@ -280,6 +280,27 @@ export DOTS_LOCAL_DIR="$HOME/dots-local"  # Location of dots-local repository
 
 These are automatically set if not defined. Useful for non-standard setups.
 
+### `$NIXON` - nix-managed vs. pure host shell
+
+Every interactive/login shell is gated by `$NIXON` (see
+`modules/core/nixon.nix`):
+
+- `NIXON=1` ("nix-on"): the full Home Manager environment is loaded
+  (`~/.bashrc-nix`/`~/.profile-nix` - PATH, aliases, shell integrations
+  from every enabled feature/suite).
+- `NIXON=0`: a stripped-down "pure host" environment - all `/nix/store`
+  paths removed from `$PATH`, keeping only the bare `nix`/`nh`/
+  `home-manager` binaries reachable (via `/nix/var/nix/profiles/
+  default/bin`) so you can still run `apply-dots`/`nixon` to get back.
+
+Toggle between them at any time with the `nixon`/`nixoff` aliases (each
+`exec`s a fresh login shell with `$NIXON` set accordingly). The default
+for a brand-new shell (before either alias has ever been run) comes
+from `dotsLocal.nixonDefault` (`true`/`false`) - set this explicitly in
+your `dots-local/flake.nix` rather than relying on its schema default,
+so your intended behavior is always visible in your own config rather
+than implicit.
+
 ## Navigation Tips
 
 **Module Structure:**

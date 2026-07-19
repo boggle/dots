@@ -899,3 +899,72 @@ the future, it would need an explicit rename/wrapper at that point
 entry, or renaming its binary via `pkgs.runCommand`/`symlinkJoin` to
 something like `jj-json` before adding it) to avoid then colliding with
 `jujutsu`'s real `jj` - not done now since nothing currently needs it.
+
+---
+
+### 2026-07-19 — `NIXON=1` mode never guaranteed the raw `nix` binary was on PATH (root cause of a real `apply-dots` failure)
+User reported `apply-dots` failing with `nh`: "Failed to get Nix
+version output... No output from nix --version command". Root-caused
+to a real, live-impacting bug in `modules/core/nixon.nix`: the
+`NIXON=0` ("pure host") branch of `.bashrc-dots` explicitly does
+`export PATH="$PATH:/nix/var/nix/profiles/default/bin"` (the directory
+containing the actual system Nix installation's `nix`/`nix-daemon`
+binaries - confirmed this is NOT part of the Home Manager profile;
+`~/.nix-profile/bin/nix` does not exist, Nix itself is a system-level
+install, not a `home.packages` entry), but the `NIXON=1` ("nix-on")
+branch only sources `.bashrc-nix` (pure Home Manager gutter-eval
+output), which has no PATH-setting logic of its own for this directory
+- confirmed via direct inspection, it contains zero `PATH=` lines.
+`.profile-nix` (sourced only for *login* shells, only when NIXON=1)
+does eventually reach `nix.sh` via `hm-session-vars.sh`, which adds
+`~/.nix-profile/bin`, but never the raw system installation's own bin
+dir either.
+
+**Consequence**: any shell that starts directly in NIXON=1 mode
+without inheriting PATH from a prior NIXON=0 ancestor in the same
+process tree (via `nixon`'s `exec bash -l`) - most commonly, any
+*non-login* interactive shell (e.g. a fresh terminal opened inside an
+already-running graphical session, which is the overwhelmingly common
+case) that starts with NIXON=1 either as the default or via inherited
+systemd/PAM environment - has **no working `nix`/`nh`/`home-manager`
+at all**. Confirmed by inspecting the actual live environment: `NIXON=1`
+was set, but `$PATH` had no `/nix/var/nix/profiles/default/bin` and no
+`/nix/store/...` entries whatsoever - `nix --version` failed with
+`command not found`, exactly matching `nh`'s reported symptom (its
+internal `nix --version` subprocess call had nothing to exec).
+
+**Fix**: added an unconditional, idempotent (`case ":$PATH:" in
+*":/nix/var/nix/profiles/default/bin:"*) ;; ...`) PATH guard in
+`.bashrc-dots`, positioned *before* the NIXON if/else, so both branches
+are guaranteed to have the raw Nix installation reachable regardless of
+which one runs. NIXON=0's own existing strip-then-readd logic is
+unaffected (it strips everything matching `/nix` from PATH first, which
+also removes what the new guard just added, then re-adds it back
+itself - composes correctly, no behavior change there).
+
+**Validated**: full `nix build`, then a REAL `apply-dots` run on
+chromaden (previously reproducing the exact reported failure) -
+completed successfully end-to-end this time (package build, activation,
+alien package check, desktop database update all succeeded). Confirmed
+via a fresh `bash -l` afterward: `NIXON=1`, `which nix` → `/nix/var/
+nix/profiles/default/bin/nix`, `which nh` → resolves correctly. Also
+spot-checked `nixoff` still works and correctly keeps `nix`/`nh`
+reachable while being in "pure host" mode.
+
+**Related, separate fix in this same round**: found (via the running
+`apply-dots` output itself, and via `~/dots-local`'s own uncommitted
+working tree) that chromaden's real `dots-local/flake.nix` had
+`nixonDefault` present but *disabled and mistyped* - `#nixonDefault =
+"1";` (commented out, and using the string `"1"` rather than the
+schema's `types.bool`). This was clearly a half-finished attempt by the
+user to set it - fixed to an active, correctly-typed `nixonDefault =
+true;`, matching their evident intent (and now functions correctly
+end-to-end thanks to the PATH fix above). `templates/dots-local/
+flake.nix` already set this field as a plain, uncommented, correctly-
+typed value (`nixonDefault = false;`) for brand-new machines - no
+change needed there, just confirmed. Added a `$NIXON`/`nixon`/`nixoff`
+section to README.md (previously undocumented anywhere outside code
+comments and the schema option description) and a mention of deciding
+on `nixonDefault` to `setup.sh`'s "Next steps" output, so new users are
+actually aware this choice exists rather than silently inheriting the
+schema default.

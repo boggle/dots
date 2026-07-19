@@ -502,3 +502,22 @@ collected here in one place, rather than left scattered across dated
    the section in place with a note explaining what superseded it, rather
    than letting the stale sketch stand uncorrected as if it were still
    the plan.
+
+6. **Change PATH-affecting logic in either branch of `modules/core/
+   nixon.nix`'s NIXON gatekeeper** → verify BOTH the `NIXON=1` and
+   `NIXON=0` branches still leave the raw system Nix installation
+   (`/nix/var/nix/profiles/default/bin` - the actual `nix`/`nix-daemon`
+   binaries, NOT part of the Home Manager profile at `~/.nix-profile`)
+   reachable on PATH independently of each other, since a shell can
+   start directly in either mode without inheriting anything from a
+   prior sibling shell. Also verify against a *non-login* interactive
+   shell specifically (e.g. a fresh terminal opened inside an already-
+   running graphical session) - `.profile`/`.profile-dots`/`.profile-
+   nix`'s chain (which eventually reaches `nix.sh`) only runs for
+   *login* shells, so anything that silently depends on that chain
+   having already run will work in a terminal opened via `nixon`/
+   `nixoff` (both explicitly `exec bash -l`) but silently fail in the
+   much more common "just open a new terminal" case. See `decisions.md`'s
+   2026-07-19 "`NIXON=1` mode never guaranteed the raw `nix` binary was
+   on PATH" entry for the concrete bug this caused (`nh` failing
+   `apply-dots` with "No output from nix --version command").

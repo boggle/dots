@@ -52,7 +52,25 @@ in
       # --- 2. THE NIXON GATEKEEPER ---
       alias nixon='NIXON=1 exec bash -l'
       alias nixoff='NIXON=0 exec bash -l'
- 
+
+      # The raw system Nix installation (the `nix`/`nh`/`home-manager`
+      # binaries themselves) lives at /nix/var/nix/profiles/default/bin -
+      # this is NOT part of the Home Manager profile (~/.nix-profile/bin
+      # never contains `nix` itself, since Nix is a system-level install,
+      # not a home.packages entry), so it has to be added here explicitly
+      # regardless of NIXON state. Without this unconditional guard, a
+      # shell that starts directly in NIXON=1 mode (nixonDefault=true, or
+      # any terminal spawned fresh inside a graphical session that never
+      # went through a NIXON=0 ancestor shell to inherit the PATH append
+      # below) has no working `nix`/`nh`/`home-manager` at all - `.bashrc-
+      # nix` is pure Home Manager output and has no reason to know about
+      # the system Nix installation's own bin dir. Confirmed as the root
+      # cause of a real `nh`/`nix --version` failure during `apply-dots`.
+      case ":$PATH:" in
+        *":/nix/var/nix/profiles/default/bin:"*) ;;
+        *) export PATH="$PATH:/nix/var/nix/profiles/default/bin" ;;
+      esac
+
       if [ "$NIXON" = "1" ]; then
         # NIX-ON MODE: Load nix environment
         [[ -f ~/.bashrc-nix ]] && . ~/.bashrc-nix       

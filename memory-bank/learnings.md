@@ -680,3 +680,36 @@ claims the tool is). Did exactly this sweep across every ≤4-char
 `bat`, `btop`, `fd`, `fzf`, `gh`, `glow`, `imv`, `jq`, `khal`, `lsd`,
 `lsix`, `mold`, `mpv`, `niri`, `nmap`, `pass`, `tuba`, `vhs`, `vlc`,
 `xh`, `yazi` all confirmed correct - `jj` was the only mismatch found.
+
+### 2026-07-19 — bash login vs. non-login shells source different files, and this bit the NIXON gatekeeper
+Root-caused a real `apply-dots` failure (`nh`: "No output from nix
+--version command") to a gap in `modules/core/nixon.nix`'s shell-mode
+gatekeeper - full technical mechanics worth recording since it's a
+classic, easy-to-forget bash gotcha:
+
+- A **login shell** (`bash -l`, or a shell invoked as `-bash`, e.g. many
+  TTY/SSH logins) sources `/etc/profile`, then the *first* of
+  `~/.bash_profile`, `~/.bash_login`, `~/.profile` that exists (only
+  one, not all three).
+- A **non-login interactive shell** (the common case: a terminal
+  emulator opening a new tab/window inside an already-running graphical
+  session) sources only `~/.bashrc` - never `~/.profile` or any of its
+  siblings, regardless of what's in them.
+- `dots`'s own `~/.profile` → `.profile-dots` chain does extra setup
+  (`.profile-nix` → `hm-session-vars.sh` → nixpkgs' own `nix.sh`) that
+  `~/.bashrc` → `.bashrc-dots`'s chain does NOT independently replicate -
+  `.bashrc-dots` only sources `.bashrc-nix` (pure Home Manager output,
+  aliases only, no PATH logic) when `NIXON=1`.
+- Net effect: anything that works when you explicitly run `nixon`/
+  `nixoff` (both `exec bash -l` - always a login shell, always goes
+  through the fuller `.profile` chain) can silently break the moment
+  someone just opens a *plain new terminal* instead - which inherits
+  whatever `NIXON` value the parent (systemd/PAM) environment already
+  has, and goes through the thinner `.bashrc`-only chain.
+
+**General lesson**: when testing shell-bootstrap changes, always check
+behavior via a **fresh non-login interactive shell** (`bash` with no
+flags, simulating "just opened a new terminal"), not just via `bash -l`
+or the `nixon`/`nixoff` aliases themselves - the two code paths
+genuinely diverge, and the aliases' own use of `-l` makes it easy to
+accidentally only ever test the login-shell path.
