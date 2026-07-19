@@ -230,10 +230,10 @@ Uses glob patterns with `**` support:
 
 ### Initial setup on new machine:
 ```bash
-cd ~/dots-local
-./setup.sh                    # Creates flake.nix template
-# Edit flake.nix, add your sync patterns
-nix eval --json .#sync > sync-config.json
+cd ~/dots
+./setup.sh priv                       # Creates ~/dots-local from templates/dots-local/
+# Edit ~/dots-local/flake.nix, add your sync patterns (or sync.enable = [ ... ];)
+cd ~/dots-local && nix eval --json .#sync > sync-config.json
 ```
 
 ### Daily usage:
@@ -295,6 +295,11 @@ dots/                           (main repo, committed)
 │   └── core/
 │       ├── scripts.nix        ← Commands (apply-dots, dots-sync, etc.)
 │       └── syncables.nix      ← Named syncable registry (see section 2a)
+├── templates/dots-local/      ← Real template files setup.sh copies + fills in
+│   ├── flake.nix               for a brand-new machine (not a bash heredoc)
+│   ├── appimages.nix
+│   └── gitignore
+├── setup.sh                   ← One-time setup script (creates ~/dots-local from templates/)
 ├── sync.sh                    ← Core sync script
 ├── SYNC.md                    ← This documentation
 └── settings/
@@ -308,8 +313,7 @@ dots-local/                     (machine-specific, gitignored)
 ├── appimages.nix              ← Host-local AppImages config
 ├── host-<hostname>.nix         ← Bespoke config too specific to generalize
 │                                 (referenced via flake.nix's extraModules)
-├── .gitignore                 ← Ignores generated files
-└── setup.sh                   ← One-time setup script
+└── .gitignore                 ← Ignores generated files
 ```
 
 ## Pattern Options Reference

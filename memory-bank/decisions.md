@@ -724,3 +724,52 @@ this session (AGENTS.md, `setup.sh`, both left undocumented/stale
 relative to schema changes across several phases). Documented in
 README.md/AGENTS.md pointing here instead of "read schema.nix's
 comments" as the primary discovery path.
+
+### 2026-07-19 — `setup.sh`'s embedded heredoc replaced with real template files
+**Decision:** User wanted a maintainable `dots-local` template - asked
+whether to move generation into a Nix package, or use real template
+files copied/filled in by `setup.sh` directly, using chromaden's actual
+current `dots-local` as the baseline shape.
+**Chosen approach:** Real, standalone template files
+(`templates/dots-local/{flake.nix,appimages.nix,gitignore}`) rather than
+a Nix-package-based generator. Rationale for not going the Nix-package
+route: `setup.sh` runs *before* a working `dots-local` exists at all (the
+whole point of the script) - referencing a package built from `dots`'s
+own flake to generate the very first `dots-local` file adds a
+bootstrapping dependency (needing `nix` to already resolve and build
+something) for what's fundamentally "copy a text file and substitute a
+few values," which plain template files + `sed` already do with zero
+extra moving parts. The templates are genuinely standalone, valid Nix
+files (no bash heredoc, no dual bash+Nix escaping) using `@@TOKEN@@`
+placeholders - `setup.sh` now just `cp`s them into place and runs one
+`sed -i` pass, rather than interpolating bash variables directly into an
+inline Nix-string heredoc (which required things like `\${march}`
+double-escaping for the tune.flags example previously).
+**Content**: `templates/dots-local/flake.nix` mirrors chromaden's actual
+current shape/field order (per the user's "use current dots-local as
+baseline" instruction) - required identity fields live (system/barch/
+march/distro/host/username/uid/gid/homeDirectory/profile) as
+placeholders, everything optional (gpu/compositor/isWsl/machine.*/
+extraModules/butterfish*/tune.flags/sync) as commented-out examples
+matching chromaden's real usage shape, without presuming any specific
+hardware. Since `dots-local-options` (added earlier this session) now
+generates the full field reference live from the schema, the template
+itself doesn't need to be exhaustive - just illustrative of the common
+cases.
+**Also fixed two pre-existing, unrelated doc bugs found while touching
+this area**: SYNC.md's "Initial setup on new machine" workflow told the
+reader to `cd ~/dots-local && ./setup.sh` (wrong directory - `setup.sh`
+lives in `dots`, and takes a required profile argument it wasn't
+shown with); its "File Relationships" tree also listed `setup.sh` as
+living inside `dots-local/` when it's actually in `dots/`. Both fixed.
+**Rationale:** Directly what the user asked for; the "no Nix package"
+choice avoids adding complexity/a bootstrapping dependency to the one
+script that has to work with nothing but a bare `nix` install and a
+git clone of `dots` - nothing else in the whole system needs to exist
+yet when `setup.sh` runs.
+**Validated:** fresh-setup regression test (sandboxed `$HOME`, ran the
+identity-generation half of `setup.sh`, `nix eval`/`nix build` the
+result) - confirms the template-generated `dots-local` evaluates and
+builds cleanly end-to-end; also re-verified chromaden's own real
+`dots-local` (unaffected by this change, since it's a hand-edited file
+already, not regenerated) still builds with zero new derivations.

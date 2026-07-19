@@ -1,0 +1,9 @@
+# Generated files - do not commit
+sync-config.json
+result
+result-*
+*.lock
+
+# AppImage runtime files
+cache/
+*.zsync

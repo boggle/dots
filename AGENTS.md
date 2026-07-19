@@ -285,15 +285,17 @@ sync with the real schema.
 
 **Standing rule - always do this, every time:** whenever you add, rename,
 or remove a `dotsLocal` field in `modules/local/schema.nix`, you MUST also
-update `setup.sh`'s generated `flake.nix` template (and its "Next steps"
-echo output) in the same change. `setup.sh` is the *only* onboarding path
-for a genuinely new machine with no existing `dots-local` - if its
-template silently falls behind the schema, new users get a config that's
-missing fields they didn't know existed (or, worse, a config that fails
-to evaluate at all - see the `features.network`/`programs.ssh.settings."*"`
+update `templates/dots-local/flake.nix` (the real, standalone template
+`setup.sh` copies + fills in for a brand-new machine - not a bash
+heredoc, see its own header comment) and `setup.sh`'s "Next steps" echo
+output, in the same change. This is the *only* onboarding path for a
+genuinely new machine with no existing `dots-local` - if the template
+silently falls behind the schema, new users get a config that's missing
+fields they didn't know existed (or, worse, a config that fails to
+evaluate at all - see the `features.network`/`programs.ssh.settings."*"`
 bug in `memory-bank/learnings.md`'s 2026-07-19 entry, caused by exactly
 this kind of drift). This has already happened once (the schema grew
-`gpu`/`compositor`/`isWsl`/`machine.*` across Phase 2 while `setup.sh`
+`gpu`/`compositor`/`isWsl`/`machine.*` across Phase 2 while the template
 was never updated to mention any of them) - see
 `memory-bank/decisions.md`'s "setup.sh must track schema.nix" entry for
 the fix and the full rationale. Also **run the fresh-setup regression
@@ -301,7 +303,11 @@ test** described there before considering the change done - a schema
 change that silently breaks brand-new users is exactly the failure mode
 this rule exists to prevent, and it will not show up in chromaden's own
 `nix eval`/`nix build` checks (chromaden's real `dots-local` already has
-every field set, masking exactly this class of bug).
+every field set, masking exactly this class of bug). Since
+`dots-local-options` now generates the full field reference live from
+the schema, the template itself only needs to show the common/
+illustrative fields (as commented-out examples) - it doesn't need to be
+exhaustive.
 
 ### Nix Evaluation
 
