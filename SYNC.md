@@ -35,7 +35,14 @@ Contains global ignore patterns that apply to ALL tracked files for a given prof
 **Location:** `~/dots-local/sync-config.json` (generated, gitignored)  
 **Source:** `~/dots-local/flake.nix` (manual edits here)
 
-Defines what files to actually track for THIS machine. `dots-local` is ALWAYS for the current host (per-machine config).
+Defines what files to actually track for THIS machine. `dots-local` is ALWAYS for the current host (per-machine config). There are two ways to define what's tracked, and they're normally used together:
+
+- **`sync.enable`** - a list of names of dots-defined **"syncables"** (see
+  section 2a below) - the common case, avoids copy-pasting the same
+  pattern/ignore block into every machine's `dots-local`.
+- **`sync.tracked`** - raw, full pattern definitions given directly here -
+  for genuinely ad-hoc, one-off, machine-specific things not worth
+  registering as a shared syncable.
 
 **Generation:**
 ```bash
@@ -55,19 +62,11 @@ apply-dots     # Also regenerates before building
 {
   outputs = { self, ... }: {
     sync = {
+      # Activate dots-defined syncables by name (see modules/core/syncables.nix)
+      enable = [ "noctalia" "dms" ];
+
+      # Ad-hoc, machine-specific patterns not worth registering as a syncable
       tracked = [
-        {
-          # User configs (home level)
-          pattern = ".config/noctalia/**";
-          type = "home";        # "home" = ~/, "root" = /
-          on_new = "prompt";    # "prompt" | "auto" | "ignore"
-          ignore = [
-            # Pattern-specific ignores (in addition to global)
-            "**/preview.png"
-            "**/manifest.json"
-            "!**/settings.json"  # ! = negation (DON'T ignore)
-          ];
-        }
         {
           # System configs (root level) - requires sudo to install
           pattern = "etc/NetworkManager/system-connections/**";
@@ -81,6 +80,51 @@ apply-dots     # Also regenerates before building
   };
 }
 ```
+
+### 2a. Named Syncables (dots repo)
+
+**Location:** `dots/modules/core/syncables.nix`
+
+A shared registry of reusable, named sync-pattern bundles - the actual `pattern`/`type`/`on_new`/`ignore` definition for something like Noctalia's settings lives here **once**, instead of being copy-pasted into every machine's `dots-local/flake.nix`. A machine activates one by adding its name to `sync.enable` (see above).
+
+**Format** (same shape as a `sync.tracked` entry, just named and centralized):
+```nix
+{
+  noctalia = {
+    pattern = ".config/noctalia/**";
+    type = "home";
+    on_new = "prompt";
+    ignore = [
+      "**/preview.png"
+      "**/manifest.json"
+      "!**/settings.json"  # ! = negation (DON'T ignore)
+    ];
+  };
+
+  dms = {
+    pattern = ".config/dms/**";
+    type = "home";
+    on_new = "prompt";
+    ignore = [ "**/cache/**" ];
+  };
+}
+```
+
+**Features can require a syncable, but never auto-enable it.** A feature
+whose config genuinely needs to be tracked (e.g. `features.niri-noctalia`
+requiring the `noctalia` syncable) declares an **assertion** checking that
+its required syncable is in `dotsLocal.sync.enable` - if you enable the
+feature without also enabling the syncable, `apply-dots`/`nix build` fails
+outright with a clear message telling you which syncable to add and why,
+rather than silently leaving that config untracked.
+
+This is deliberately a *manual, one-time* opt-in rather than an automatic
+one: if a required syncable were auto-enabled whenever its feature is on,
+temporarily disabling the feature (e.g. to test something else) would
+silently drop sync coverage for config you still want kept around. Once
+you've enabled a syncable, it stays enabled - and keeps being
+tracked/synced - independent of whatever features happen to be on or off
+at any given moment.
 
 ### 3. Storage Location (dots/settings)
 
@@ -249,7 +293,8 @@ dots/                           (main repo, committed)
 │   │   ├── priv.nix           ← Personal context config (was profiles/priv/home.nix)
 │   │   └── work.nix           ← Work context config
 │   └── core/
-│       └── scripts.nix        ← Commands (apply-dots, dots-sync, etc.)
+│       ├── scripts.nix        ← Commands (apply-dots, dots-sync, etc.)
+│       └── syncables.nix      ← Named syncable registry (see section 2a)
 ├── sync.sh                    ← Core sync script
 ├── SYNC.md                    ← This documentation
 └── settings/
@@ -296,3 +341,5 @@ dots-local/                     (machine-specific, gitignored)
 5. **Negation works** - Use `!pattern` in local ignore lists to override global ignores for specific files
 6. **Root files need sudo** - When using `type = "root"`, the install script (`-i` mode) automatically uses `sudo` for those files
 7. **Storage paths matter** - Files are stored in `settings/<host>/home/` or `settings/<host>/root/` based on the `type` field
+8. **Named syncables reduce copy-paste across machines** - define a pattern once in `dots/modules/core/syncables.nix`, activate it per-machine with `sync.enable = [ "name" ]` instead of redefining it in every `dots-local`
+9. **Required syncables never auto-enable** - a feature that needs one (e.g. `features.niri-noctalia` needing `noctalia`) only asserts it's enabled, it never turns it on for you - this is intentional, so disabling a feature never silently stops syncing config you still want kept

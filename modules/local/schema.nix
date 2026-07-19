@@ -318,12 +318,24 @@ in {
         # rejecting the whole entry over an unrecognized one.
         freeformType = types.attrsOf types.anything;
         options = {
+          # file/command are nullable (rather than required) because
+          # dots-local's entries are often just an *override* of a subset
+          # of fields for an app already fully defined in dots's shared
+          # catalog (profiles/<profile>/appimages/manifest.nix) - e.g.
+          # `{ tuta.enable = true; }` to enable a catalog app, or
+          # `{ tuta.file = "..."; }` to override just the file pattern.
+          # modules/features/appimages.nix deep-merges (per-field, not a
+          # whole-entry replace) dotsLocal.appimages on top of the shared
+          # catalog, so file/command only need to be set here for a
+          # genuinely new, not-yet-cataloged app.
           file = mkOption {
-            type = types.str;
+            type = types.nullOr types.str;
+            default = null;
             description = "Glob pattern matching exactly one AppImage file.";
           };
           command = mkOption {
-            type = types.str;
+            type = types.nullOr types.str;
+            default = null;
             description = "Wrapper command name to install on PATH.";
           };
           desktopName = mkOption {
@@ -332,19 +344,44 @@ in {
             description = "Display name for the .desktop entry.";
           };
           categories = mkOption {
-            type = types.listOf types.str;
-            default = [ ];
+            type = types.nullOr (types.listOf types.str);
+            default = null;
             description = "XDG desktop categories.";
           };
           enable = mkOption {
-            type = types.bool;
-            default = true;
-            description = "Whether to install this AppImage wrapper.";
+            # NOTE: `nullOr bool` (not a plain `bool` with a default),
+            # deliberately - modules/features/appimages.nix strips every
+            # null-valued field from a dots-local entry before merging it
+            # onto dots's shared catalog (see its comment for why), so
+            # that a partial override like `{ tuta.enable = true; }`
+            # doesn't accidentally reset every OTHER field of a cataloged
+            # app back to a schema default. If `enable` used a real
+            # `default = true;` here instead of `null`, that default
+            # would be indistinguishable from an actual user override and
+            # would incorrectly stomp the catalog's own `enable = false;`
+            # on every partial-override entry, even ones not touching
+            # `enable` at all.
+            type = types.nullOr types.bool;
+            default = null;
+            description = ''
+              Whether to install this AppImage wrapper. `null` (the
+              default) means "don't override - use whatever the merged
+              entry already resolves to" (the shared catalog's own
+              `enable`, or `true` if this is a brand new, not-cataloged
+              app with no `enable` set anywhere).
+            '';
           };
         };
       });
       default = { };
-      description = "Host-local AppImage manifest - see OVERVIEW.md's AppImages section.";
+      description = ''
+        Per-machine AppImage enable/override entries, merged (per-field)
+        on top of dots's shared catalog
+        (profiles/<profile>/appimages/manifest.nix) - see OVERVIEW.md's
+        AppImages section. Only needs `file`/`command`/etc for apps not
+        already in the shared catalog; for cataloged apps, a bare
+        `{ appname.enable = true; }` is enough.
+      '';
     };
 
     # --- Tuning ---
@@ -369,9 +406,32 @@ in {
       default = { };
       description = "Settings-sync configuration (see SYNC.md).";
       type = types.submodule {
+        options.enable = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = ''
+            Names of dots-defined "syncables" (see
+            modules/core/syncables.nix) to activate for this machine -
+            e.g. `[ "noctalia" ]`. Each name resolves to a full
+            pattern/type/on_new/ignore definition kept in `dots` itself,
+            so machines don't need to copy-paste the same sync pattern
+            into every dots-local. Read directly by sync.sh (which
+            resolves names against the registry when generating
+            sync-config.json) AND usable from Home Manager modules (e.g.
+            a feature asserting one of its required syncables is
+            enabled) since it's a real schema field, not just a raw
+            flake output.
+          '';
+        };
+
         options.tracked = mkOption {
           default = [ ];
-          description = "List of tracked file patterns to sync between the system and dots/settings/<host>/.";
+          description = ''
+            Ad-hoc tracked file patterns not worth registering as a
+            named syncable (one-off, machine-specific things) - full
+            definitions given here directly, same shape as a syncables.nix
+            entry. Merged alongside whatever `enable` resolves to.
+          '';
           type = types.listOf (types.submodule {
             options = {
               pattern = mkOption {

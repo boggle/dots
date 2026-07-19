@@ -19,8 +19,21 @@ let
       merged;
 
   # Load host-local appimages from dots-local flake output (schema-typed,
-  # defaults to {} - no `or` fallback needed)
-  hostLocalApps = dotsLocal.appimages;
+  # defaults to {} - no `or` fallback needed). Every field in the
+  # dotsLocal.appimages submodule defaults to `null` when not explicitly
+  # set (see schema.nix's comment on why) - strip those out here so the
+  # `recursiveUpdate` merge below only overrides fields dots-local
+  # ACTUALLY specified, not every option the submodule materializes with
+  # its default `null`. Without this, a partial override like
+  # `{ tuta.enable = true; }` would incorrectly also reset tuta's
+  # file/command/desktopName/categories back to null on top of the
+  # catalog's real values, since a schema-validated submodule always has
+  # every declared key present (just null-valued if unset) - `//`/
+  # `recursiveUpdate` can't tell "explicitly set to null" apart from
+  # "never mentioned, defaulted to null" once that's happened.
+  hostLocalApps = lib.mapAttrs
+    (_: entry: lib.filterAttrs (_: v: v != null) entry)
+    dotsLocal.appimages;
 
   # Check if app should be enabled
   isEnabled = name: app:
@@ -129,9 +142,17 @@ let
     else if app ? src then mkSharedWrapper name app
     else null;
 
-  # Load and merge all apps
+  # Load and merge all apps. `lib.recursiveUpdate` rather than `//` is
+  # important here: dots-local's entries are usually *partial overrides*
+  # of an app already fully defined in the shared catalog (e.g.
+  # `{ tuta.enable = true; }` to enable a cataloged app without
+  # redefining its file/command/desktopName/categories) - `//` would
+  # replace the WHOLE app entry per name, silently dropping every field
+  # dots-local's partial entry didn't also set. `recursiveUpdate` merges
+  # field-by-field instead, so only the fields dots-local actually
+  # specifies get overridden.
   sharedApps = loadSharedManifests { profile = dotsLocal.profile; };
-  allApps = sharedApps // hostLocalApps;
+  allApps = lib.recursiveUpdate sharedApps hostLocalApps;
   
   # Filter enabled and create packages
   enabledApps = lib.filterAttrs isEnabled allApps;

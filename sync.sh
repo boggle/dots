@@ -89,20 +89,59 @@ load_local_config() {
 }
 
 # Check and regenerate sync-config.json if needed
+#
+# dots-local's `#sync` output is `{ enable = [ "name" ... ]; tracked = [
+# ...raw ad-hoc entries...]; }`. `enable`'s names are resolved against
+# dots's shared syncables registry (modules/core/syncables.nix) here,
+# then combined with `tracked`'s raw entries - the final merged list is
+# what gets written to sync-config.json in the same `{tracked: [...]}`
+# shape the rest of this script already consumes, so nothing downstream
+# needs to know about the enable/registry split at all.
 ensure_sync_config_current() {
     local force_regen="${1:-false}"
     local config_file="$DOTS_LOCAL_DIR/sync-config.json"
     local flake_file="$DOTS_LOCAL_DIR/flake.nix"
+    local syncables_file="$DOTS_DIR/modules/core/syncables.nix"
     
-    # Check if we need to regenerate
-    if [[ "$force_regen" == "true" ]] || [[ ! -f "$config_file" ]] || [[ "$flake_file" -nt "$config_file" ]]; then
-        log_info "Regenerating sync-config.json from dots-local flake.nix..."
+    # Check if we need to regenerate (dots-local's flake.nix changed, or
+    # dots's own syncables registry changed - either can affect the
+    # resolved output)
+    if [[ "$force_regen" == "true" ]] || [[ ! -f "$config_file" ]] \
+        || [[ "$flake_file" -nt "$config_file" ]] \
+        || { [[ -f "$syncables_file" ]] && [[ "$syncables_file" -nt "$config_file" ]]; }; then
+        log_info "Regenerating sync-config.json from dots-local flake.nix + dots's syncables registry..."
         if [[ -d "$DOTS_LOCAL_DIR" ]] && command -v nix &> /dev/null; then
-            cd "$DOTS_LOCAL_DIR"
-            if nix eval --json .#sync > sync-config.json 2>/dev/null; then
+            local local_sync syncables_json
+            local_sync=$(cd "$DOTS_LOCAL_DIR" && nix eval --json .#sync 2>/dev/null)
+            if [[ -z "$local_sync" ]]; then
+                log_warn "Failed to regenerate sync-config.json (no sync config in flake.nix?)"
+                return
+            fi
+            syncables_json=$(nix eval --json --file "$syncables_file" 2>/dev/null)
+            [[ -z "$syncables_json" ]] && syncables_json='{}'
+
+            # Warn (don't fail) about any enabled name with no matching
+            # registry entry - likely a typo, but shouldn't block sync.
+            local unknown
+            unknown=$(echo "$local_sync" | jq -r --argjson syncables "$syncables_json" \
+                '(.enable // [])[] as $n | select(($syncables[$n] // null) == null) | $n')
+            if [[ -n "$unknown" ]]; then
+                while IFS= read -r name; do
+                    log_warn "sync.enable references unknown syncable '$name' (no entry in modules/core/syncables.nix) - ignored"
+                done <<< "$unknown"
+            fi
+
+            if echo "$local_sync" | jq --argjson syncables "$syncables_json" '
+                {
+                  tracked: (
+                    [ (.enable // [])[] as $name | $syncables[$name] // empty ]
+                    + (.tracked // [])
+                  )
+                }
+            ' > "$config_file" 2>/dev/null; then
                 log_system "Regenerated: $config_file"
             else
-                log_warn "Failed to regenerate sync-config.json (no sync config in flake.nix?)"
+                log_warn "Failed to regenerate sync-config.json"
             fi
         else
             log_warn "Cannot regenerate: dots-local not found or nix not available"

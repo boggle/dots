@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, lib, alien, ... }: 
+{ config, pkgs, inputs, lib, alien, dotsLocal, ... }: 
 
 let
   cfg = config.features.niri-noctalia;
@@ -323,7 +323,33 @@ in {
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkMerge [
+    {
+      # Noctalia's user-editable settings (colors, layout, plugin
+      # config) live under ~/.config/noctalia - if this feature is
+      # enabled, that config needs to actually be synced somewhere or
+      # it's at risk of getting lost (e.g. on a fresh `apply-dots` on a
+      # new machine, or if the runtime dir is ever wiped). Deliberately
+      # NOT auto-enabling the "noctalia" syncable just because this
+      # feature is on: syncables must be enabled manually (see
+      # modules/core/syncables.nix and SYNC.md) so that temporarily
+      # disabling this feature (e.g. testing a different compositor)
+      # never silently disables syncing of config you still want kept.
+      assertions = [
+        {
+          assertion = !cfg.enable || builtins.elem "noctalia" dotsLocal.sync.enable;
+          message = ''
+            features.niri-noctalia is enabled, but the "noctalia" syncable
+            is not in dotsLocal.sync.enable. Noctalia's user-editable
+            settings (colors.json, settings.json, plugin config under
+            ~/.config/noctalia) won't be tracked/synced without it.
+            Add "noctalia" to sync.enable in your dots-local/flake.nix
+            (see modules/core/syncables.nix for what it tracks).
+          '';
+        }
+      ];
+    }
+    (lib.mkIf cfg.enable {
     # Declare alien packages as enabled (both are always enabled when feature is on)
     alienPackages.enabledPackages = [ "niri" "noctalia-shell" ];
 
@@ -469,5 +495,6 @@ in {
         fi
       '';
     };
-  };
+    })
+  ];
 }

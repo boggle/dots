@@ -246,18 +246,39 @@ Two modes supported: **host-local** (runtime, outside Nix store) and **shared** 
 Store AppImages in `~/Applications/AppImages/` (or customize via `features.appimages.localDir`).
 These run directly without importing into the Nix store.
 
-Define in `~/dots-local/appimages.nix`:
+App **definitions** (file pattern, command, desktopName, categories) live in dots's shared catalog - `profiles/<profile>/appimages/manifest.nix` - so they don't need to be copy-pasted into every machine's `dots-local`:
+
 ```nix
+# dots/profiles/priv/appimages/manifest.nix
 {
   steam = {
     file = "Steam-*.AppImage";   # Glob pattern - must match exactly one file
     command = "steam";           # Wrapper command name
     desktopName = "Steam";
     categories = [ "Game" ];
-    enable = true;               # Optional, defaults to true
+    enable = false;              # Catalog entries default OFF - opt-in per machine
   };
 }
 ```
+
+`~/dots-local/appimages.nix` then only needs to **enable** the apps a given machine actually wants:
+```nix
+{
+  steam.enable = true;
+}
+```
+
+Or **override a specific field** for this machine only - merged per-field on top of the catalog entry (not a whole replace), so everything you don't mention still comes from the catalog:
+```nix
+{
+  steam = {
+    enable = true;
+    file = "Steam-Different-Build-*.AppImage";  # only this field is overridden
+  };
+}
+```
+
+A genuinely new app not worth adding to the shared catalog can still be fully defined directly in `dots-local/appimages.nix` (needs at least `file` + `command`, same shape as a catalog entry).
 
 Place the AppImage file and ensure it's executable:
 ```bash
