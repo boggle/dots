@@ -968,3 +968,82 @@ comments and the schema option description) and a mention of deciding
 on `nixonDefault` to `setup.sh`'s "Next steps" output, so new users are
 actually aware this choice exists rather than silently inheriting the
 schema default.
+
+---
+
+### 2026-07-19 — Dead-code audit round (user-requested, itemized approval)
+User asked whether `modules/profiles` (vs `modules/contexts`) was still
+needed, plus a general dead-code sweep with per-item removal approval.
+Clarified there is no `modules/profiles` - the top-level `profiles/`
+directory is a different, still-needed thing (plain data read by
+`sync.sh`/`appimage-update`, keyed by the same profile-name strings as
+`modules/contexts/` for convenience, not redundant with it). Ran a
+thorough research-agent audit + direct `nix eval` verification; user
+approved the following fixes:
+
+- **`modules/suites/sixel-tools.nix`**: real bug, not just dead code -
+  `home.sessionVariables = { FONTCONFIG_FILE = ...; } // (lib.mkIf
+  cfg.ytdlp {...})` silently dropped `FONTCONFIG_FILE` entirely in
+  every configuration (confirmed via `nix eval` - the attribute didn't
+  exist in the final config at all). Same root mechanism as the
+  ssh-settings/`listOf` mkIf-in-a-list investigations already in this
+  log, but a third, distinct variant: merging an `lib.mkIf` result into
+  a plain attrset via `//` makes the WHOLE merged value's outer shape
+  become the mkIf wrapper, not just the mkIf'd key. Fixed with
+  `lib.mkMerge [ {...} (lib.mkIf ... {...}) ]` - the correct idiom for
+  "always this, plus conditionally that" on an attrsOf-typed option.
+  Re-verified via `nix eval`: `FONTCONFIG_FILE` now resolves correctly,
+  `MPV_YTDL_EXE` unaffected.
+- **`modules/suites/dev-tools.nix`**: the generated `~/.nixd.json`
+  referenced `homeConfigurations."${config.home.username}"`, which has
+  never existed in this repo (always `priv`/`work` or `default`/
+  `default-opt`, never username-keyed) - confirmed via `git log -p`
+  unchanged since the file's very first version, predating even the
+  priv/work split. Fixed to `homeConfigurations.default.options`.
+  nixd's option-completion for home-manager config was likely never
+  working correctly before this fix.
+- **`modules/features/viewer.nix`**: removed the dead `_v_warn_images`
+  bash function (defined in `programs.bash.initExtra`, confirmed zero
+  call sites anywhere including `v.sh`).
+- **`modules/core/scripts.nix`**: removed `"$HOME/dots/bin"` from
+  `home.sessionPath` - that directory never existed post-Phase-8
+  (scripts were externalized into per-module `scripts/` subdirectories
+  instead, e.g. `modules/features/viewer/v.sh`), leftover PATH entry
+  never cleaned up alongside that move.
+- **`profiles/priv/sync.json`**: deleted - confirmed byte-identical
+  (md5) to `profiles/common/sync.json`, meaning `sync.sh` was merging
+  the same ~150 ignore patterns twice for the priv profile. `sync.sh`
+  already handles a missing profile-specific file gracefully. Fixed
+  `SYNC.md`'s description to clarify the actual intended design
+  (common = shared baseline where the real list lives; per-profile
+  files are optional, addition-only, not full copies) and to stop
+  documenting a `profiles/work/sync.json` that has never existed.
+- **`etc/` directory** (bootloader/greetd configs, wallpapers, niri
+  desktop session files - confirmed present since the project's very
+  first commit, zero references anywhere in code/docs): user confirmed
+  this is intentional, hand-maintained reinstall reference material,
+  not meant to be wired into the `settings/`-based sync automation.
+  Documented explicitly in `AGENTS.md`'s directory layout so it's never
+  mistaken for dead code again.
+
+**Investigated but left open, pending user clarification**: the
+`.feature = "..."` key present in every `*.<distro>-packages.nix` alien
+spec file (~80+ occurrences). Confirmed via `git show` of the
+repo's very first `alien-packages.nix` (commit `ecd7c0c`, predating
+this entire re-architecture) that it has **never** been read by either
+consumer (`alien-package-specs.nix`/`alien-packages.nix` both only ever
+read `.packages`) - not a regression, always inert. User recalled
+intending it to "bind to the corresponding Nix package as an
+alternative overlay" but this wiring was never actually implemented
+anywhere retrievable (checked `OVERVIEW.md`/`architecture.md`/
+`decisions.md`/`learnings.md` for any "alternative overlay" mention -
+none found relating to this field). Not removed - see
+`open-questions.md` for the follow-up question to resolve before
+deciding whether to implement the recalled intent or just document it
+as inert self-labeling metadata (matching the `barch`/`location`-axis
+precedent for kept-but-unconsumed fields).
+
+**Validated**: full `nix build`, plus a byte-identical
+`config.home.packages` diff (via `git worktree` against the prior
+commit) confirming zero package-list impact from this round (all
+config/doc-only fixes, as expected).

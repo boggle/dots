@@ -111,14 +111,5 @@ in
     programs.bash.shellAliases = {
       ${cfg.alias} = "${viewerScript}/bin/v";
     };
-    
-    # Optional warnings if sixel features missing
-    programs.bash.initExtra = lib.optionalString (!hasChafa && !hasCatimg) ''
-      _v_warn_images() {
-        if [[ "$1" =~ \.(png|jpg|jpeg|gif|bmp|webp|tiff|tif|avif|jxl|svg)$ ]]; then
-          echo "Tip: Enable suites.sixel-tools.chafa or suites.sixel-tools.catimg for terminal images" >&2
-        fi
-      }
-    '';
   };
 }

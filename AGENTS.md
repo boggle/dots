@@ -75,6 +75,9 @@ dots/
 │   └── suites/               # Bundled application groups
 ├── profiles/                 # Sync-only: profiles/<profile>/sync.json (global ignores)
 ├── settings/                 # Synced handcrafted configs (per-host)
+├── etc/                      # Manual reinstall reference material (NOT wired into any
+│                             #   automation - bootloader/greetd configs, wallpapers, niri
+│                             #   desktop session files; copy-paste by hand when needed)
 └── sync.sh                   # Config sync script
 ```
 

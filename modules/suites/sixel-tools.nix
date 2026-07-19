@@ -60,9 +60,18 @@ in
       };
     };
     
-    home.sessionVariables = {
-      FONTCONFIG_FILE = "${pkgs.fontconfig.out}/etc/fonts/fonts.conf";
-    } // (lib.mkIf cfg.ytdlp { MPV_YTDL_EXE = "${pkgs.yt-dlp}/bin/yt-dlp"; });
+    # NOTE: `lib.mkMerge` here, NOT a plain `//` - merging a `lib.mkIf`
+    # result into a plain attrset via `//` breaks the module system's own
+    # mkIf handling (the combined value's outer shape becomes the mkIf
+    # wrapper itself, silently dropping FONTCONFIG_FILE entirely
+    # regardless of cfg.ytdlp - confirmed via `nix eval`, this was a real,
+    # live bug). `lib.mkMerge [ {...} (lib.mkIf ... {...}) ]` is the
+    # correct idiom for "always this, plus conditionally that" on an
+    # attrsOf-typed option.
+    home.sessionVariables = lib.mkMerge [
+      { FONTCONFIG_FILE = "${pkgs.fontconfig.out}/etc/fonts/fonts.conf"; }
+      (lib.mkIf cfg.ytdlp { MPV_YTDL_EXE = "${pkgs.yt-dlp}/bin/yt-dlp"; })
+    ];
 
     # Declare which alien packages are enabled
     alienPackages.enabledPackages = appSet.alienEnabled;

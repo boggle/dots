@@ -98,7 +98,15 @@ in
       text = builtins.toJSON {
         options = {
           home-manager = {
-            expr = "(builtins.getFlake \"${config.home.homeDirectory}/dots\").homeConfigurations.\"${config.home.username}\".options";
+            # `default` is the real flake output name (see flake.nix) -
+            # homeConfigurations has never been keyed by username in this
+            # repo (it went priv/work -> default/default-opt across the
+            # re-architecture, never username-based) - this was a stale
+            # reference that predates even that split, confirmed via
+            # `git log -p` showing it unchanged since the file's first
+            # version. nixd's option-completion was likely never working
+            # correctly before this fix.
+            expr = "(builtins.getFlake \"${config.home.homeDirectory}/dots\").homeConfigurations.default.options";
           };
         };
         

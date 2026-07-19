@@ -1103,6 +1103,28 @@ section to README.md (previously undocumented anywhere) and a
 write-up: `decisions.md`'s two matching 2026-07-19 entries; new
 architecture.md section 12 rule #6 for future PATH-logic changes here.
 
+## Post-Phase-9 adjustments — dead-code audit (user-itemized approval)
+Clarified `modules/profiles` doesn't exist (top-level `profiles/` is a
+different, still-needed thing vs `modules/contexts/`). Ran a thorough
+audit, user approved per-item: fixed a real bug in `sixel-tools.nix`
+(`FONTCONFIG_FILE` silently dropped via `// (lib.mkIf ...)` - now
+`lib.mkMerge`); fixed `dev-tools.nix`'s `.nixd.json` referencing a
+`homeConfigurations."${username}"` output that has never existed;
+removed dead `_v_warn_images` function (viewer.nix); removed dead
+`$HOME/dots/bin` sessionPath entry (scripts.nix); deleted
+`profiles/priv/sync.json` (byte-identical duplicate of `profiles/
+common/sync.json`) and fixed SYNC.md's description of the two-file
+design; documented the `etc/` directory in AGENTS.md as intentional
+manual-reinstall reference material (not dead, not wired into
+automation). Left the `.feature` key in alien-spec files unresolved -
+confirmed never consumed since the repo's very first commit, but
+user's recalled intent ("bind to corresponding Nix package as an
+alternative overlay") couldn't be matched to anything actually
+implemented anywhere - added as a proper open question rather than
+guessing. Validated via full build + zero-diff `config.home.packages`
+check (all fixes were config/doc-only, no package-list impact
+expected or found).
+
 ## Cross-cutting, not yet scheduled to a phase
 - Shared platform/OS detection (`modules/core/platform.nix`) consolidating
   clipboard.nix + opener.nix's duplicated `backend` enum — natural fit

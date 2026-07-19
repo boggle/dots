@@ -12,10 +12,15 @@ The sync system uses **three levels of configuration** that are merged together:
 
 Contains global ignore patterns that apply to ALL tracked files for a given profile. These exclude common files that shouldn't be synced (docs, licenses, images, build artifacts, etc.).
 
-**Files:**
-- `dots/profiles/priv/sync.json` - Global ignores for priv profile
-- `dots/profiles/work/sync.json` - Global ignores for work profile  
-- `dots/profiles/common/sync.json` - Shared ignores across all profiles (optional, skipped if not exists)
+**Files** (both are read and merged if present - neither is required):
+- `dots/profiles/common/sync.json` - Baseline ignores shared across every profile. This is
+  where the actual pattern list lives today.
+- `dots/profiles/<profile>/sync.json` (e.g. `dots/profiles/priv/sync.json`) - Optional,
+  profile-specific *additions* on top of common - only add one if a profile genuinely
+  needs extra patterns beyond the shared baseline. Not present for any profile today
+  (there's nothing priv/work-specific to add yet); don't copy the whole common list into
+  one of these - `sync.sh` already merges both files, so a per-profile file only needs to
+  contain what's actually different for that profile.
 
 **Format:**
 ```json

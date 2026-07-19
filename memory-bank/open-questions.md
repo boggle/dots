@@ -83,3 +83,39 @@ work only by accident via a native pacman package). User decided
 (2026-07-19): leave it off for now, revisit later. Full details in
 `decisions.md`'s "features.fonts.enable: leave off for now" entry and
 `plan.md`'s Phase 9 section.
+
+### `.feature = "..."` key in alien-package spec files - never consumed, intended purpose unclear
+Every entry in every `*.<distro>-packages.nix` file (`ai-apps`,
+`cloud-tools`, `dev-tools`, `git-tools`(via tui-apps/cloud-tools specs),
+`gui-apps`, `network-tools`, `pim-apps`, `scanning`, `sixel-tools`,
+`tui-apps` - ~80+ occurrences total) carries a `feature = "<name>";`
+key. Confirmed via `git show` of the repo's very first commit
+(`ecd7c0c`, predating this whole re-architecture) that neither consumer
+(`modules/flake/alien-package-specs.nix` / `modules/core/
+alien-packages.nix`) has ever read `.feature` - only `.packages` is
+used. Not a regression; always inert, always-been-metadata-only.
+
+User recalled (2026-07-19) intending this field to "bind to the
+corresponding Nix package as an alternative overlay" but couldn't
+recall further specifics, and no trace of this intended wiring was
+found anywhere in `OVERVIEW.md`/`architecture.md`/`decisions.md`/
+`learnings.md`. Two plausible interpretations worth asking about
+directly:
+1. A cross-reference so tooling could verify "this alien spec's key
+   actually corresponds to a real `pkgs.<key>` used by the
+   `feature`-named suite/feature's own `mkAppSet` call" - which would
+   have caught the `jj`/`jujutsu` nixpkgs-attribute-name mismatch bug
+   (see the matching 2026-07-19 decisions.md entry) automatically,
+   rather than requiring a manual repo-wide sweep.
+2. A way to declare "if this alien package is unavailable/disabled,
+   fall back to a specific alternate Nix package/overlay source"
+   (rather than just `alien.mkEntry`'s current binary enabled-or-not
+   toggle) - e.g. for cases where the *distro* package and the
+   *default* nixpkgs attribute genuinely diverge in a way that isn't
+   just a naming accident.
+
+Need the user to clarify which (if either) matches original intent
+before implementing anything - guessing wrong risks over-engineering a
+feature nobody needs. Until resolved, `.feature` stays as harmless,
+unconsumed self-documentation (matching the `barch`/`location`-axis
+precedent for fields kept despite no current consumer).

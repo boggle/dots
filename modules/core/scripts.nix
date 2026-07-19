@@ -569,6 +569,10 @@
     '')
   ];
 
-  # Ensure user-local and repo helper bins are on PATH
-  home.sessionPath = [ "$HOME/.local/bin" "$HOME/dots/bin" ];
+  # Ensure user-local bins are on PATH. NOTE: this used to also include
+  # "$HOME/dots/bin" - that directory never actually existed (Phase 8
+  # externalized scripts into per-module scripts/ subdirectories instead,
+  # e.g. modules/features/viewer/v.sh, and this leftover PATH entry was
+  # never cleaned up alongside it).
+  home.sessionPath = [ "$HOME/.local/bin" ];
 }
