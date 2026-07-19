@@ -1,7 +1,6 @@
-# Declarative, pure-data dependency rules over dotsLocal axes - the
-# mechanism requested during planning: "simple dependency rules... if AI
-# hardware enabled, pull in AI packages", instead of scattering
-# host-specific enable-flag decisions across per-host files.
+# Declarative, pure-data dependency rules over dotsLocal axes - simple
+# rules like "if AI hardware enabled, pull in AI packages", instead of
+# scattering host-specific enable-flag decisions across per-host files.
 #
 # Each rule is `{ when = d: bool; set = d: <attrset merged into config, via
 # lib.mkDefault>; }` - both `when` AND `set` are functions of `dotsLocal`
@@ -9,8 +8,7 @@
 # into their `set` output (e.g. `machine.terminal`), not just decide
 # whether to fire. `lib.mkDefault` means these set *defaults* - an explicit
 # override elsewhere (e.g. a context module, or a dotsLocal.extraModules
-# file) always wins. See memory-bank/architecture.md section 2 for the
-# full design rationale.
+# file) always wins.
 #
 # Keep this file small and readable - it's meant to be skimmed to
 # understand "what does this machine get and why", not to hold every

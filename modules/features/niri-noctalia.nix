@@ -2,17 +2,17 @@
 
 let
   cfg = config.features.niri-noctalia;
-  # Font family names this desktop expects to be available (Phase 9 of the
-  # re-architecture wires these into features.fonts.required - see below).
-  # terminalFont ("IosevkaTerm NFM" = the Nerd Font Mono variant of Iosevka
-  # Term) is already satisfied by features.fonts.base's default
-  # nerd-fonts.iosevka-term package - no extra contribution needed, kept
-  # here purely as documentation of the dependency. uiFont ("Inter") is
-  # NOT covered by fonts.base by default, so it's actually contributed to
-  # features.fonts.required below (fonts.nix's fontconfig.defaultFonts
-  # already lists "Inter" as the preferred sansSerif font - without this,
-  # that preference silently fell through to the next entry since no
-  # package actually providing "Inter" was ever installed).
+  # Font family names this desktop expects to be available - wired into
+  # features.fonts.required below. terminalFont ("IosevkaTerm NFM" = the
+  # Nerd Font Mono variant of Iosevka Term) is already satisfied by
+  # features.fonts.base's default nerd-fonts.iosevka-term package - no
+  # extra contribution needed, kept here purely as documentation of the
+  # dependency. uiFont ("Inter") is NOT covered by fonts.base by default,
+  # so it's actually contributed to features.fonts.required below
+  # (fonts.nix's fontconfig.defaultFonts already lists "Inter" as the
+  # preferred sansSerif font - without this, that preference silently
+  # falls through to the next entry since no package actually providing
+  # "Inter" is installed otherwise).
   terminalFont = "IosevkaTerm NFM";
   uiFont = "Inter";
   
@@ -26,10 +26,8 @@ let
   noctaliaPkg = if useAlienNoctalia then "noctalia-shell" else inputs.noctalia.packages.${pkgs.stdenv.hostPlatform.system}.default;
   noctaliaBin = if useAlienNoctalia then "qs -c noctalia-shell" else "${noctaliaPkg}/bin/noctalia-shell";
   
-  # Get niri package (use regular niri to avoid tuning conflicts).
-  # Only referenced in the non-alien branch at the ExecStart site below, so
-  # no conditional is needed here (previously: `if useAlienNiri then pkgs.niri
-  # else pkgs.niri` - a dead/no-op conditional, both branches were identical).
+  # Get niri package (use regular niri to avoid tuning conflicts). Only
+  # referenced in the non-alien branch at the ExecStart site below.
   niriPkg = pkgs.niri;
 in {
   # Import nix modules (always import, but conditionally enable)
@@ -368,11 +366,9 @@ in {
     };
 
     # Helper scripts - the bulk of each script's logic lives in a real,
-    # static, shellcheck-able file under ./niri-noctalia/ (Phase 8 of the
-    # re-architecture - see memory-bank/architecture.md section 9,
-    # memory-bank/plan.md Phase 8). Each Nix-string preamble below resolves
-    # the Nix-level values (cfg.*/pkgs.* package paths) into plain shell
-    # variables that the static script references.
+    # static, shellcheck-able file under ./niri-noctalia/. Each Nix-string
+    # preamble below resolves the Nix-level values (cfg.*/pkgs.* package
+    # paths) into plain shell variables that the static script references.
     home.packages = [
       (pkgs.writeShellScriptBin "terminal-in-current-column" (''
         #!/bin/sh

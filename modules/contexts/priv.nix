@@ -1,14 +1,10 @@
 # "priv" context bundle - personal Linux environment.
 #
-# Ported from profiles/priv/home.nix (Phase 2 of the re-architecture - see
-# memory-bank/architecture.md section 2). The only thing removed from the
-# original is the `hostImport`/per-host directory logic: host-specific
-# config no longer requires a dedicated profiles/priv/hosts/<hostname>.nix
-# file to exist in `dots` - it's now expressed via dotsLocal fields
-# (machine.*, gpu, compositor, ...), composition-rules.nix, and (for truly
-# bespoke needs) dotsLocal.extraModules. See
-# memory-bank/preserved-features-checklist.md for the migration-verification
-# checklist and the per-host migration notes for what moved where.
+# Host-specific config doesn't require a dedicated per-host file in `dots`
+# - it's expressed via dotsLocal fields (machine.*, gpu, compositor, ...),
+# composition-rules.nix, and (for truly bespoke needs)
+# dotsLocal.extraModules. See memory-bank/preserved-features-checklist.md
+# for the per-host migration notes.
 { pkgs, lib, dotsLocal, ... }:
 
 let
@@ -17,21 +13,17 @@ let
 in {
 
   imports = [
-    # opener.nix/clipboard.nix moved to modules/composition.nix's universal
-    # imports (see its comment for why) - only the enable/backend config
-    # below is context-specific now, not the import itself.
+    # opener.nix/clipboard.nix/fonts.nix/ai-apps.nix are imported by
+    # modules/composition.nix (see its comment for why) - only the
+    # enable/backend/base config below is context-specific, not the
+    # import itself.
     ../../modules/suites/sixel-tools.nix
     ../../modules/features/appimages.nix
-    # fonts.nix moved to modules/composition.nix's universal imports (Phase
-    # 9 - see its comment for why) - only the enable/base config below is
-    # context-specific now, not the import itself.
     ../../modules/suites/pim-apps.nix
     ../../modules/features/bookokrat.nix
     ../../modules/features/quarkdown.nix
     ../../modules/suites/gui-apps.nix
     ../../modules/suites/tui-apps.nix
-    # ai-apps.nix moved to modules/composition.nix's universal imports too
-    # (same reasoning as opener/clipboard above)
   ];
 
   features.opener = {

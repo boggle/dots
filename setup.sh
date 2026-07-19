@@ -131,10 +131,9 @@ else
 fi
 
 # 2. Perform the initial bootstrap
-# NOTE: the flake output is always "default" now (Phase 2 of the
-# re-architecture removed per-profile flake outputs - which context
-# (priv/work/...) you get is fully determined by dots-local's `profile`
-# field above, not by the flake output name).
+# NOTE: the flake output is always "default" - which context (priv/work/
+# ...) you get is fully determined by dots-local's `profile` field above,
+# not by the flake output name.
 echo "Running initial Home Manager bootstrap for context: ${PROFILE}..."
 
 nix run home-manager -- switch \

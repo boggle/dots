@@ -39,9 +39,8 @@ let
   # their default null/[] value) or a raw imported shared manifest (not
   # schema-validated, where the attr may genuinely be missing). A plain
   # `or` only helps when the attribute is absent, not when it's present
-  # with a null/empty value - so it silently stopped providing a real
-  # fallback for the schema-typed path once the schema was introduced
-  # (Phase 1). This pattern handles both origins correctly.
+  # with a null/empty value, so this explicit check is needed to handle
+  # both origins correctly.
   mkSharedWrapper = name: app:
     let
       command = app.command or name;

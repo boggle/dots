@@ -1,8 +1,6 @@
 # Shared helper reducing the enable-flag -> home.packages (via
-# alien.mkEntry) -> alienPackages.enabledPackages boilerplate repeated by
-# hand in every suite/feature file (gui-apps.nix alone did this 26 times).
-# Phase 4 of the re-architecture - see memory-bank/architecture.md
-# section 5, memory-bank/plan.md Phase 4.
+# alien.mkEntry) -> alienPackages.enabledPackages boilerplate that would
+# otherwise be repeated by hand in every suite/feature file.
 { lib }:
 
 {

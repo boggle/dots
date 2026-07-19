@@ -361,9 +361,9 @@ Create a `<feature>.<distro>-packages.nix` file next to your feature:
 
 Features check if an alien package exists and skip the Nix version. For
 suites with more than a couple of toggles, use `modules/core/lib.nix`'s
-`mkAppSet` helper (Phase 4 of the re-architecture) instead of repeating the
-`alien.mkEntry`/`alienPackages.enabledPackages` boilerplate by hand for
-every single toggle:
+`mkAppSet` helper instead of repeating the `alien.mkEntry`/
+`alienPackages.enabledPackages` boilerplate by hand for every single
+toggle:
 
 ```nix
 { config, lib, pkgs, alien, ... }:

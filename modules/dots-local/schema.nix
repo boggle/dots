@@ -4,19 +4,14 @@
 # Every option here has a description and (where sensible) a default, so
 # `dots-local/flake.nix` only needs to override what's actually specific to
 # that machine/identity - anything left unset falls back to a documented,
-# safe default instead of the ~30 scattered `local.X or default` reads that
-# used to be spread across individual modules.
+# safe default.
 #
-# DESIGN NOTE (see memory-bank/decisions.md, 2026-07-18 "dots-local schema:
-# additive/backward-compatible"): existing fields deliberately keep their
-# current flat names/shape (host, distro, march, realname, ...) rather than
-# being restructured into the fully-nested identity.*/machine.*/system.*
-# design originally sketched in memory-bank/architecture.md - that would
-# have required rewriting the live dots-local/flake.nix as part of this
-# phase, which is unnecessary risk for a schema-formalization step. New
-# axis fields (gpu, isWsl, location, tags, shell.*, extraModules,
-# extraOverlays) are added inertly - not yet consumed by anything, reserved
-# for the Phase 2 composition-rules system and beyond.
+# DESIGN NOTE: existing fields deliberately keep their flat names/shape
+# (host, distro, march, realname, ...) rather than a fully-nested
+# identity.*/machine.*/system.* design, to avoid requiring a rewrite of the
+# live dots-local/flake.nix. Axis fields (gpu, isWsl, location, tags,
+# shell.*, extraModules, extraOverlays) feed composition-rules.nix and
+# beyond.
 
 { lib, ... }:
 
@@ -63,8 +58,10 @@ in {
       type = types.nullOr types.str;
       default = null;
       description = ''
-        Hostname, used to select `profiles/<profile>/hosts/<host>.nix` if
-        it exists. Leave null for a host with no machine-specific file.
+        Hostname. Informational/display use (e.g. shown by
+        modules/core/dots-local.nix's activation info) - machine-specific
+        behavior itself is driven by the other axis fields below
+        (`machine.*`, `gpu`, `compositor`, ...), not by `host` directly.
       '';
     };
 
@@ -90,8 +87,7 @@ in {
       description = ''
         Whether this machine is running under WSL. Orthogonal to `distro`
         (e.g. a Debian distro running inside WSL is `distro = "debian";
-        isWsl = true;`). Not yet consumed by anything - reserved for
-        Phase 2/3.
+        isWsl = true;`). Consumed by composition-rules.nix's `isWsl` rule.
       '';
     };
 
@@ -161,11 +157,9 @@ in {
       default = { };
       description = ''
         Per-machine hardware/peripheral config, consumed by generic
-        (not host-specific) feature modules - this is what used to require
-        a dedicated profiles/priv/hosts/<hostname>.nix file to exist in
-        `dots` for anything host-specific to be expressed at all. Anything
-        NOT covered by a field here and too bespoke to generalize (e.g.
-        exact CUDA/llama.cpp cmakeFlags for one particular GPU) belongs in
+        (not host-specific) feature modules. Anything NOT covered by a
+        field here and too bespoke to generalize (e.g. exact
+        CUDA/llama.cpp cmakeFlags for one particular GPU) belongs in
         `extraModules` instead.
       '';
       type = types.submodule {
@@ -245,9 +239,7 @@ in {
       default = false;
       description = ''
         Whether to enable GUI-related suites/features by default
-        (gui-apps, pim-apps superproductivity, etc). Replaces the old
-        undocumented `graphical` legacy alias some host files used to fall
-        back to - only `enableGuiDefaults` is read now.
+        (gui-apps, pim-apps superproductivity, etc).
       '';
     };
 
@@ -257,9 +249,8 @@ in {
       description = ''
         Desktop/platform backend, used by features.opener/
         features.clipboard and (in future) other platform-aware features.
-        Now enum-typed, so an invalid value is rejected at eval time with a
-        clear error - the manual assertion previously in
-        profiles/priv/home.nix for this is no longer needed.
+        Enum-typed, so an invalid value is rejected at eval time with a
+        clear error.
       '';
     };
 
@@ -366,10 +357,8 @@ in {
           default = { };
           description = ''
             Override table: flags.<lang>.<mode> = "compiler flags string".
-            Anything left unset falls back to the built-in defaults
-            (currently duplicated across tune-support.nix/package-tuning.nix/
-            setup.sh - see architecture.md section 6, unification not yet
-            done as of Phase 1).
+            Anything left unset falls back to the built-in defaults in
+            modules/core/tune-defaults.nix.
           '';
         };
       };

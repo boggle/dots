@@ -1,24 +1,20 @@
-# The composition entry point - replaces the old
-# profiles/<profile>/home.nix + profiles/<profile>/hosts/<hostname>.nix
-# directory-inheritance chain (Phase 2 of the re-architecture, see
-# memory-bank/architecture.md section 2 and memory-bank/plan.md Phase 2).
+# The composition entry point.
 #
 # Always imports the common baseline + core, then:
 #   1. Imports exactly one modules/contexts/<dotsLocal.profile>.nix bundle
-#      (the bulk, hand-authored per-context config - what used to be
-#      profiles/<profile>/home.nix).
+#      (the bulk, hand-authored per-context config).
 #   2. Folds composition-rules.nix's declarative axis-based rules on top,
 #      as *defaults* (an explicit setting anywhere else always wins).
 #   3. Imports dotsLocal.extraModules (already appended at the flake.nix
 #      level too, for anything not folded through here - see flake.nix).
 #
-# No profiles/<profile>/hosts/<hostname>.nix file is required to exist for
-# any machine anymore - host-specific config is expressed via dotsLocal
-# fields (machine.*, gpu, compositor, ...) consumed generically by feature
-# modules (features/power-toggle.nix, features/network.nix's
-# sshIdentityFile, composition-rules.nix, ...), or, for truly bespoke needs
-# too specific to generalize, via dotsLocal.extraModules (kept in the
-# private dots-local repo, never in this shared one).
+# No per-host file is required to exist for any machine - host-specific
+# config is expressed via dotsLocal fields (machine.*, gpu, compositor,
+# ...) consumed generically by feature modules (features/power-toggle.nix,
+# features/network.nix's sshIdentityFile, composition-rules.nix, ...), or,
+# for truly bespoke needs too specific to generalize, via
+# dotsLocal.extraModules (kept in the private dots-local repo, never in
+# this shared one).
 { config, lib, dotsLocal, ... }:
 
 let
@@ -49,11 +45,9 @@ in {
     ./core/tune-support.nix
     ./contexts/common.nix
 
-    # Universally imported (previously required a per-host
-    # profiles/priv/hosts/<hostname>.nix file to import at all) - each
-    # module's own `enable` option, defaulting to false/off, controls
-    # whether anything actually happens. Enabled either by a
-    # composition-rules.nix rule (e.g. compositor == "niri" ->
+    # Universally imported - each module's own `enable` option, defaulting
+    # to false/off, controls whether anything actually happens. Enabled
+    # either by a composition-rules.nix rule (e.g. compositor == "niri" ->
     # niri-noctalia) or directly by dotsLocal.extraModules for anything
     # more bespoke.
     ./features/power-toggle.nix
@@ -66,10 +60,9 @@ in {
     # rule references features.opener/features.clipboard regardless of
     # which context is active - a NixOS/HM module option must be declared
     # (module imported) for ANY module to set values under that path, even
-    # a conditionally-false lib.mkIf. Found via testing `profile = "work"`
-    # with `isWsl = true` for the first time - contexts/work.nix doesn't
-    # import these, contexts/priv.nix does (and still sets their
-    # enable/backend config there, just not the import anymore).
+    # a conditionally-false lib.mkIf. contexts/work.nix doesn't import
+    # these, contexts/priv.nix does (and still sets their enable/backend
+    # config there, just not the import).
     ./features/opener.nix
     ./features/clipboard.nix
     ./suites/scanning.nix
@@ -77,8 +70,8 @@ in {
     # ai-apps: same reasoning as opener/clipboard above - referenced by
     # composition-rules.nix's `gpu == "nvidia"` rule regardless of context.
     ./suites/ai-apps.nix
-    # fonts: same reasoning again - niri-noctalia.nix (Phase 9) contributes
-    # to features.fonts.required, and niri-noctalia is itself universal.
+    # fonts: same reasoning again - niri-noctalia.nix contributes to
+    # features.fonts.required, and niri-noctalia is itself universal.
     ./features/fonts.nix
   ] ++ lib.optional contextExists contextFile;
 

@@ -28,12 +28,10 @@ let
     else "${pkgs.bat}/bin/bat";
   
   # Main viewer script - the bulk of the logic lives in a real, static,
-  # shellcheck-able file (Phase 8 of the re-architecture - see
-  # memory-bank/architecture.md section 9, memory-bank/plan.md Phase 8).
-  # This small preamble resolves the Nix-level package paths / computed
-  # viewer choices into plain shell variables that the static script
-  # references - keeping the actual ~290 lines of viewer logic free of any
-  # Nix syntax at all.
+  # shellcheck-able file. This small preamble resolves the Nix-level
+  # package paths / computed viewer choices into plain shell variables
+  # that the static script references - keeping the actual ~290 lines of
+  # viewer logic free of any Nix syntax at all.
   viewerScript = pkgs.writeShellScriptBin "v" (''
     #!/usr/bin/env bash
     BAT_BIN="${pkgs.bat}/bin/bat"

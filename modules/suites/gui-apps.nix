@@ -214,12 +214,7 @@ in
 
     # NOTE: LibreWolf is installed as a native/alien package (librewolf-bin
     # via pacman/paru, see `alien.mkEntry cfg.librewolf` above) rather than
-    # through Home Manager's `programs.librewolf` module. A rich
-    # `programs.librewolf` config (extensions: keepassxc-browser,
-    # ublock-origin, darkreader; hardened settings) used to live here but
-    # was permanently dead - it hardcoded `enable = false;` regardless of
-    # `cfg.librewolf`, so none of it ever applied. Removed rather than
-    # fixed: native librewolf-bin is the intended path, not a Nix-managed
-    # LibreWolf.
+    # through Home Manager's `programs.librewolf` module - native
+    # librewolf-bin is the intended path, not a Nix-managed LibreWolf.
   };
 }

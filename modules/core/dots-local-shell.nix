@@ -1,7 +1,6 @@
 # Low-ceremony path for adding shell vars/aliases/init snippets from
 # dots-local, without needing a full extraModules escape-hatch file for
-# something as small as one env var. See memory-bank/architecture.md
-# section 1a ("Easy shell vars / init snippets from dots-local").
+# something as small as one env var.
 #
 # Deliberately in its own module file (rather than folded into
 # core/default.nix's programs.bash block) so Home Manager's normal

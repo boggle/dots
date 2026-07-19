@@ -24,12 +24,9 @@ let
     ];
 } grabcontextScript;
 
-  # Consolidated install-graphify/uninstall-graphify -> setup-graphify
-  # {install|remove|update} (Phase 7 of the re-architecture - see
-  # memory-bank/architecture.md section 8, memory-bank/plan.md Phase 7).
-  # "update" is the same as "install" (re-pulls if the repo already exists,
-  # via `git pull` first) since the original install script already
-  # handled "already cloned" gracefully - update just forces a pull first.
+  # setup-graphify {install|remove|update} - "update" re-pulls if the repo
+  # already exists (via `git pull` first), "install" handles "already
+  # cloned" gracefully without forcing a pull.
   setup-graphify = pkgs.writeShellScriptBin "setup-graphify" ''
     set -euo pipefail
 

@@ -12,10 +12,7 @@ let
          else [ ]
     ) names);
 
-  # Shared with modules/core/tune-support.nix (Phase 5 - see
-  # modules/core/tune-defaults.nix for the unification rationale; this used
-  # to be a second, already-drifted copy missing go/haskell and the
-  # `-ffast-math` c/c++ fast-mode flag).
+  # Shared with modules/core/tune-support.nix via modules/core/tune-defaults.nix.
   moduleDefaults = march: import ./../core/tune-defaults.nix { inherit march; };
 
 in {
@@ -25,12 +22,9 @@ in {
       tuneSpecs = lib.foldl' (acc: p: acc // (import p)) {} tuneSpecsFiles;
       enabled = lib.filterAttrs (_: v: (v.enable or false) == true) tunePackages;
       enabledWithSpecs = lib.mapAttrs (name: v: (tuneSpecs.${name} or {}) // (builtins.removeAttrs v [ "enable" ])) enabled;
-      # NOTE: previously defaulted to "znver5" here specifically (vs.
-      # tune-support.nix's "native" default for the same field) - an
-      # inconsistency now resolved by both consumers reading
-      # dotsLocal.march directly, which the schema defaults to "native".
-      # dots-local machines that set march explicitly (e.g. chromaden's
-      # "znver5") are unaffected; machines that don't now get the safer
+      # Reads dotsLocal.march directly, which the schema defaults to
+      # "native" - dots-local machines that set march explicitly (e.g.
+      # chromaden's "znver5") get that; machines that don't get the safer
       # "native" default instead of a specific-CPU string that would fail
       # to build on anything but that exact chip.
       march = dotsLocal.march;
@@ -42,10 +36,8 @@ in {
         let
           pkg = prev.${name} or null;
           getFlags = lang: mode: (dotsLocal.tune.flags.${lang}.${mode} or defaults.${lang}.${mode});
-          # Unified with tune-support.nix's fuller detectLang (Phase 5) -
-          # previously only checked cargoDeps here, meaning global-scope
-          # tuning could never auto-detect Go/Haskell packages even though
-          # the flag tables (now shared) support them.
+          # Matches tune-support.nix's detectLang, so global-scope tuning
+          # can auto-detect Go/Haskell packages too, not just Rust.
           detectLang = p:
             if p ? cargoDeps then "rust"
             else if p ? goPackagePath then "go"

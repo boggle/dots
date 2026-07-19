@@ -6,12 +6,9 @@ let
   # Properly shell-escaped cmake flags
   cmakeFlagsEscaped = lib.escapeShellArgs cfg.cmakeFlags;
 
-  # Consolidated install-llama-cpp/uninstall-llama-cpp -> setup-llama-cpp
-  # {install|remove|update} (Phase 7 of the re-architecture - see
-  # memory-bank/architecture.md section 8, memory-bank/plan.md Phase 7).
-  # "update" is the same build logic as "install" but skips the
-  # exists-already prompt (always pulls + rebuilds), matching what
-  # "install -f" used to do.
+  # setup-llama-cpp {install|remove|update} - "update" is the same build
+  # logic as "install" but skips the exists-already prompt (always pulls +
+  # rebuilds).
   setupCommand = pkgs.writeShellScriptBin "setup-llama-cpp" ''
     set -e
 

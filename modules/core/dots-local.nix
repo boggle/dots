@@ -4,9 +4,9 @@
 { config, lib, pkgs, dotsLocal, ... }:
 
 let
-  # dotsLocal.host is nullable (no default host file) - `or` only helps for
-  # missing attrs, not a present-but-null value, so this needs an explicit
-  # check rather than `dotsLocal.host or "unknown"`.
+  # dotsLocal.host is nullable - `or` only helps for missing attrs, not a
+  # present-but-null value, so this needs an explicit check rather than
+  # `dotsLocal.host or "unknown"`.
   hostOrUnknown = if dotsLocal.host != null then dotsLocal.host else "unknown";
   hostOrEmpty = if dotsLocal.host != null then dotsLocal.host else "";
 in
@@ -30,9 +30,7 @@ in
     
     # Show sync patterns if config exists
     # NOTE: sync-config.json lives in dots-local (generated from its
-    # flake.nix), not in dots itself - was previously checked at the wrong
-    # path ($HOME/dots/sync-config.json), so this section always showed
-    # nothing.
+    # flake.nix), not in dots itself.
     if [ -f "$DOTS_LOCAL_DIR/sync-config.json" ]; then
       print_section "📝" "Sync Patterns:"
       if command -v jq &> /dev/null; then
@@ -53,9 +51,8 @@ in
       echo ""
     fi
     
-    # Show resolved machine axes (Phase 2: no more per-host .nix files to
-    # check for - host-specific config is now expressed via dotsLocal
-    # fields, shown here directly instead).
+    # Show resolved machine axes (host-specific config is expressed via
+    # dotsLocal fields, shown here directly).
     if [ -n "${hostOrEmpty}" ]; then
       print_section "🔧" "Machine axes:"
       echo -e "   ''${GREEN}gpu:''${NC} ${if dotsLocal.gpu != null then dotsLocal.gpu else "none"}  ''${GREEN}compositor:''${NC} ${if dotsLocal.compositor != null then dotsLocal.compositor else "none"}  ''${GREEN}isWsl:''${NC} ${if dotsLocal.isWsl then "yes" else "no"}"
@@ -72,10 +69,9 @@ in
   # `home-manager switch`, `nh home switch`, or via `apply-dots`), which is
   # what makes it the right place for this to live - it's the single source
   # of truth for "sync runs after every successful switch, however it was
-  # triggered." `apply-dots` (modules/core/scripts.nix) used to ALSO call
-  # sync.sh explicitly right after `nh home switch` returned, which is
-  # redundant with this hook (which already ran during that same switch) -
-  # that explicit second call has been removed from scripts.nix.
+  # triggered." `apply-dots` (modules/core/scripts.nix) does not call
+  # sync.sh separately - that would be redundant with this hook, which
+  # already runs during the same switch.
   home.activation.syncUserConfigs = lib.hm.dag.entryAfter ["writeBoundary"] ''
     DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
     if [ -x "$DOTS_DIR/sync.sh" ]; then

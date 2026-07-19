@@ -39,13 +39,12 @@ in
       ++ lib.optionals (backend == "wayland") [ wl-clipboard ]
       ++ lib.optionals (backend == "x11") [ xclip ];
 
-    # The bulk of this logic lives in a real, static, shellcheck-able file
-    # (Phase 8 of the re-architecture - see memory-bank/architecture.md
-    # section 9, memory-bank/plan.md Phase 8). This small preamble resolves
-    # the Nix-level package paths / backend-selected commands into plain
-    # shell variables (and, for the copy/paste commands, real bash arrays -
-    # see the copyCmdArray/pasteCmdArray comment above for why arrays
-    # rather than plain strings) that the static script references.
+    # The bulk of this logic lives in a real, static, shellcheck-able file.
+    # This small preamble resolves the Nix-level package paths /
+    # backend-selected commands into plain shell variables (and, for the
+    # copy/paste commands, real bash arrays - see the copyCmdArray/
+    # pasteCmdArray comment above for why arrays rather than plain
+    # strings) that the static script references.
     programs.bash.initExtra = ''
       SED_BIN="${sed}"
       PERL_BIN="${pkgs.perl}/bin/perl"

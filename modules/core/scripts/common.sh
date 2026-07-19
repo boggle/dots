@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
-# Shared bash boilerplate for dots' generated scripts (Phase 7 of the
-# re-architecture - see memory-bank/architecture.md section 8,
-# memory-bank/plan.md Phase 7). Previously this same ~15-line
-# color/header/gum-detection pattern was copy-pasted independently across
-# modules/core/scripts.nix (apply-dots, update-dots, appimage-update),
-# modules/core/dots-local.nix's activation script, and
-# modules/core/alien-packages.nix's update-alien-packages script. Every
-# `pkgs.writeShellScriptBin` in dots that wants this should
-# `source ${./common.sh}` (Nix path interpolation - embeds this file's
-# store path) instead of redefining it.
+# Shared bash boilerplate (colors/headers/gum-detection) for dots'
+# generated scripts. Every `pkgs.writeShellScriptBin` in dots that wants
+# this should `source ${./common.sh}` (Nix path interpolation - embeds
+# this file's store path) instead of redefining it.
 #
 # This file is a real, standalone, shellcheck-able bash file (not a Nix
 # string) - sourced at runtime, not baked in via string interpolation, so

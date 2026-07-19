@@ -6,8 +6,7 @@ let
   march = dotsLocal.march;
   
   # Module defaults per language and mode - shared with
-  # modules/flake/package-tuning.nix (Phase 5, see
-  # modules/core/tune-defaults.nix for the unification rationale)
+  # modules/flake/package-tuning.nix via modules/core/tune-defaults.nix
   moduleDefaults = import ./tune-defaults.nix { inherit march; };
   
   # Get flags: check dots-local first, fallback to module defaults

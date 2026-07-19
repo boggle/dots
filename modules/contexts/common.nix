@@ -1,9 +1,6 @@
 # Always-imported baseline - minimal CLI essentials shared across every
 # context (priv, work, ...). Plain text/CLI focused, no UI or hardware
-# specifics. Ported from profiles/common/home.nix (Phase 2 - see
-# memory-bank/architecture.md section 2); content unchanged, only the
-# location moved (now imported unconditionally by modules/composition.nix
-# rather than via a profile-directory chain).
+# specifics. Imported unconditionally by modules/composition.nix.
 { lib, ... }:
 
 {

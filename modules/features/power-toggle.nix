@@ -1,8 +1,6 @@
-# Generic eco/performance power-toggle script, generalized from what used
-# to be duplicated per-host in profiles/priv/hosts/{chromaden,laputa}.nix
-# with only the display output name/resolutions differing. Now driven
-# entirely by dotsLocal.machine.display (see modules/dots-local/schema.nix).
-# A host with no display config (dotsLocal.machine.display == null) simply
+# Generic eco/performance power-toggle script, driven entirely by
+# dotsLocal.machine.display (see modules/dots-local/schema.nix). A host
+# with no display config (dotsLocal.machine.display == null) simply
 # doesn't get this script installed - no host-specific Nix file needed.
 { config, lib, pkgs, dotsLocal, ... }:
 

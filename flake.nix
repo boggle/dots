@@ -30,15 +30,12 @@
       system = "x86_64-linux";
       lib = nixpkgs.lib;
 
-      # Formal, typed dots-local schema (Phase 1 of the re-architecture -
-      # see memory-bank/architecture.md section 1, memory-bank/plan.md
-      # Phase 1). Evaluates the raw dots-local flake output against
-      # modules/dots-local/schema.nix, giving every field a documented
-      # default instead of the ~30 scattered `inputs.dots-local.X or
-      # default` reads this replaces. `dotsLocal` (the evaluated config) is
-      # passed to all Home Manager modules via extraSpecialArgs below,
-      # alongside (not instead of) `inputs`, since some non-dots-local
-      # inputs (niri, noctalia, nixgl, ...) are still read directly.
+      # Formal, typed dots-local schema. Evaluates the raw dots-local flake
+      # output against modules/dots-local/schema.nix, giving every field a
+      # documented default. `dotsLocal` (the evaluated config) is passed to
+      # all Home Manager modules via extraSpecialArgs below, alongside (not
+      # instead of) `inputs`, since some non-dots-local inputs (niri,
+      # noctalia, nixgl, ...) are still read directly.
       # `dots-local` (the flake input) carries flake-introspection metadata
       # alongside its actual data fields (_type, inputs, outPath, outputs,
       # rev, sourceInfo, ...) - these must be stripped before handing it to
@@ -75,12 +72,9 @@
           inherit lib dotsLocal; 
       };
 
-      # Global-scope tuning packages, keyed by dotsLocal.profile - this used
-      # to be `profileDefinitions.<name>.tunePackages` in a
-      # profile-name-indexed attrset (mirroring the old directory-per-profile
-      # structure); now it's just a lookup table keyed by the same
-      # `dotsLocal.profile` value that modules/composition.nix uses to pick
-      # a contexts/<profile>.nix bundle. Add an entry here if a new context
+      # Global-scope tuning packages, keyed by dotsLocal.profile - the same
+      # value that modules/composition.nix uses to pick a
+      # contexts/<profile>.nix bundle. Add an entry here if a new context
       # needs specific global-scope tuning.
       tunePackagesByContext = {
         priv = {
@@ -92,11 +86,9 @@
       };
       tunePackages = tunePackagesByContext.${dotsLocal.profile} or {};
 
-      # Replaces the old `mkProfile { profileName, ... }` - there's no more
-      # profile-name-selected directory to build from (see
-      # modules/composition.nix), just an optimized/baseline build-perf
-      # axis. Everything context-specific is resolved internally from
-      # dotsLocal by modules/composition.nix itself.
+      # Just an optimized/baseline build-perf axis - everything
+      # context-specific is resolved internally from dotsLocal by
+      # modules/composition.nix itself.
       mkHomeConfig = { optimized ? false }:
         let
           tuneOverlay = tuning.mkTuneOverlay tunePackages ./modules;
@@ -109,9 +101,8 @@
              ++ dotsLocal.extraOverlays;
           
           pkgs' = import nixpkgs (if optimized then { 
-            # Previously hardcoded "znver5" here regardless of the
-            # machine's actual dots-local.march - meaning the -opt profile
-            # silently ignored per-machine tuning entirely. Now parametrized.
+            # Parametrized from dotsLocal.march, so the -opt build targets
+            # this machine's actual configured architecture.
             localSystem = { inherit system; gcc.arch = dotsLocal.march; gcc.tune = dotsLocal.march; }; 
             config.allowUnfree = true; inherit overlays; 
           } else { 
@@ -151,14 +142,10 @@
         };
 
     in {
-      # Renamed from {priv,work,priv-opt,work-opt} (Phase 2, confirmed with
-      # user - see memory-bank/decisions.md 2026-07-18 "Flake output
-      # renaming: CONFIRMED"). There's no longer a real "profile choice" to
-      # make on the command line - it's fully determined by whatever
-      # dots-local.flake.nix's `profile` (and other axis fields) say, so a
-      # generic name is more honest than keeping priv/work around as
-      # vestigial selectors. `apply-dots` (no argument) / `apply-dots
-      # default-opt` replace `apply-dots priv` / `apply-dots priv-opt`.
+      # There's no "profile choice" to make on the command line - it's
+      # fully determined by whatever dots-local.flake.nix's `profile` (and
+      # other axis fields) say. `apply-dots` (no argument) / `apply-dots
+      # opt` select baseline vs. optimized.
       homeConfigurations = {
         default = mkHomeConfig { optimized = false; };
         default-opt = mkHomeConfig { optimized = true; };

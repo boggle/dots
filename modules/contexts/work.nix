@@ -1,13 +1,10 @@
 # "work" context bundle.
 #
-# Previously `profileDefinitions.work = { tunePackages = {}; };` in
-# flake.nix with NO actual profiles/work/home.nix ever created - selecting
-# `homeConfigurations.work` was broken (see memory-bank/plan.md Phase 0/2
-# notes). This is a genuinely minimal, conservative starter: common's
-# baseline plus slightly fuller git/dev-tools defaults typical of a work
-# machine, with GUI/AI/TUI suites left off by default (composition-rules.nix
-# enables suites.cloud-tools by default for this context; everything else
-# is opt-in via dotsLocal.extraModules or by editing this file directly).
+# A genuinely minimal, conservative starter: common's baseline plus
+# slightly fuller git/dev-tools defaults typical of a work machine, with
+# GUI/AI/TUI suites left off by default (composition-rules.nix enables
+# suites.cloud-tools by default for this context; everything else is
+# opt-in via dotsLocal.extraModules or by editing this file directly).
 #
 # Customize this file for your actual work needs - this is intentionally a
 # starting point, not a fully-specified profile like priv.nix.

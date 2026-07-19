@@ -4,11 +4,9 @@ This document provides architecture and development guidance for AI agents worki
 
 ## Memory Bank (read this first)
 
-This repository is undergoing a large, multi-phase re-architecture. Before
-making any non-trivial change, **read `memory-bank/*.md`**, at minimum:
+Before making any non-trivial change, **read `memory-bank/*.md`**, at minimum:
 
 1. `memory-bank/plan.md` — the phased execution tracker with current status.
-   Find the current/next phase before starting work.
 2. `memory-bank/decisions.md` — dated decision log with rationale. Do not
    re-litigate or silently contradict a logged decision; if you think one
    should change, ask the user and log the outcome.
@@ -23,17 +21,9 @@ As you work:
   discovered along the way.
 - Add anything unresolved to `memory-bank/open-questions.md` rather than
   guessing and moving on.
-- See `memory-bank/architecture.md` for the target design and
-  `memory-bank/preserved-features-checklist.md` for the regression list that
-  must stay intact throughout.
-
-**Transitional state warning:** because this is a phased migration, this
-AGENTS.md file (describing the *current/legacy* architecture below) and
-`memory-bank/architecture.md` (describing the *target* architecture) may
-temporarily disagree — the memory bank always wins for anything already
-migrated; this file is authoritative for anything not yet touched. Update
-this file's relevant sections as each phase lands so the two never drift for
-long.
+- See `memory-bank/architecture.md` for the full design reference and
+  `memory-bank/preserved-features-checklist.md` for the regression-checked
+  feature list.
 
 ## Repository Structure
 
@@ -41,47 +31,64 @@ long.
 
 The system uses a split repository design:
 
-- **`dots/`** (this repo): Shared configuration, modules, profiles
-- **`dots-local/`** (private): Per-machine identity, hostname, user info, tuning flags
+- **`dots/`** (this repo): Shared configuration, modules, contexts
+- **`dots-local/`** (private): Per-machine identity, hardware/context axes,
+  tuning flags, and any bespoke per-host modules
 
-The `dots-local` repo is passed as a flake input and consumed via `inputs.dots-local`.
+`dots-local` is passed as a flake input, evaluated against
+`modules/dots-local/schema.nix` (`lib.evalModules`), and the resulting
+typed config is passed to every module as the `dotsLocal` specialArg (not
+`inputs.dots-local` directly - that still carries raw flake-introspection
+metadata alongside the actual fields).
 
 ### Directory Layout
 
 ```
 dots/
-├── flake.nix                 # Entry point, defines homeConfigurations
-├── profiles/                 # Profile definitions
-│   ├── common/              # Base profile (minimal CLI)
-│   ├── priv/                # Personal profile (extends common)
-│   └── work/                # Work profile (extends common)
-├── modules/                 # Feature and suite modules
-│   ├── core/                # Core infrastructure
-│   │   ├── default.nix      # Core packages and settings
-│   │   ├── scripts.nix      # Command definitions (apply-dots, etc.)
-│   │   ├── dots-local.nix   # dots-local integration
-│   │   ├── alien-packages.nix  # Native package manager integration
-│   │   ├── tune-support.nix    # Package optimization support
-│   │   └── nix-tools.nix    # Nix-related packages
-│   ├── features/            # Individual capabilities
-│   └── suites/              # Bundled application groups
-├── settings/                # Synced handcrafted configs (per-host)
-└── sync.sh                  # Config sync script
+├── flake.nix                 # Entry point, defines homeConfigurations.{default,default-opt}
+├── modules/
+│   ├── composition.nix       # Entry point - imports core + context + composition-rules
+│   ├── composition-rules.nix # Declarative axis-based rules (gpu, compositor, isWsl, ...)
+│   ├── contexts/             # Composition bundles, selected by dotsLocal.profile
+│   │   ├── common.nix        # Always-imported minimal CLI baseline
+│   │   ├── priv.nix          # Personal context
+│   │   └── work.nix          # Work context
+│   ├── dots-local/
+│   │   └── schema.nix        # Typed schema for dots-local/flake.nix
+│   ├── core/                 # Core infrastructure
+│   │   ├── default.nix       # Core packages and settings
+│   │   ├── scripts.nix       # Command definitions (apply-dots, etc.)
+│   │   ├── dots-local.nix    # dots-local integration
+│   │   ├── alien-packages.nix   # Native package manager integration
+│   │   ├── tune-support.nix     # Package optimization support (home-level)
+│   │   └── tune-defaults.nix    # Shared compiler-flag defaults per march
+│   ├── flake/                # Flake-level helpers (alien discovery, tuning overlay)
+│   ├── features/             # Individual capabilities
+│   └── suites/               # Bundled application groups
+├── profiles/                 # Sync-only: profiles/<profile>/sync.json (global ignores)
+├── settings/                 # Synced handcrafted configs (per-host)
+└── sync.sh                   # Config sync script
 ```
+
+No per-host directory or file (`profiles/<profile>/hosts/<hostname>.nix`)
+exists - host-specific config is expressed via `dotsLocal` fields
+(`machine.*`, `gpu`, `compositor`, `isWsl`, ...) consumed generically by
+feature modules, or, for anything too bespoke to generalize, via
+`dotsLocal.extraModules` (kept entirely in the private `dots-local` repo).
 
 ## Architecture
 
-### Profile Hierarchy
+### Composition
 
-```
-common (minimal CLI baseline)
-  ↓
-priv/work (full environment)
-  ↓
-hosts/<hostname>.nix (machine-specific)
-```
-
-Each level imports the previous and adds more specific configuration.
+`modules/composition.nix` always imports the common baseline plus exactly
+one `modules/contexts/<dotsLocal.profile>.nix` bundle (`priv` or `work`),
+then folds `modules/composition-rules.nix`'s declarative axis-based rules
+on top as *defaults* (an explicit setting anywhere else always wins). A
+handful of feature/suite modules (niri-noctalia, llama-cpp, butterfish,
+sd-switch, opener, clipboard, scanning, cloud-tools, ai-apps, fonts,
+wsl-shell-integration, power-toggle) are imported universally rather than
+per-context, since `composition-rules.nix` or another universal module may
+need to set their options regardless of which context is active.
 
 ### Module Types
 
@@ -95,22 +102,25 @@ Each level imports the previous and adds more specific configuration.
 
 ### Key Design Patterns
 
-#### 1. mkDefault for Base Profile
+#### 1. mkDefault for the Common Context
 
-Common profile uses `lib.mkDefault` for all options, allowing profiles to override:
+The common context uses `lib.mkDefault` for all options, allowing other contexts to override:
 
 ```nix
-# profiles/common/home.nix
+# modules/contexts/common.nix
 features.git.enable = lib.mkDefault true;
 features.git.delta = lib.mkDefault true;
 
-# profiles/priv/home.nix (can override)
+# modules/contexts/priv.nix (can override)
 features.git.jj = true;  # Also enable jujutsu
 ```
 
 #### 2. Alien Package Integration
 
-Features check for alien (native) packages and skip Nix versions:
+Features check for alien (native) packages and skip Nix versions. For a
+suite with more than a couple of toggles, use `modules/core/lib.nix`'s
+`mkAppSet` helper instead of repeating this by hand for every option (see
+OVERVIEW.md's "Using Alien Packages in Features" for a full example):
 
 ```nix
 { config, lib, pkgs, alien, ... }:
@@ -192,7 +202,10 @@ Commands like `apply-dots` are generated in `modules/core/scripts.nix` using `pk
      };
    }
    ```
-3. Import in profile's `home.nix`
+3. Import in the relevant context (`modules/contexts/priv.nix` or
+   `work.nix`), or in `modules/composition.nix`'s universal imports if it
+   needs to be reachable regardless of context (e.g. because
+   `composition-rules.nix` references it)
 
 ### Adding a New Suite
 
@@ -219,121 +232,46 @@ Commands like `apply-dots` are generated in `modules/core/scripts.nix` using `pk
    }
    ```
 
-### Adding a New Profile
-
-To create a new profile (e.g., `work`):
-
-1. Create directory structure:
-   ```bash
-   mkdir -p profiles/work/hosts
-   touch profiles/work/home.nix
-   ```
-
-2. Follow the priv pattern in `home.nix`:
-   ```nix
-   { pkgs, lib, inputs, ... }:
-   
-   let
-     local = inputs.dots-local;
-     hostname = local.host or null;
-     hostImport = if hostname != null 
-       then ./hosts/${hostname}.nix
-       else null;
-   in {
-     imports = lib.filter (x: x != null) [
-       ../common/home.nix
-       # Add profile-specific modules
-       hostImport
-     ];
-     
-     # Profile-specific configuration
-   }
-   ```
-
-3. Add to `flake.nix` profile definitions:
-   ```nix
-   profileDefinitions = {
-     priv = { /* ... */ };
-     work = { tunePackages = {}; };
-   };
-   ```
-
 ### Adding a New Host
 
-1. Determine hostname from `dots-local/flake.nix`:
-   ```nix
-   host = "myhostname";
-   ```
+Most new machines need **no changes to `dots` at all** - just a
+`dots-local/flake.nix` declaring that machine's identity and axes:
 
-2. Create host file:
-   ```bash
-   touch profiles/<profile>/hosts/<hostname>.nix
-   # Example: profiles/priv/hosts/myhostname.nix
-   ```
+```nix
+{
+  outputs = { self, ... }: {
+    host = "myhostname";
+    # ... identity fields (see modules/dots-local/schema.nix) ...
 
-3. Host file template:
-   ```nix
-   # <hostname> Machine Configuration
-   { config, pkgs, lib, ... }:
-   
-   {
-     imports = [
-       ../../../modules/features/sd-switch.nix
-     ];
-     
-     home.packages = with pkgs; [ 
-       bluez
-       localsend
-     ];
-     
-     home.sessionVariables = {
-       SSH_AUTH_SOCK = "$XDG_RUNTIME_DIR/ssh-agent.socket";
-     };
-     
-     programs.ssh = {
-       matchBlocks."*".identityFile = "~/.ssh/id_github_${hostname}";
-     };
-   }
-   ```
+    # Axes that drive what gets pulled in (all optional):
+    gpu = "nvidia";           # or "amd"/"intel"/omit
+    compositor = "niri";      # or omit for a CLI-only machine
+    isWsl = true;              # if running under WSL
 
-4. Apply: `apply-dots`
-
-### Updating Documentation
-
-When modifying features:
-1. Update the feature table in README.md
-2. Add examples if usage changed
-3. Update OVERVIEW.md if architecture changed
-
-## Testing Changes
-
-### Test Evaluation
-
-```bash
-nix eval .#homeConfigurations.priv --override-input dots-local git+file://$HOME/dots-local
+    machine = {
+      sshIdentityFile = "~/.ssh/id_github_myhostname";
+      terminal = "/usr/bin/ghostty";       # only used if compositor == "niri"
+      renderDrmDevice = null;               # let niri auto-detect, or set explicitly
+      display = {                           # omit entirely to skip power-toggle.sh
+        output = "eDP-1";
+        ecoMode = { resolution = "1920x1200"; brightness = "30%"; };
+        perfMode = { resolution = "1920x1200"; refreshRate = "120.000"; };
+      };
+    };
+  };
+}
 ```
 
-### Test Build (without activation)
+For anything too bespoke to express as an axis (e.g. very specific
+CUDA/compiler flags for one particular GPU), add a small module file next
+to `dots-local/flake.nix` and reference it via `extraModules`:
 
-```bash
-nh home build . -c priv -- --override-input dots-local git+file://$HOME/dots-local
+```nix
+extraModules = [ ./host-myhostname.nix ];
 ```
 
-### Test Activation
-
-```bash
-apply-dots priv -- --dry  # Dry run
-apply-dots priv -- -b backup  # With backup
-```
-
-## Important Notes
-
-### File Locations
-
-- **Commands**: Defined in `modules/core/scripts.nix`, NOT in `bin/`
-- **Sync config**: `profiles/<profile>/sync.json` (global ignores)
-- **Host configs**: `profiles/<profile>/hosts/<hostname>.nix`
-- **Settings storage**: `settings/<hostname>/home/**` and `settings/<hostname>/root/**`
+Then run `apply-dots`. See `modules/dots-local/schema.nix`'s option
+descriptions for the full list of available fields.
 
 ### Nix Evaluation
 

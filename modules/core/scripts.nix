@@ -11,11 +11,9 @@
       # apply-dots - Apply home-manager configuration with dots-local integration
       # Usage: apply-dots [opt] [-- <nh-args>...]
       #
-      # NOTE (Phase 2 of the re-architecture): the flake no longer has
-      # per-profile outputs (priv/work/priv-opt/work-opt) - which context
-      # bundle you get (priv/work/...) is fully determined by
-      # dots-local.flake.nix's `profile` field, not a CLI argument. The
-      # only remaining CLI choice is baseline vs. optimized build:
+      # Which context bundle you get (priv/work/...) is fully determined
+      # by dots-local.flake.nix's `profile` field, not a CLI argument. The
+      # only CLI choice here is baseline vs. optimized build:
       #
       # Examples:
       #   apply-dots                    # homeConfigurations.default (baseline)
@@ -127,17 +125,11 @@
       # Clean up log on success
       rm -f "$BUILD_LOG"
 
-      # NOTE (Phase 2): the old "convenience symlinks" step (current-profile
-      # -> profiles/$PROFILE, host.nix/distro.nix inside a profile
-      # directory) is gone - profiles/<profile>/hosts/<host>.nix files no
-      # longer exist at all (host-specific config now comes from
-      # dots-local fields + modules/contexts/<profile>.nix), so there's
-      # nothing meaningful left for these symlinks to point at.
-
-      # NOTE: sync.sh already ran automatically during the switch above, via
-      # the home.activation.syncUserConfigs hook (modules/core/dots-local.nix)
-      # - that hook fires on every activation regardless of entry point, so
-      # calling sync.sh again here was a redundant double-invocation.
+      # NOTE: sync.sh already runs automatically during the switch above,
+      # via the home.activation.syncUserConfigs hook
+      # (modules/core/dots-local.nix) - that hook fires on every
+      # activation regardless of entry point, so it's not called again
+      # here.
 
       # Check alien packages
       echo ""
@@ -254,9 +246,8 @@
       PROFILE="''${PROFILE:-priv}"
 
       # Get localDir from Home Manager config. NOTE: "default" here is the
-      # flake output name (Phase 2 renamed homeConfigurations.{priv,work,...}
-      # -> default/default-opt - see flake.nix) - unrelated to $PROFILE
-      # above. localDir doesn't differ between default/default-opt.
+      # flake output name (see flake.nix) - unrelated to $PROFILE above.
+      # localDir doesn't differ between default/default-opt.
       LOCAL_DIR=$(nix eval --raw "$DOTS_DIR#homeConfigurations.default.config.features.appimages.localDir" 2>/dev/null || echo "$HOME/Applications/AppImages")
 
       # Parse arguments

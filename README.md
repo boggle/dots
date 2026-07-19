@@ -31,7 +31,7 @@ appimage-update --all                    # Update all AppImages
 
 Which context (priv/work) and machine-specific behavior (GPU, compositor,
 display, etc.) you get is fully determined by `dots-local/flake.nix` -
-there's no longer a profile name to pass on the command line, only the
+there's no profile name to pass on the command line, only the
 baseline-vs-optimized build choice (see Architecture below).
 
 ## Feature System

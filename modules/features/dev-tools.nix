@@ -88,13 +88,10 @@ in
     alienPackages.enabledPackages = appSet.alienEnabled;
 
     # nixd config
-    # NOTE: previously hardcoded "/home/${local.username}/dots" - broke if
-    # homeDirectory wasn't under /home. Now derived from
-    # config.home.homeDirectory (already resolved from dotsLocal in
-    # flake.nix) instead. This still assumes `dots` is checked out directly
-    # in $HOME/dots (matches DOTS_DIR's own default in scripts.nix) - not
-    # fully general if someone uses a custom DOTS_DIR, but no longer
-    # hardcodes /home/ specifically.
+    # NOTE: uses config.home.homeDirectory (resolved from dotsLocal in
+    # flake.nix) and assumes `dots` is checked out directly in
+    # $HOME/dots (matches DOTS_DIR's own default in scripts.nix) - not
+    # fully general if someone uses a custom DOTS_DIR.
     home.file.".nixd.json" = lib.mkIf cfg.nixd {
       text = builtins.toJSON {
         options = {

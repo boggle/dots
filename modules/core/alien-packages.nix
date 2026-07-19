@@ -1,9 +1,8 @@
 { config, lib, pkgs, dotsLocal, ... }:
 
 let
-  # Shared with modules/flake/alien-package-specs.nix (Phase 3 - see
-  # memory-bank/architecture.md section 4) - previously each independently
-  # implemented the exact same recursive spec-file discovery.
+  # Shared with modules/flake/alien-package-specs.nix - both call the same
+  # recursive spec-file discovery function.
   discovery = import ../flake/alien-discovery.nix { inherit lib; };
   rawAlienSpecs = discovery.collectAlienSpecs {
     dir = ../../modules;
@@ -210,18 +209,16 @@ HELP
       }
       
       remove_packages() {
-        # NOTE: this function used to increment its counters with
-        # `((counter++))`. Under `set -e` (enabled at the top of this
-        # script), `((expr))` returns the shell-arithmetic truth value of
-        # the *result*, and post-increment's result is the OLD value - so
-        # the very first increment from 0 evaluates to `((0))`, which is
-        # "false", which aborts the whole script right there under `set -e`
-        # (silently, no error message). Concretely: the first time a user
-        # skipped or successfully removed a package, this function would
-        # exit early and any remaining orphans in the file would silently
-        # never be processed. Fixed by using `counter=$((counter + 1))`
-        # (a plain assignment, whose exit status is always 0) everywhere
-        # instead.
+        # NOTE: counters here use `counter=$((counter + 1))` (a plain
+        # assignment, always exit status 0), never `((counter++))`. Under
+        # `set -e` (enabled at the top of this script), `((expr))` returns
+        # the shell-arithmetic truth value of the *result*, and
+        # post-increment's result is the OLD value - so incrementing from
+        # 0 evaluates to `((0))`, which is "false", which would silently
+        # abort the whole script right there under `set -e`. Concretely:
+        # the first time a user skips or successfully removes a package,
+        # using `((counter++))` here would exit early and leave any
+        # remaining orphans in the file unprocessed.
         local mgr="$1"
         local orphaned_file="$ORPHAN_DIR/$mgr.txt"
         

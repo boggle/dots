@@ -1,14 +1,12 @@
 # VSCode Remote-SSH + WSL2/WSLg shell integration compatibility.
 #
-# Generalized from what used to live only in
-# profiles/priv/hosts/triomino.nix (Phase 2 - see memory-bank/plan.md) -
-# this workaround (sourcing VS Code's shell-integration script, cleaning up
+# This workaround (sourcing VS Code's shell-integration script, cleaning up
 # starship's PROMPT_COMMAND hook so it doesn't fight with VS Code's own
-# prompt handling, re-initializing zoxide/direnv after) isn't actually
-# specific to any one machine - any WSL host connected to via VS Code's
-# Remote-SSH extension needs the same fix. Enabled by default whenever
-# dotsLocal.isWsl is true (see composition-rules.nix), like every other
-# feature module here - can still be disabled explicitly if not wanted.
+# prompt handling, re-initializing zoxide/direnv after) applies to any WSL
+# host connected to via VS Code's Remote-SSH extension. Enabled by default
+# whenever dotsLocal.isWsl is true (see composition-rules.nix), like every
+# other feature module here - can still be disabled explicitly if not
+# wanted.
 { config, lib, pkgs, ... }:
 
 let
