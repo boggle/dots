@@ -1,6 +1,9 @@
 # Project Brief: dots Re-architecture
 
-Status: **Active** | Started: 2026-07-18
+Status: **Complete** - all 9 phases done and live-checkpointed, plus
+~20 rounds of post-completion follow-up work (see `plan.md`). Kept as
+the foundational "why" reference; ongoing work is now smaller, discrete,
+user-requested changes rather than a phased rewrite. Started: 2026-07-18.
 
 ## Why
 
@@ -70,10 +73,11 @@ been used long enough in practice to expose real limits:
   user actively uses the "modern CLI / rust rewrite" tools and wants to keep
   them; only genuinely mislabeled/redundant/accidental inclusions are trim
   candidates, and only after confirmation.
-- Debian alien-package support is added structurally (spec convention + apt
-  backend + CLI-feature specs) but cannot be runtime-verified until there's
-  an actual Debian machine — this is a known, explicitly-flagged gap, not a
-  false "done".
+- Debian alien-package support started as structural-only (spec convention
+  + apt backend + CLI-feature specs), flagged as unverified until real
+  hardware existed. **Update**: the user now has a real Debian 12 machine;
+  specs were extended and verified for the suites it actually needs (see
+  `decisions.md`). GUI/AI suites remain uncovered, not yet requested.
 
 ## Success Criteria
 

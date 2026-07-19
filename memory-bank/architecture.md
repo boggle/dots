@@ -129,20 +129,13 @@ in behavior (see `preserved-features-checklist.md` for the checklist form):
   checks (e.g. `quarto`, `pandoc`, `bookokrat`) before/after, not just "it
   builds".
 
-**Update (2026-07-19)**: this section describes the Phase 1/2-era
-inventory, when the directive's purpose was "don't lose anything
-*accidentally* mid-refactor." Since then, the user explicitly asked for
-(and got) a deliberate flake.nix necessity audit: `nur`/`nixgl` were
-confirmed (exhaustive repo-wide grep across both `dots` and
-`dots-local`) to have zero consumers anywhere - `nixgl` wasn't even
-applied as an overlay, and nothing ever reads `pkgs.nur.*`. Per explicit
-user decision, both are now commented out (not deleted) in
-`flake.nix`'s `inputs` block, with `nur.overlays.default` similarly
-commented out of the applied `overlays` list - see `decisions.md`'s
-matching 2026-07-19 entry. This is a deliberate, explicitly-authorized
-exception to the "non-negotiable" framing above, not a silent reversal
-- the directive's actual intent (no *accidental* drops) still stands for
-everything else.
+**Update (2026-07-19)**: this describes the Phase 1/2-era inventory,
+when the goal was "don't lose anything *accidentally* mid-refactor." A
+later, deliberate flake.nix necessity audit found `nur`/`nixgl` have
+zero consumers anywhere - both are now commented out (not deleted) per
+explicit user decision (see `decisions.md`). An authorized exception to
+the framing above, not a silent reversal - the "no accidental drops"
+intent still stands for everything else.
 
 ### 1c. When config loses its home in `dots`, document its `dots-local` replacement
 
@@ -408,32 +401,23 @@ shellcheck/editing.
 
 ---
 
-## 10. Core tool list review (non-aggressive)
+## 10. Core tool list review (non-aggressive) - resolved
 
-`modules/core/default.nix`'s package list (~40 packages) is not actually
-bloated. Found during a quick eval-based check:
-- `psutils` is **PostScript document utilities** (psnup/psselect), not
-  process utilities — likely an accidental inclusion given the unhelpful
-  inline comment ("psutils # psutils"). Flagged for confirmation, not
-  auto-removed (see `open-questions.md`).
-- `t3` is actually **"next generation tee with colorized output streams and
-  precise timestamping"**, not a tree-like utility — the inline comment
-  ("Tree-like utility") is simply wrong. Whether to keep depends on whether
-  it's used for its *real* purpose (tee replacement) — flagged, not removed.
-- `tree` + `t3` potentially overlapping intent given the wrong comment;
-  `moor`/`ov`/`less` (three pagers) and `curl`/`wget`/`curlie` (three HTTP
-  fetchers) look redundant at a glance but are plausibly intentional
-  (different habitual uses) — **not** trim candidates without explicit
-  confirmation, per "not aggressive" instruction. **Update (post-Phase-9
-  core-minimization round)**: user did later explicitly confirm removing
-  `t3`/`psutils`/`moor`/`ov` (kept `curl`+`wget`, moved `curlie` to
-  `suites.network-tools` as opt-in) - see `decisions.md`'s "CLI-only
-  defaults, core minimization, editor/pager cleanup" entry. This
-  paragraph's original caution was correctly conservative; not a
-  contradiction, just superseded once the user actually weighed in.
-- Everything else (ripgrep/fd/bat/lsd/zoxide/fzf/starship/btop/helix/dust/
-  tokei/procs/tailspin/tealdeer/difftastic/vivid/gum/...) is exactly the
-  "modern CLI / rust rewrite" toolkit the user explicitly wants kept.
+Original approach: `modules/core/default.nix`'s package list wasn't
+aggressively trimmed - only genuinely mislabeled/accidental inclusions
+were flagged for confirmation first (`psutils` = PostScript utils, not
+process utils; `t3` = a tee-replacement, not tree-related, despite its
+comment claiming otherwise), leaving plausible-but-unconfirmed overlaps
+(pagers, HTTP fetchers) alone pending explicit user input.
+
+**Resolved** (post-Phase-9 core-minimization round): user confirmed
+removing `psutils`/`t3`/`moor`/`ov`; kept `curl`+`wget`, moved `curlie`
+to `suites.network-tools` as opt-in. Pagers/HTTP-fetcher overlap
+confirmed intentional, kept as-is (see `decisions.md`/
+`open-questions.md`). Everything else (ripgrep/fd/bat/lsd/zoxide/fzf/
+starship/btop/helix/dust/tokei/procs/tailspin/tealdeer/difftastic/
+vivid/gum/...) is exactly the "modern CLI / rust rewrite" toolkit the
+user wants kept.
 - Found in passing: `programs.ssh.matchBlocks` (used in `chromaden.nix`) is
   deprecated in favor of `programs.ssh.settings` — a harmless warning today,
   worth fixing opportunistically.

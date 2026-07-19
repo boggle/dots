@@ -358,48 +358,37 @@ Several real Nix/evalModules quirks surfaced while wiring up
 14. **CRITICAL, learned from a real live failure: removing a `home.file`
     declaration is NOT the same as disabling it, when another module
     ALSO declares the same path.** Phase 6's first live attempt failed
-    with `Permission denied` writing to `~/.bashrc`. Root cause: `nixon.nix`
-    previously `lib.mkForce`'d `home.file.".bashrc"`/`".profile"`, which WON
-    over Home Manager's own **built-in** `programs.bash` module (enabled
-    via `programs.bash.enable = true` in `flake.nix`, completely
-    independent of `nixon.nix`) - that HM module *also* declares
-    `home.file.".bashrc"` itself (that's literally the mechanism by which
-    `programs.bash.*` options become a real `~/.bashrc`). Simply *removing*
-    `nixon.nix`'s own declaration (rather than disabling the option) meant
-    HM's built-in declaration became uncontested and reclaimed the path,
-    symlinking it back into the read-only Nix store - so the new
-    `ensureDotsShellHook`'s `>> $HOME/.bashrc` append failed with EACCES,
-    since appending to a symlink into `/nix/store` is a permission error
-    by design (immutable store).
-    - **The isolated sandbox tests from earlier (fake `$HOME`, testing
-      just the hook's bash logic) could not have caught this** - they
-      never had `programs.bash`'s competing declaration in the picture at
-      all, since that only exists inside the real Nix module evaluation,
-      not in a bare bash script test. This is a real limit of "extract the
-      logic and sandbox-test it" as a validation technique: it validates
-      the logic in isolation but can't catch cross-module interactions
-      that only manifest in the full module system.
+    with `Permission denied` writing to `~/.bashrc`. Root cause:
+    `nixon.nix` previously `lib.mkForce`'d `home.file.".bashrc"`, which
+    won over Home Manager's own **built-in** `programs.bash` module
+    (independent of `nixon.nix`, enabled via `programs.bash.enable =
+    true`) - that HM module *also* declares `home.file.".bashrc"` itself.
+    Simply *removing* `nixon.nix`'s own declaration (rather than
+    disabling the option) let HM's built-in declaration become
+    uncontested and reclaim the path, symlinking it back into the
+    read-only Nix store - so the new activation hook's `>> $HOME/.bashrc`
+    append failed with EACCES.
+    - Earlier isolated sandbox tests (fake `$HOME`, just the hook's bash
+      logic) could not have caught this - they never had `programs.bash`'s
+      competing declaration in scope at all, since that only exists
+      inside real Nix module evaluation. Real limit of "extract the logic
+      and sandbox-test it": validates the logic in isolation, can't catch
+      cross-module interactions that only manifest in the full module
+      system.
     - **Fix**: explicit `home.file.".bashrc".enable = lib.mkForce false;`
-      (and `.profile` likewise) - not just omitting the declaration.
-      `lib.mkForce false` beats `programs.bash`'s plain `true` regardless
-      of which module set it, telling HM to skip materializing the file
-      at all. Verified this time by actually building the
-      `home-manager-files` derivation and confirming `.bashrc`/`.profile`
-      are absent from its directory listing (not just eval-checking the
-      option value) - the strongest verification short of a live switch.
-    - **General lesson for the rest of this project**: whenever "removing"
-      something Nix-managed that a *different* module might also touch
-      (not just the one you're editing), check whether merely omitting
-      your own declaration is enough, or whether you need to explicitly
-      force-disable the option - especially for options like `home.file.*`
-      that many unrelated modules (`programs.*` wrappers especially) can
-      independently declare. When in doubt, build the actual derivation
-      and inspect its real file listing, not just the option's Nix value.
-    - **Live system was NOT left broken**: the failed activation had
-      already completed HM's own file-linking before the hook step failed,
-      so `~/.bashrc`/`~/.profile` still resolved to valid (if not-yet-final)
-      content the whole time - confirmed via `readlink -f` immediately
-      after the failure, before making any further changes.
+      (and `.profile`) - not just omitting the declaration. Verified by
+      building the actual `home-manager-files` derivation and confirming
+      both paths are genuinely absent from its listing.
+    - **General lesson**: whenever "removing" something Nix-managed that
+      a *different* module might also touch, check whether omitting your
+      own declaration is enough or whether you need to explicitly
+      force-disable the option - especially `home.file.*`, which many
+      `programs.*` wrappers independently declare. When in doubt, build
+      the actual derivation and inspect its real file listing.
+    - Live system was NOT left broken: HM's own file-linking had already
+      succeeded before the hook step failed, so `~/.bashrc`/`~/.profile`
+      still resolved to valid content the whole time (confirmed via
+      `readlink -f` before making any further changes).
 
 15. **Chromaden's power-toggle.sh script content matched byte-for-byte**
    between the old hardcoded version and the new
@@ -408,79 +397,39 @@ Several real Nix/evalModules quirks surfaced while wiring up
    generalization introduced zero behavior change for the one host it was
    fully validated against.
 
-### 2026-07-18 — `update-alien-packages` orphan false-positive: `ghostty`
+### 2026-07-18 — `update-alien-packages` orphan false-positive: `ghostty`, plus 2 more bugs found while fixing it
 User reported `update-alien-packages --action remove` wanted to remove
-`ghostty`, which is actively needed/used. Investigated and found a genuine,
-pre-existing bug (not user-specific config) in
-`modules/core/alien-packages.nix`'s orphan-detection logic:
-- `ghostty`'s alien spec is declared under `pacman` today
-  (`gui-apps.cachyos-packages.nix`), and is genuinely installed as a native
-  package (confirmed `pacman -Qi ghostty` -> `Installed From:
-  cachyos-extra-znver4`, and `pacman -Qm` shows it's NOT a foreign/AUR
-  package). But `~/.local/share/dots/packages/orphaned/paru.txt` still
-  listed it - a stale leftover almost certainly from before ghostty was
-  added to the official repos (when its spec was presumably
-  `paru = [...]`).
-- Root cause: orphan detection only ever cross-checked a package against
-  *the same manager's* required list (`orphans = previously_installed(mgr)
-  - required(mgr)`), never against the union of all managers. Since pacman
-  and paru share the exact same underlying installed-package database
-  (`paru` is just an AUR-aware `pacman` wrapper; `get_installed_packages`
-  literally runs `pacman -Qq` for both), a package whose *spec* moves from
-  one manager to another gets permanently stuck flagged as an orphan under
-  the OLD manager, forever, even though it's still required (just via a
-  different manager) and still genuinely installed. `sudo pacman -Rns`
-  doesn't care which manager "owns" a package, so running the remove action
-  would have genuinely uninstalled the working ghostty binary.
-- Also found: `aocl-gcc`/`aocl-utils` were in the same orphan file, but
-  these are NOT currently installed at all (`pacman -Qi` errors "not
-  found") - genuinely orphaned tracking-wise, but harmless either way since
-  there's nothing installed to actually remove.
-- **Fix implemented:** added `get_all_required()` (union of all
-  `required/*.txt` files) and used it everywhere orphan status is computed
-  or filtered (both the fresh per-run orphan calculation and the cumulative
-  orphan-file reconciliation), plus a defense-in-depth check directly in
-  `remove_packages`'s prompt loop that skips (with a clear message) any
-  package still required by ANY manager's current spec, even if the orphan
-  file hasn't been refreshed yet.
-- **Second bug found while testing the fix**: `get_all_required`'s first
-  implementation used `cat "$PKG_DIR"/*.txt | sort -u` - but those files are
-  Nix `home.file` text (`lib.concatStringsSep "\n" packages`), which does
-  **not** end in a trailing newline. Plain `cat` then glues the last line of
-  one file to the first line of the next (e.g. `zellij` + `frogmouth` ->
-  `zellijfrogmouth`), silently dropping BOTH names from the computed set.
-  Fixed by using `awk 1 "$PKG_DIR"/*.txt | sort -u` instead, which
-  normalizes every line to be newline-terminated regardless of each file's
-  own ending. Caught this by manually replicating the `comm` computation
-  step-by-step against the real on-disk files rather than trusting the
-  script's output at face value.
-- **Third bug found while testing the fix (pre-existing, not introduced by
-  this change)**: `remove_packages` used `((counter++))` under `set -e`
-  (enabled at the top of the whole script). Bash arithmetic command
-  `((expr))` returns the shell-truth value of the *result*; post-increment's
-  result is the OLD value, so the very first increment from 0 evaluates to
-  `((0))` = false = failure exit status, which `set -e` treats as reason to
-  abort the entire script immediately, silently, no error message. Verified
-  in isolation: `bash -c 'set -e; n=0; echo before; ((n++)); echo after'`
-  prints only `before`. Concretely this meant: the first time a user
-  skipped or successfully removed a package during
-  `update-alien-packages --action remove`, the script would silently exit
-  right there, leaving any remaining orphans in the file completely
-  unprocessed (no error shown - looks like it just "finished early").
-  Verified by testing the remove flow end-to-end with 3 orphan entries and
-  observing only the first got prompted. Fixed by replacing all 5
-  occurrences of `((var++))` with `var=$((var + 1))` (plain assignment,
-  always succeeds regardless of the resulting value).
-- **Verified end-to-end on the live system** (not just eval): ran the
-  actual built `update-alien-packages` binary directly from its
-  `/nix/store` path against real `~/.local/share/dots/packages/*` state -
-  confirmed (a) dry-run now shows "All packages in order" for both
-  managers, (b) the remove flow now correctly processes all 3 orphan
-  entries in one pass (auto-skipping `ghostty` with a clear message,
-  prompting normally for the two non-installed AOCL packages), and (c) a
-  real (non-dry-run) `update` action self-healed the stale orphan file,
-  removing the `ghostty` entry automatically with no manual file editing
-  needed.
+`ghostty`, actively needed/used. Root cause: orphan detection only ever
+cross-checked a package against *the same manager's* required list, never
+the union of all managers. Since pacman/paru share the same underlying
+installed-package DB, a package whose spec moves from one manager to
+another (ghostty: `paru`→`pacman` once it hit official repos) gets
+permanently stuck flagged as an orphan under the old manager forever,
+even though still required and installed - `pacman -Rns` doesn't care
+which manager "owns" it, so this would have genuinely uninstalled a
+working package.
+
+**Fix**: added `get_all_required()` (union of all `required/*.txt`
+files), used everywhere orphan status is computed/filtered, plus a
+defense-in-depth check in the removal prompt loop itself.
+
+**Two more pre-existing bugs found while testing the fix**:
+1. `get_all_required`'s first cut used plain `cat` on files that don't
+   end in a trailing newline (Nix `home.file` text) - glues the last
+   line of one file to the first of the next (`zellij`+`frogmouth` →
+   `zellijfrogmouth`), silently dropping both names. Fixed with `awk 1`
+   instead (normalizes every line to be newline-terminated).
+2. `remove_packages` used `((counter++))` under `set -e` - post-
+   increment's *result* is the old value, so incrementing from 0 is
+   `((0))` = false = `set -e` aborts the whole script silently on the
+   very first prompt, no error shown. Fixed by replacing all 5
+   occurrences with `var=$((var + 1))` (plain assignment, always
+   succeeds).
+
+Verified end-to-end on the live system (not just eval): dry-run now
+shows "All packages in order"; the remove flow correctly processes all
+orphans in one pass; a real `update` self-healed the stale `ghostty`
+entry automatically.
 
 ### 2026-07-19 — Phase 8: externalizing scripts that have real Nix interpolations
 - Not every embedded script can be a straight `builtins.readFile` swap like

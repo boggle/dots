@@ -3,6 +3,15 @@
 Append-only. Newest entries at the bottom. Each entry: date, decision,
 rationale, and (if relevant) who/what prompted it.
 
+**Standard validation approach used throughout** (not repeated in full
+per entry - only entry-specific facts are called out below): `nix eval`
+for fast iteration, a full `nix build .../activationPackage` before
+considering anything done, before/after `config.home.packages`/
+`config.alienPackages.enabledPackages` diffs (`git stash`/`pop` or
+`git worktree` for multi-commit spans) to confirm behavior-preservation,
+and synthetic `dots-local` copies under `/tmp` for testing axis
+combinations without touching the real system.
+
 ---
 
 ### 2026-07-18 — Memory bank location and format
@@ -767,12 +776,9 @@ choice avoids adding complexity/a bootstrapping dependency to the one
 script that has to work with nothing but a bare `nix` install and a
 git clone of `dots` - nothing else in the whole system needs to exist
 yet when `setup.sh` runs.
-**Validated:** fresh-setup regression test (sandboxed `$HOME`, ran the
-identity-generation half of `setup.sh`, `nix eval`/`nix build` the
-result) - confirms the template-generated `dots-local` evaluates and
-builds cleanly end-to-end; also re-verified chromaden's own real
-`dots-local` (unaffected by this change, since it's a hand-edited file
-already, not regenerated) still builds with zero new derivations.
+**Validated:** fresh-setup regression test - template-generated
+`dots-local` builds cleanly end-to-end; chromaden's real `dots-local`
+(hand-edited, not regenerated) unaffected, zero new derivations.
 
 ---
 
@@ -853,12 +859,8 @@ verification; applied the confirmed, low-risk fixes below in one round
   mechanism and why). No code change needed there or in
   `viewer.nix`/`dev-tools.nix`, which use the identical pattern.
 
-**Validated**: full `nix build .#homeConfigurations.default
-.activationPackage` after all fixes; byte-level `config.home.packages`
-diff against the last commit (`bd1b2e7`, via `git worktree`) shows
-*exactly* the intended removals (one each of `bash`, `delta`, `zellij`,
-two of `lazygit`, one of `gh`) and nothing else - confirms the whole
-round is behavior-preserving except the deliberate dedup fixes.
+**Validated**: diff shows *exactly* the intended removals (one each of
+`bash`/`delta`/`zellij`, two of `lazygit`, one of `gh`) and nothing else.
 
 ---
 
@@ -942,14 +944,10 @@ unaffected (it strips everything matching `/nix` from PATH first, which
 also removes what the new guard just added, then re-adds it back
 itself - composes correctly, no behavior change there).
 
-**Validated**: full `nix build`, then a REAL `apply-dots` run on
-chromaden (previously reproducing the exact reported failure) -
-completed successfully end-to-end this time (package build, activation,
-alien package check, desktop database update all succeeded). Confirmed
-via a fresh `bash -l` afterward: `NIXON=1`, `which nix` → `/nix/var/
-nix/profiles/default/bin/nix`, `which nh` → resolves correctly. Also
-spot-checked `nixoff` still works and correctly keeps `nix`/`nh`
-reachable while being in "pure host" mode.
+**Validated**: a REAL `apply-dots` run on chromaden (previously
+reproducing the exact reported failure) completed successfully
+end-to-end; fresh `bash -l` afterward confirms `NIXON=1` with `nix`/`nh`
+both resolving correctly, and `nixoff` still works too.
 
 **Related, separate fix in this same round**: found (via the running
 `apply-dots` output itself, and via `~/dots-local`'s own uncommitted
@@ -1043,10 +1041,8 @@ deciding whether to implement the recalled intent or just document it
 as inert self-labeling metadata (matching the `barch`/`location`-axis
 precedent for kept-but-unconsumed fields).
 
-**Validated**: full `nix build`, plus a byte-identical
-`config.home.packages` diff (via `git worktree` against the prior
-commit) confirming zero package-list impact from this round (all
-config/doc-only fixes, as expected).
+**Validated**: zero package-list impact from this round, as expected
+(all config/doc-only fixes).
 
 ---
 
@@ -1075,16 +1071,9 @@ flagged (harmless redundancy, not a real disagreement) - only genuine
 divergence.
 
 **Validated**: confirmed zero real conflicts exist today across all 5
-distros' spec files (`cachyos`/`azurelinux3`/`azurelinux4`/`debian`/
-`opensuse`) before adding the check, so the new `throw` path can't
-regress the current build. Then verified the check actually fires:
-temporarily duplicated `nmap`'s key into a second spec file with
-deliberately different pacman package content, confirmed the exact
-expected error (naming both conflicting files) on `nix eval`, reverted
-cleanly, confirmed the build returns to green. Full
-`config.home.packages` diff against the prior commit is byte-identical
-(expected - this round only touched spec-file metadata and the
-discovery function's internals, not any actual package data).
+distros' specs before adding the check. Verified it actually fires:
+temporarily duplicated `nmap`'s key with divergent content across two
+files, confirmed the exact expected error, reverted cleanly.
 
 ---
 
@@ -1109,10 +1098,8 @@ elsewhere (`noctalia-qs.enable`, `noctalia-qs.overlays.default`) and was
 never actually part of the dead cross-reference; the two coincidentally
 share a name but are otherwise unrelated.
 
-**Validated**: warning confirmed gone from `nix build` output;
-byte-identical `config.home.packages` diff against the prior commit
-(via `git worktree`) confirms zero behavior change - purely removed a
-no-op line.
+**Validated**: warning confirmed gone; zero behavior change (purely
+removed a no-op line).
 
 ---
 
@@ -1148,21 +1135,12 @@ consolidation, but there's no macOS host to validate against and no
 concrete logic drafted for either yet. Revisit if/when a real need
 emerges, same status as before this round.
 
-**Validated**: full `nix build`. Three synthetic scenarios tested via
-temporary `dots-local` edits (backed up, reverted immediately after
-each): (1) default niri/wayland - `platformBackend` = `"wayland"`,
-unaffected; (2) `isWsl = true` - `platformBackend` = `"wsl"`,
-`features.opener.enable` = `true`, matching pre-refactor behavior; (3)
-`compositor = null` with `features.clipboard.enable` force-set via
-`lib.mkForce true` (bypassing rules.nix's own gating) - confirmed the
-new assertion fires with its intended clear message, not a raw
-"cannot coerce null to string" crash from the `.${backend}` attrset
-lookups inside `clipboard.nix`/`opener.nix`. Full `config.home.packages`
-diff AND the generated `.bashrc-nix` file's byte-for-byte content (which
-embeds the resolved `BACKEND=`/`COPY_CMD=`/`PASTE_CMD=` values) both
-confirmed identical to the pre-refactor commit for the real (default)
-configuration. Updated README.md/OVERVIEW.md's docs to stop describing
-`backend` as a user-settable option on either feature.
+**Validated**: three synthetic scenarios (default niri/wayland, WSL,
+and `compositor = null` with clipboard force-enabled) - all resolve
+correctly, including the null-backend case producing the intended clear
+assertion instead of a raw crash. Byte-identical for the real config.
+Updated README.md/OVERVIEW.md to stop describing `backend` as
+user-settable.
 
 ---
 
@@ -1202,17 +1180,12 @@ is actually meant to be conditionally required) to ever take effect.
 Left as-is since fixing it wasn't requested and doing so would need
 its own design decision about when FUSE2 should actually be required.
 
-**Validated**: real (cachyos) config's full build + byte-identical
-`config.home.packages` diff against the prior commit (new Debian-only
-files have zero effect on cachyos, as expected). Separately, built a
-synthetic `dots-local` with `distro = "debian"` and all four suites
-force-enabled (via a temporary `extraModules` test file, cleaned up
-after) - confirmed: (1) no alien-spec conflicts thrown, (2) every
-newly-added package (`chafa`/`catimg`/`yt-dlp`/`gh`/`azure-cli`/`caddy`)
-correctly disappears from `config.home.packages` (now alien-managed)
-while packages without a new Debian spec (`marksman`/`mkcert`) correctly
-remain as Nix packages (expected fallback), and (3) the generated
-`required/apt.txt` contains exactly the expected package names.
+**Validated**: real (cachyos) config unaffected, as expected. A
+synthetic `distro = "debian"` config with all four suites force-enabled
+confirmed: no spec conflicts, every newly-covered package correctly
+alien-shadows its Nix counterpart while uncovered ones
+(`marksman`/`mkcert`) correctly stay as Nix fallback, and
+`required/apt.txt` contains exactly the expected names.
 
 ---
 
@@ -1254,23 +1227,15 @@ now-unused `pkgs/quarkdown-launcher.sh`. Added `meta.platforms = [
 wired up (macOS/Windows assets exist upstream but aren't fetched -
 no current need, `dots` doesn't target those platforms today).
 
-**Validated**: built the derivation directly (`nix build
-.#homeConfigurations.default.pkgs.external.quarkdown`), ran the
-resulting binary directly - `quarkdown --version` reports `2.4.0`, and
-a full `quarkdown c main.qd` compile of a trivial test document
-succeeded end-to-end (verified the actual rendered HTML output
-contained the expected content) - confirms the bundled JRE runs
-correctly on this system with zero patching (`autoPatchelfHook` etc.
-were not needed - this project targets Nix-as-secondary-package-manager
-on real FHS Linux distros, not NixOS itself, so a standard prebuilt
-ELF binary expecting `/lib64/ld-linux-x86-64.so.2` at the conventional
-system path finds it via the host distro's own glibc, same as any
-other non-Nix-packaged binary would). Full flake build succeeds;
-byte-identical `config.home.packages` diff against the prior commit
-(expected - `features.quarkdown.enable = false` on chromaden currently,
-so this has zero live effect until/unless the user turns it on;
-package-definition correctness was validated by direct invocation
-instead, as shown above).
+**Validated**: built the derivation directly and ran the resulting
+binary - `quarkdown --version` reports `2.4.0`, and a full `quarkdown c`
+compile succeeded end-to-end with correct rendered HTML output. Bundled
+JRE runs with zero patching needed (`autoPatchelfHook` etc. not
+required - this project targets Nix atop a real FHS distro, not NixOS,
+so a prebuilt ELF binary finds the host's own glibc/dynamic-linker
+normally). `features.quarkdown.enable = false` on chromaden currently,
+so zero live effect either way - correctness validated by direct
+invocation instead.
 
 ---
 
@@ -1314,14 +1279,10 @@ the actual, verified reason (a quarto version-compatibility pin, not a
 pandoc version pin) with the concrete evidence above, rather than
 perpetuating the stale claim.
 
-**Validated**: full flake build succeeds; confirmed `pkgs.pandoc`'s
-resolved store path now matches building `pandoc` directly from the
-main `nixpkgs` input (previously it matched the separate pinned-input
-build). Most importantly, ran `quarto check` using the **exact**
-combination `dots`'s config will actually use post-fix (pinned quarto
-1.8.26 + `QUARTO_PANDOC` explicitly forced to the main-nixpkgs pandoc
-build) - renders cleanly, confirming this specific real-world pairing
-works, not just each piece in isolation.
+**Validated**: `pkgs.pandoc` now resolves from the main `nixpkgs` input
+as expected. Ran `quarto check` using the **exact** combination `dots`
+will actually use post-fix (pinned quarto 1.8.26 + main-nixpkgs pandoc)
+- renders cleanly.
 
 ---
 
@@ -1362,16 +1323,10 @@ named-but-absent input otherwise), and commented out
 `nur.overlays.default` from the applied `overlays` list in
 `mkHomeConfig`.
 
-**Validated**: full build succeeds; `nix build` output explicitly
-confirms `nixgl`/`nur` and all their transitive sub-inputs
-(`flake-utils`, `flake-parts`, `nixpkgs-lib`, nested `nixpkgs`) are
-cleanly removed from the flake's lock graph. Byte-identical
-`config.home.packages` diff against the prior commit (expected - by
-definition, removing genuinely-unused inputs/overlays cannot change any
-resolved package). Updated `architecture.md` section 1b and
-`preserved-features-checklist.md` in place to note this explicitly-
-authorized exception rather than leave them looking silently
-contradicted.
+**Validated**: `nixgl`/`nur` and all their transitive sub-inputs cleanly
+removed from the lock graph; zero package-list impact, as expected.
+Updated `architecture.md`/`preserved-features-checklist.md` in place to
+note this explicitly-authorized exception.
 
 ---
 
@@ -1419,12 +1374,7 @@ than treating it as one-of-several optional axis examples. `setup.sh`
 updated to copy and `git add` it alongside the other template files;
 its "Next steps" output updated to mention it.
 
-**Validated**: ran the standing fresh-setup regression test (sandboxed
-`$HOME`, real `setup.sh priv` invocation end-to-end including the
-actual `git init`/`git add`/`git commit` steps, not just the identity-
-substitution half) - confirmed `host.nix` is copied/committed correctly
-alongside the other template files, and a full `nix build .../
-activationPackage` against the freshly-generated `dots-local` succeeds
-cleanly. Also re-confirmed the real chromaden config is completely
-unaffected (as expected - `templates/` is never imported by the actual
-flake build graph, only referenced by `setup.sh` itself).
+**Validated**: real `setup.sh priv` invocation end-to-end (not just the
+identity-substitution half) - `host.nix` copied/committed correctly, the
+freshly-generated `dots-local` builds cleanly. Real chromaden config
+unaffected, as expected.
