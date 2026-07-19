@@ -3,9 +3,21 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    # Known-good nixpkgs revision: quarto 1.8.26 + pandoc 3.1.11.1.
-    # Current nixos-unstable ships quarto 1.9.37 which expects pandoc 3.8+,
-    # but the pandoc in the same nixpkgs is only 3.7.0.2.
+    # Pinned nixpkgs revision providing quarto 1.8.26 - re-verified
+    # 2026-07-19: current nixos-unstable's quarto 1.9.37 has a genuine,
+    # reproducible functional break with the pandoc version in the SAME
+    # nixpkgs revision (3.7.0.2) - `quarto check`'s basic markdown render
+    # step fails with `Aeson exception: Unknown option
+    # "syntax-highlighting"` (quarto 1.9.37 passes a pandoc CLI flag that
+    # doesn't exist until pandoc 3.8+). quarto 1.8.26 doesn't use that
+    # flag and renders cleanly with the exact same pandoc 3.7.0.2 -
+    # confirmed by building both quarto versions directly and running
+    # `quarto check` against each. This is purely a QUARTO version-pin
+    # (older quarto compatible with current pandoc) - NOT a pandoc
+    # version pin (pandoc is 3.7.0.2 in both this revision and unstable;
+    # an earlier version of this comment incorrectly claimed "pandoc
+    # 3.1.11.1" - that was already stale/inaccurate before this fix, see
+    # memory-bank/learnings.md).
     nixpkgs-quarto-pin.url = "github:nixos/nixpkgs/15f4ee454b1dce334612fa6843b3e05cf546efab";
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -93,9 +105,14 @@
              doCheck = false;
            });
            external.quarkdown = prev.callPackage ./pkgs/quarkdown.nix {};
-           # Known-good pairing from pinned nixpkgs: quarto 1.8.26 + pandoc 3.1.11.1
+           # Only quarto itself needs pinning (see the nixpkgs-quarto-pin
+           # input comment above for the actual, verified reason) - pandoc
+           # is NOT separately overridden here, since its version is
+           # identical between this pinned revision and current unstable
+           # anyway; plain `pkgs.pandoc` (main nixpkgs) is used everywhere
+           # else already (tui-apps.nix, dev-tools.nix), no need to special-
+           # case it.
            quarto = inputs.nixpkgs-quarto-pin.legacyPackages.${prev.stdenv.hostPlatform.system}.quarto;
-           pandoc = inputs.nixpkgs-quarto-pin.legacyPackages.${prev.stdenv.hostPlatform.system}.pandoc;
          };
       tuning = import ./modules/flake/package-tuning.nix { inherit lib dotsLocal; };
       

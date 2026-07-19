@@ -1271,3 +1271,54 @@ byte-identical `config.home.packages` diff against the prior commit
 so this has zero live effect until/unless the user turns it on;
 package-definition correctness was validated by direct invocation
 instead, as shown above).
+
+---
+
+### 2026-07-19 — `nixpkgs-quarto-pin`: simplified to a quarto-only pin, dropped the redundant pandoc override
+User (correctly) asked whether the pinned-nixpkgs input for quarto/
+pandoc was still needed, suspecting leftover complexity similar to the
+Quarkdown JRE situation just fixed. Investigated with hard evidence
+rather than trusting the existing (already-known-partially-stale, see
+the 2026-07-18 "cosmetic warning" investigation entry) flake.nix
+comment:
+
+- Built `quarto` directly from **current** `nixos-unstable` (fetched
+  live) - version 1.9.37. `quarto check`'s "basic markdown render" step
+  genuinely fails: `Aeson exception: Error in $: Unknown option
+  "syntax-highlighting"` - a real, reproducible functional break, not
+  just a benign strict-version-check warning (quarto 1.9.37 passes a
+  pandoc CLI flag that doesn't exist until pandoc 3.8+).
+- Built `quarto` from the pinned revision (`15f4ee454b...`) - version
+  1.8.26. Same check passes cleanly with no error.
+- **Critically**: checked what pandoc version is actually in play in
+  both cases by reading each `quarto` binary's own hardcoded
+  `QUARTO_PANDOC` default (baked in at nixpkgs build time) - both the
+  pinned revision AND current unstable resolve to pandoc **3.7.0.2**,
+  identically. The existing flake.nix comment's claim of "pandoc
+  3.1.11.1" was simply wrong (matching the earlier-logged, previously
+  "pre-existing, unrelated" stale-comment finding) - pandoc's version
+  was never actually different between the two revisions; only
+  quarto's version (and thus its own compiled-in pandoc-CLI-flag
+  expectations) is what matters.
+- Confirmed neither existing consumer of `pkgs.pandoc`
+  (`tui-apps.nix`, `dev-tools.nix`) has any special dependency on the
+  specific pinned build - both just want "a normal pandoc".
+
+**Fix**: removed the `pandoc = inputs.nixpkgs-quarto-pin...` line from
+`externalOverlay` entirely - only `quarto` is still sourced from the
+pin. `pkgs.pandoc` now resolves to plain main-`nixpkgs` pandoc
+everywhere (same reported version, 3.7.0.2, just from the main input
+instead of a redundant separate build). Rewrote both the
+`nixpkgs-quarto-pin` input comment and the overlay comment to describe
+the actual, verified reason (a quarto version-compatibility pin, not a
+pandoc version pin) with the concrete evidence above, rather than
+perpetuating the stale claim.
+
+**Validated**: full flake build succeeds; confirmed `pkgs.pandoc`'s
+resolved store path now matches building `pandoc` directly from the
+main `nixpkgs` input (previously it matched the separate pinned-input
+build). Most importantly, ran `quarto check` using the **exact**
+combination `dots`'s config will actually use post-fix (pinned quarto
+1.8.26 + `QUARTO_PANDOC` explicitly forced to the main-nixpkgs pandoc
+build) - renders cleanly, confirming this specific real-world pairing
+works, not just each piece in isolation.
