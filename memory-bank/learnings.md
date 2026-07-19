@@ -570,3 +570,44 @@ either (a) actually updating it at the end of every phase as promised, or
 (b) being honest that it won't happen incrementally and explicitly
 scheduling one consolidated pass near the end instead, rather than leaving
 a disclaimer that quietly goes stale.
+
+### 2026-07-19 — Conditionally-omitted module-system keys vs. conditionally-empty values
+Found while fixing `setup.sh`'s drift from `modules/local/schema.nix` and
+doing a real fresh-setup regression test (sandboxed `$HOME`, run just the
+identity-generation half of `setup.sh`, then `nix eval` the result - a
+technique worth reusing any time you need to check "does this work for a
+genuinely new user with nothing customized yet", which is a fundamentally
+different test than anything that uses chromaden's real, fully-populated
+`dots-local`).
+
+`features/network.nix` had:
+```nix
+settings."*" = lib.mkIf (dotsLocal.machine.sshIdentityFile != null) {
+  IdentityFile = dotsLocal.machine.sshIdentityFile;
+  AddKeysToAgent = "yes";
+};
+```
+This looks like it should produce an "empty settings entry" when
+`sshIdentityFile` is null, but `lib.mkIf false <anything>` doesn't
+evaluate to an empty value assigned to the key - it's a special internal
+marker meaning "this module doesn't contribute a definition for this
+option path at all", and when NO module anywhere contributes a
+definition for `settings."*"`, the key is entirely absent from the final
+`config.programs.ssh.settings` attrset (not present-with-value-`{}`).
+Home Manager's own `programs.ssh` module asserts `settings ? "*"` (the
+key must exist) whenever `enableDefaultConfig = false` and `extraConfig`
+is set - it doesn't care what's IN `settings."*"`, only that something
+declared it. So `lib.mkIf` on the whole value was silently violating that
+assertion whenever `sshIdentityFile` was null, which never showed up in
+any real validation because chromaden's `dots-local` always sets
+`sshIdentityFile` - only a truly fresh, uncustomized config exposes it.
+
+**General lesson**: `lib.mkIf cond value` conditionally omits a
+*definition* for an option path; it is NOT equivalent to "the value is
+conditionally `{}`/empty" if something downstream (an assertion, another
+module reading `option ? key`, etc.) cares about whether the path was
+declared at all versus merely empty. When that distinction matters, build
+the conditional at the plain-value level instead
+(`if cond then {...} else {}`), so the option path is always assigned
+*something*, keeping the key's mere presence unconditional even though
+its contents vary.

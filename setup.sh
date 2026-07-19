@@ -19,7 +19,9 @@ SYSTEM="x86_64-linux"
 MARCH="native"
 BARCH="x86_64-v3"
 DISTRO="cachyos"
-# Supported distro values: cachyos | opensuse | azurelinux3
+# Supported distro values: cachyos | opensuse | azurelinux3 | azurelinux4 | debian
+# (selects the alien-package backend - see modules/local/schema.nix's
+# `distro` option description for the full list)
 
 # 1. Create dots-local if it doesn't exist
 if [ ! -d "$DOTS_LOCAL" ]; then
@@ -80,6 +82,31 @@ EOF
       enableGuiDefaults = true;
       graphicalBackend = "wayland";
       nixonDefault = false;
+
+      # Hardware/context axes - all optional, uncomment and set what
+      # applies to this machine. See modules/local/schema.nix and
+      # README.md's "Adding a New Host" section for the full list and
+      # what each one drives (via modules/rules.nix).
+      # gpu = "nvidia";           # or "amd" / "intel" / omit entirely
+      # compositor = "niri";      # omit for a CLI-only machine
+      # isWsl = true;              # if running under WSL
+
+      # Per-machine hardware/peripheral config - all fields optional.
+      # machine = {
+      #   sshIdentityFile = "~/.ssh/id_github_${HOSTNAME}";
+      #   terminal = "ghostty";                # only used if compositor == "niri"
+      #   renderDrmDevice = null;               # let niri auto-detect, or set explicitly
+      #   display = {                           # omit entirely to skip power-toggle.sh
+      #     output = "eDP-1";
+      #     ecoMode = { resolution = "1920x1200"; brightness = "30%"; };
+      #     perfMode = { resolution = "1920x1200"; refreshRate = "120.000"; };
+      #   };
+      # };
+
+      # For anything too bespoke to express as an axis above (e.g. exact
+      # CUDA/compiler flags for one particular GPU), add a small module
+      # file next to this one and reference it here:
+      # extraModules = [ ./host-${HOSTNAME}.nix ];
       
       # AppImages configuration
       appimagesDir = "${HOME}/Applications/AppImages";
@@ -145,6 +172,9 @@ echo "Setup complete! Restart your shell to use 'apply-dots'."
 echo ""
 echo "Next steps:"
 echo "1. Edit ~/dots-local/flake.nix to set your name, email, and (optionally) tune flag overrides"
-echo "2. Add AppImages to ~/dots-local/appimages.nix"
-echo "3. Uncomment and configure sync.tracked if desired"
-echo "4. Run apply-dots to activate changes"
+echo "2. Uncomment gpu/compositor/isWsl/machine if this host has a GPU, a niri desktop,"
+echo "   is under WSL, or needs an SSH identity/display config (see README.md's"
+echo "   'Adding a New Host' section for the full explanation of each field)"
+echo "3. Add AppImages to ~/dots-local/appimages.nix"
+echo "4. Uncomment and configure sync.tracked if desired"
+echo "5. Run apply-dots to activate changes"

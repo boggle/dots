@@ -432,3 +432,65 @@ a before/after `config.home.packages`/`config.alienPackages.enabledPackages`
 diff - byte-identical - plus every renamed option's resolved value
 spot-checked to match its pre-move value exactly). Improves discoverability
 and keeps the documented convention actually true going forward.
+
+### 2026-07-19 — `setup.sh` must track `schema.nix`; standing rule added
+**Decision:** User asked to revise `setup.sh`/`sync.sh` for the current
+architecture, and to specifically anchor an ongoing "keep setup.sh
+current" rule in the memory bank/AGENTS.md, since `setup.sh`'s generated
+`dots-local/flake.nix` template had silently fallen behind
+`modules/local/schema.nix` - it predated Phase 2 entirely and never
+gained `gpu`/`compositor`/`isWsl`/`machine.*`/`extraModules` fields, nor
+an up-to-date `distro` comment (missing azurelinux4/debian).
+
+Fixed `setup.sh`'s template to include all of these as commented-out,
+documented optional fields (matching README.md's "Adding a New Host"
+example), updated its "Next steps" messaging to mention them, and fixed
+the stale `distro` comment.
+
+**Bigger finding while testing the fix**: doing a real fresh-setup
+regression test (running the identity-generation half of `setup.sh` in a
+sandboxed `$HOME`, then `nix eval` against the result) surfaced a genuine,
+previously-undetected bug: with `machine` left fully commented-out (the
+literal default state for any brand-new user who hasn't customized
+anything yet), evaluation fails outright with `Cannot set
+'programs.ssh.extraConfig' if 'programs.ssh.settings."*"' (default host
+config) is not declared` - because `features/network.nix` used `settings."*"
+= lib.mkIf (dotsLocal.machine.sshIdentityFile != null) { ... };`, which
+omits the `settings."*"` key entirely (not just leaves it empty) when
+`sshIdentityFile` is null, and Home Manager's own `programs.ssh` module
+asserts that key must be declared whenever `enableDefaultConfig = false`
++ `extraConfig` is set. This was never caught by any earlier phase's
+validation because chromaden's real `dots-local` already sets
+`machine.sshIdentityFile`, masking it completely - only a genuinely fresh,
+un-customized config exposes it. Fixed by always declaring `settings."*"`
+(as `{}` when there's no identity file to set, populated when there is)
+instead of conditionally omitting the key itself. Logged in
+`learnings.md` with the general lesson (conditionally-omitted
+module-system keys vs. conditionally-empty values are not
+interchangeable when something else asserts the key's mere presence).
+
+Also implemented `sync.sh`'s `-g`/`--force-regen` flag, which was
+documented in 6 places (`sync.sh`'s own `--help`, README.md, SYNC.md) but
+never actually implemented in `sync.sh`'s argument parsing - `dots-sync
+-g` would have hit `"Unknown: -g"` and exited 1. Also removed a
+now-always-false `${profile%-opt}` suffix-strip in `sync.sh`'s
+global-ignores loader - `dotsLocal.profile` has never had a "-opt" suffix
+(that distinction lives only at the flake-output level, a separate axis),
+so this was dead defensive code left over from before Phase 2's
+flake-output rename.
+
+**Standing rule (added to AGENTS.md's "Common Tasks" section)**: any
+future change to `modules/local/schema.nix` (add/rename/remove a
+`dotsLocal` field) must also update `setup.sh`'s generated template in
+the same change, and a fresh-setup regression test (sandboxed `$HOME`,
+run setup.sh's identity-generation step, `nix eval` the result) should be
+run before considering such a change done - this is the only way to catch
+"works for existing configured machines, breaks for brand-new ones" bugs
+like the one just found, since chromaden's own validation can't surface
+them.
+
+**Rationale:** `setup.sh` is the sole onboarding path for a genuinely new
+machine; letting its template silently drift from the schema (as
+happened across all of Phase 2-9) means every new-machine bootstrap
+either misses newer axis fields entirely or, worse, hard-fails on `nix
+eval` before the user even gets to `apply-dots`.

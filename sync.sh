@@ -3,12 +3,15 @@
 # Maps: settings/<hostname>/home/** → ~/**
 #       settings/<hostname>/root/** → /**
 #
-# Usage: ./sync.sh [-f] [-n] [-i] [--help]
-#   (no flags)   Capture missing/changed files: System → Git
-#   -f, --force  Full sync System → Git (overwrite git + remove orphans)
-#   -n, --dry-run Preview what would happen
-#   -i, --install Generate script: Git → System (reverse)
-#   --help       Show this help
+# Usage: ./sync.sh [-f] [-n] [-i] [-g] [--help]
+#   (no flags)      Capture missing/changed files: System → Git
+#   -f, --force     Full sync System → Git (overwrite git + remove orphans)
+#   -n, --dry-run   Preview what would happen
+#   -i, --install   Generate script: Git → System (reverse)
+#   -g, --force-regen  Force-regenerate sync-config.json from dots-local's
+#                      flake.nix even if it's not stale (normally this only
+#                      happens automatically when flake.nix is newer)
+#   --help          Show this help
 
 DOTS_DIR="${DOTS_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 DOTS_LOCAL_DIR="${DOTS_LOCAL_DIR:-$HOME/dots-local}"
@@ -60,9 +63,12 @@ load_global_ignores() {
         done < <(jq -r '.global_ignores[]?' "$common_file" 2>/dev/null)
     fi
     
-    # Load profile-specific (strip -opt suffix)
-    local base_profile="${profile%-opt}"
-    local profile_file="$DOTS_DIR/profiles/$base_profile/sync.json"
+    # Load profile-specific ignores. NOTE: `profile` here is dotsLocal's
+    # `profile` field (e.g. "priv"/"work") - it never has a "-opt" suffix;
+    # that distinction belongs only to the flake output name
+    # (homeConfigurations.default/default-opt), which is a separate,
+    # unrelated axis (baseline vs. optimized build), not a profile variant.
+    local profile_file="$DOTS_DIR/profiles/$profile/sync.json"
     if [[ -f "$profile_file" ]]; then
         while IFS= read -r pattern; do
             [[ -n "$pattern" ]] && global_ignores+=("$pattern")
@@ -84,11 +90,12 @@ load_local_config() {
 
 # Check and regenerate sync-config.json if needed
 ensure_sync_config_current() {
+    local force_regen="${1:-false}"
     local config_file="$DOTS_LOCAL_DIR/sync-config.json"
     local flake_file="$DOTS_LOCAL_DIR/flake.nix"
     
     # Check if we need to regenerate
-    if [[ ! -f "$config_file" ]] || [[ "$flake_file" -nt "$config_file" ]]; then
+    if [[ "$force_regen" == "true" ]] || [[ ! -f "$config_file" ]] || [[ "$flake_file" -nt "$config_file" ]]; then
         log_info "Regenerating sync-config.json from dots-local flake.nix..."
         if [[ -d "$DOTS_LOCAL_DIR" ]] && command -v nix &> /dev/null; then
             cd "$DOTS_LOCAL_DIR"
@@ -462,23 +469,24 @@ main() {
     local force=false
     local dry_run=false
     local install_mode=false
+    local force_regen=false
     
     while [[ $# -gt 0 ]]; do
         case $1 in
             -f|--force) force=true; shift ;;
             -n|--dry-run) dry_run=true; shift ;;
             -i|--install) install_mode=true; shift ;;
+            -g|--force-regen) force_regen=true; shift ;;
             -h|--help)
-                echo "Usage: $0 [-f] [-n] [-i] [-h]"
+                echo "Usage: $0 [-f] [-n] [-i] [-g] [-h]"
                 echo ""
                 echo "Sync handcrafted configs:"
                 echo "  (no flags)    Capture System→Git (respects per-pattern on_new setting)"
                 echo "  -f, --force   Force System→Git (overwrite + remove orphans)"
                 echo "  -n, --dry-run Dry run (preview only)"
                 echo "  -i, --install Install mode: Git→System (reverse)"
+                echo "  -g, --force-regen  Force-regenerate sync-config.json from flake.nix"
                 echo "  -h, --help    Show this help"
-                echo ""
-                echo "Use 'dots-sync -g' to regenerate config from flake.nix"
                 echo ""
                 echo "Configuration:"
                 echo "  Global ignores: dots/profiles/<profile>/sync.json"
@@ -494,8 +502,9 @@ main() {
         exit 0
     fi
     
-    # Ensure sync-config.json is current (regenerate if flake.nix is newer)
-    ensure_sync_config_current
+    # Ensure sync-config.json is current (regenerate if flake.nix is newer,
+    # or unconditionally if -g/--force-regen was passed)
+    ensure_sync_config_current "$force_regen"
     
     # Verify local config exists
     if ! verify_config; then

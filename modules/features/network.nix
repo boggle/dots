@@ -25,11 +25,16 @@ in
         Include ~/.ssh/config.vscode
       '';
       # Per-machine default identity file. Null (the default) means no
-      # host-specific identity block is added here.
-      settings."*" = lib.mkIf (dotsLocal.machine.sshIdentityFile != null) {
-        IdentityFile = dotsLocal.machine.sshIdentityFile;
-        AddKeysToAgent = "yes";
-      };
+      # IdentityFile override is added. NOTE: `settings."*"` must always be
+      # declared (even as `{}`) rather than conditionally omitted via
+      # `lib.mkIf` - Home Manager's own programs.ssh module asserts that
+      # `settings."*"` is declared whenever `enableDefaultConfig = false`
+      # and `extraConfig` is set, regardless of whether it ends up empty.
+      settings."*" =
+        if dotsLocal.machine.sshIdentityFile != null then {
+          IdentityFile = dotsLocal.machine.sshIdentityFile;
+          AddKeysToAgent = "yes";
+        } else {};
     };
 
     home.activation.ensureSshIncludeFiles = lib.hm.dag.entryAfter ["writeBoundary"] ''

@@ -278,6 +278,28 @@ extraModules = [ ./host-myhostname.nix ];
 Then run `apply-dots`. See `modules/local/schema.nix`'s option
 descriptions for the full list of available fields.
 
+### Changing `modules/local/schema.nix` (adding/renaming/removing a field)
+
+**Standing rule - always do this, every time:** whenever you add, rename,
+or remove a `dotsLocal` field in `modules/local/schema.nix`, you MUST also
+update `setup.sh`'s generated `flake.nix` template (and its "Next steps"
+echo output) in the same change. `setup.sh` is the *only* onboarding path
+for a genuinely new machine with no existing `dots-local` - if its
+template silently falls behind the schema, new users get a config that's
+missing fields they didn't know existed (or, worse, a config that fails
+to evaluate at all - see the `features.network`/`programs.ssh.settings."*"`
+bug in `memory-bank/learnings.md`'s 2026-07-19 entry, caused by exactly
+this kind of drift). This has already happened once (the schema grew
+`gpu`/`compositor`/`isWsl`/`machine.*` across Phase 2 while `setup.sh`
+was never updated to mention any of them) - see
+`memory-bank/decisions.md`'s "setup.sh must track schema.nix" entry for
+the fix and the full rationale. Also **run the fresh-setup regression
+test** described there before considering the change done - a schema
+change that silently breaks brand-new users is exactly the failure mode
+this rule exists to prevent, and it will not show up in chromaden's own
+`nix eval`/`nix build` checks (chromaden's real `dots-local` already has
+every field set, masking exactly this class of bug).
+
 ### Nix Evaluation
 
 - `dots-local` is passed as `path:../dots-local` in flake.nix but overridden at runtime

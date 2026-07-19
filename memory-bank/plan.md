@@ -873,6 +873,39 @@ resolved value spot-checked individually
 `config.suites.network-tools`/`config.features.network`) to match its
 pre-move value exactly.
 
+4. **`setup.sh`/`sync.sh` revised for the current architecture** - user
+   asked to bring both up to date and to anchor an ongoing "keep setup.sh
+   current" rule in the memory bank, since its generated
+   `dots-local/flake.nix` template had drifted from
+   `modules/local/schema.nix` since before Phase 2 (missing
+   `gpu`/`compositor`/`isWsl`/`machine.*`/`extraModules`, stale `distro`
+   comment). Added all of these as documented, commented-out optional
+   fields. **Standing rule added to AGENTS.md's "Common Tasks"**: any
+   future `modules/local/schema.nix` field change must also update
+   `setup.sh`'s template in the same change, plus run a fresh-setup
+   regression test (sandboxed `$HOME`, run just setup.sh's identity-
+   generation step, `nix eval` the result) - this is the only way to
+   catch "works for existing machines, breaks for brand-new ones" bugs.
+   **That exact regression test immediately found one**: a fully
+   fresh/uncustomized config (the literal default a new user gets)
+   failed `nix eval` outright due to a genuine pre-existing bug in
+   `features/network.nix` (`settings."*"` conditionally *omitted* via
+   `lib.mkIf` rather than conditionally *empty*, tripping Home Manager's
+   own `programs.ssh` assertion) - never caught before since chromaden's
+   real `dots-local` always sets `machine.sshIdentityFile`, masking it
+   completely. Fixed; see decisions.md and learnings.md for the full
+   writeup. Also implemented `sync.sh`'s long-documented-but-never-
+   implemented `-g`/`--force-regen` flag, and removed a dead, always-
+   false `${profile%-opt}` suffix-strip left over from before Phase 2's
+   flake-output rename.
+   Validated: fresh-setup regression test in a sandboxed `$HOME` (both
+   fully-commented-out and fully-populated `machine` block) plus full
+   `nix build .../activationPackage` for both that sandbox and chromaden's
+   real config (zero new derivations for chromaden, confirming no
+   behavior change for already-configured machines); `sync.sh -g -n`/
+   plain `sync.sh -n` runs for real confirming force-regen only happens
+   when asked.
+
 ---
 
 ## Cross-cutting, not yet scheduled to a phase
@@ -886,6 +919,11 @@ pre-move value exactly.
 ## Notes
 - Phases 1->2 are the architectural core; do these right after Phase 0.
 - Phases 3-9 are more independent/reorderable if priorities shift.
-- `sync.sh`/`setup.sh` deeper improvements are explicitly deferred, except
-  where a phase directly requires a small touch (e.g. Phase 1's template
-  generation, Phase 5's tuning-table removal from the bootstrap template).
+- `sync.sh`/`setup.sh`: Phase 1 (template generation) and Phase 5 (tuning-
+  table removal) each made small, phase-driven touches; the Post-Phase-9
+  "renames + reclassification" section above did a real substantive
+  revision of both (schema-field parity for setup.sh, the `-g` flag fix
+  for sync.sh) plus added the standing "keep setup.sh in sync with
+  schema.nix" rule to AGENTS.md. Any deeper UX overhaul beyond that
+  (e.g. reworking sync.sh's matching engine, setup.sh becoming
+  interactive) remains a distinct, not-yet-scheduled future project.
