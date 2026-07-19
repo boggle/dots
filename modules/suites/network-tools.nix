@@ -10,6 +10,7 @@ let
       rclone = { enable = cfg.rclone; pkg = pkgs.rclone; };
       doggo = { enable = cfg.doggo; pkg = pkgs.doggo; };
       xh = { enable = cfg.xh; pkg = pkgs.xh; };
+      curlie = { enable = cfg.curlie; pkg = pkgs.curlie; };
     };
   };
 in
@@ -21,6 +22,7 @@ in
     rclone = lib.mkEnableOption "rclone (cloud sync)";
     doggo = lib.mkEnableOption "doggo (DNS client)";
     xh = lib.mkEnableOption "xh (modern HTTP client)";
+    curlie = lib.mkEnableOption "curlie (curl with jq-like output)";
   };
 
   config = lib.mkIf cfg.enable {

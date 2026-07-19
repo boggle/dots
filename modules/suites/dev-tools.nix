@@ -57,6 +57,7 @@ in
     # Other tools
     egglog = lib.mkEnableOption "egglog (e-graph toolkit)";
     steel = lib.mkEnableOption "steel (Scheme interpreter)";
+    prettier = lib.mkEnableOption "prettier (code formatter)";
   };
 
   config = lib.mkIf cfg.enable {
@@ -83,6 +84,7 @@ in
       (lib.mkIf cfg.pandoc pkgs.pandoc)
       (lib.mkIf cfg.egglog egglog)
       (lib.mkIf cfg.steel steel)
+      (lib.mkIf cfg.prettier prettier)
     ]) ++ appSet.packages;
 
     alienPackages.enabledPackages = appSet.alienEnabled;

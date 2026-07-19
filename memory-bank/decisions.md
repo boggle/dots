@@ -494,3 +494,74 @@ machine; letting its template silently drift from the schema (as
 happened across all of Phase 2-9) means every new-machine bootstrap
 either misses newer axis fields entirely or, worse, hard-fails on `nix
 eval` before the user even gets to `apply-dots`.
+
+### 2026-07-19 — CLI-only defaults, core minimization, editor/pager cleanup
+**Decision:** User requested a CLI-only-by-default `priv` context (no GUI
+tools leaking in without an actual UI present), a core package
+minimization pass, dropping the `fresh` editor in favor of `helix`, and a
+pager-story cleanup. All implemented as follows:
+
+- **CLI-only default**: `contexts/priv.nix` no longer unconditionally
+  enables `features.opener`/`features.clipboard` (previously
+  `enable = true; backend = graphicalBackend;` regardless of whether any
+  UI existed) or `suites.sixel-tools`. Moved opener/clipboard's
+  enable+backend logic into `modules/rules.nix` as two mutually-exclusive
+  rules: `isWsl` -> `backend = "wsl"`, `!isWsl && compositor != null` ->
+  `backend = graphicalBackend`. A host with neither (no compositor, not
+  WSL) now gets both disabled by default, matching every other suite's
+  off-by-default convention. `suites.sixel-tools`'s `enable = true` block
+  moved out of `priv.nix` entirely into chromaden's real
+  `~/dots-local/host-chromaden.nix` (chromaden still gets it; a fresh
+  clone of `dots` no longer does).
+- **Core minimization**: removed `psutils`/`t3` (mislabeled, per
+  `learnings.md`'s 2026-07-18 entry) and `ov` (installed, never wired to
+  anything) from `modules/core/default.nix`. Also removed 5 confirmed
+  duplicate `home.packages` entries (`direnv`, `lsd`, `zoxide`, `fzf`,
+  `bat`) - each was already being added a second time via its own
+  `programs.X.enable = true` in the same file (confirmed via `nix eval`
+  diff showing each package name twice in `config.home.packages` before
+  this fix, once after). `nix-direnv` was NOT removed - unlike `direnv`
+  itself, it's not auto-added by `programs.direnv.nix-direnv.enable`, so
+  the explicit package entry is actually needed.
+- **Moved out of core, made opt-in**: `prettier` -> `suites.dev-tools.prettier`,
+  `curlie` -> `suites.network-tools.curlie` (grouped with `xh`/`doggo`,
+  the other HTTP-ish CLI tools, rather than `dev-tools`), `tailspin` ->
+  `suites.tui-apps.tailspin`. All three kept enabled in `contexts/priv.nix`
+  (not host-specific concerns, just reclassified from "forced core" to
+  "suite toggle", same treatment as `git.nix`/`dev-tools.nix`'s Post-
+  Phase-9 reclassification) so no actual behavior changes for anyone
+  already using the `priv` context.
+- **`fresh` editor removed** in favor of `helix`: confirmed via the
+  `EDITOR`/`VISUAL` fallback loop in `nixon.nix` that `hx` is checked
+  before `fresh` and always wins since `helix` is installed
+  unconditionally - removing `fresh` is a genuine no-op for editor
+  selection. Removed the `suites.tui-apps.fresh` option/app-set entry,
+  its CachyOS alien spec, the `fresh` word from the `EDITOR` loop, and
+  the now-pointless `fr` alias block (had no other purpose).
+- **Pager cleanup**: removed `moor` (one of three "general pager"
+  candidates) - `nixon.nix`'s `$PAGER`/`$LESS` logic simplified to just
+  `less` unconditionally (no more `command -v moor` branching), and the
+  `$BAT_PAGER` env var (previously moor-only, no fallback) removed
+  entirely. `ov` removed too (see core minimization above - it was never
+  wired to anything regardless of pager choice). `difftastic` **kept**
+  (per user - it was "installed but never wired to anything" before) and
+  now actually wired up: `programs.git.settings.alias.difft = "-c
+  diff.external=difft diff"` in `suites/git-tools.nix` - scoped to a
+  `git difft` alias rather than setting `diff.external` globally, so it
+  doesn't fight with `delta`'s existing `core.pager` integration (delta
+  expects normal unified-diff input; difftastic's structural diff output
+  would break that pipeline if it became the global default). Also added
+  `batwatch` to `programs.bat.extraPackages` (was aliased in `nixon.nix`
+  but missing from the package list - the alias may have silently done
+  nothing before this fix).
+
+**Rationale:** User's explicit design calls after a full research pass
+(see `preserved-features-checklist.md`-style investigation delegated to
+research agents) confirming exactly which packages/rules needed to
+change and why. All changes verified via before/after
+`config.home.packages`/`config.alienPackages.enabledPackages` diffs
+(byte-identical except the intended moves/removals/additions), full
+`nix build .../activationPackage` for chromaden (unchanged resolved
+values for every moved option) plus three synthetic hosts (CLI-only,
+niri-compositor, WSL) confirming the new opener/clipboard rule fires
+correctly in exactly the intended cases.

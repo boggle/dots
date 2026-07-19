@@ -49,13 +49,6 @@
     };
   };
   
-  "fresh-editor" = {
-    feature = "tui-apps";
-    packages = {
-      pacman = [ "fresh-editor" ];
-    };
-  };
-
   # Email
   aerc = {
     feature = "tui-apps";

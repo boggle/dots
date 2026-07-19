@@ -908,13 +908,54 @@ pre-move value exactly.
 
 ---
 
+## Post-Phase-9 adjustments — CLI-only defaults, core minimization, editor/pager cleanup
+User-requested, research-then-execute round covering 5 areas:
+
+1. **CLI-only-by-default `priv` context**: `features.opener`/
+   `features.clipboard` no longer unconditionally enabled in `priv.nix` -
+   moved to `modules/rules.nix` as two mutually-exclusive rules
+   (`isWsl` -> wsl backend, `!isWsl && compositor != null` ->
+   `graphicalBackend`), so a host with neither stays disabled by default.
+   `suites.sixel-tools` moved out of `priv.nix` entirely into chromaden's
+   real `~/dots-local/host-chromaden.nix` (kept working for chromaden,
+   off by default for anyone else). Verified via 3 synthetic hosts
+   (CLI-only/niri/WSL) that each gets exactly the right resolved
+   enable/backend.
+2. **Core minimization**: removed `psutils`/`t3` (mislabeled, resolves
+   the long-open `open-questions.md` item below) and `ov` (never wired to
+   anything). Removed 5 confirmed duplicate `home.packages` entries
+   (`direnv`/`lsd`/`zoxide`/`fzf`/`bat` - each already added a second time
+   via its own `programs.X.enable`).
+3. **Moved out of core, made opt-in**: `prettier` -> `suites.dev-tools`,
+   `curlie` -> `suites.network-tools`, `tailspin` -> `suites.tui-apps` -
+   all kept enabled in `priv.nix` (not host-specific, just reclassified),
+   so no behavior change for existing `priv` users.
+4. **`fresh` editor removed** in favor of `helix` - confirmed a genuine
+   no-op for `EDITOR`/`VISUAL` selection (helix already wins the fallback
+   race unconditionally) before removing the option/alien-spec/`fr` alias.
+5. **Pager cleanup**: removed `moor` (simplified `nixon.nix`'s `$PAGER`
+   logic to plain `less`, dropped the moor-only `$BAT_PAGER` export
+   entirely) and `ov`. Kept `difftastic` per the user and actually wired
+   it up this time - a scoped `git difft` alias
+   (`-c diff.external=difft diff`) rather than a global `diff.external`
+   override, so it doesn't conflict with delta's existing pager
+   integration. Fixed `batwatch` being aliased but missing from
+   `programs.bat.extraPackages`.
+
+Validated throughout: before/after `config.home.packages`/
+`config.alienPackages.enabledPackages` diffs (byte-identical except the
+intended changes), full `nix build .../activationPackage` for chromaden
+(every moved/renamed option's resolved value spot-checked to match its
+pre-move value) plus 3 synthetic hosts for the opener/clipboard rule
+change, and a `bash -n` syntax check of the generated `.bashrc-dots`.
+`dots-local`'s `host-chromaden.nix` change lives in that separate,
+private repo - not part of this `dots` commit.
+
 ## Cross-cutting, not yet scheduled to a phase
 - Shared platform/OS detection (`modules/core/platform.nix`) consolidating
   clipboard.nix + opener.nix's duplicated `backend` enum — natural fit
   inside Phase 2 (composition) since it's axis-driven, or as its own small
   slice right after. **Needs explicit slot** — add during Phase 2 planning.
-- `psutils`/`t3` mislabeled-package flags from core tool review — pending
-  user confirmation before any removal (see `open-questions.md`).
 
 ## Notes
 - Phases 1->2 are the architectural core; do these right after Phase 0.

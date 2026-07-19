@@ -9,7 +9,6 @@
 
 let
   enableGuiDefaults = dotsLocal.enableGuiDefaults;
-  graphicalBackend = dotsLocal.graphicalBackend;
 in {
 
   imports = [
@@ -17,6 +16,12 @@ in {
     # modules/composition.nix (see its comment for why) - only the
     # enable/backend/base config below is context-specific, not the
     # import itself.
+    #
+    # sixel-tools.nix stays imported here (so the option is declared/
+    # reachable for this context) even though it's no longer enabled by
+    # default below - it's now an opt-in, host-specific concern set via
+    # dotsLocal.extraModules (e.g. chromaden's host-chromaden.nix), since
+    # it's not appropriate for a genuinely CLI-only host.
     ../../modules/suites/sixel-tools.nix
     ../../modules/features/appimages.nix
     ../../modules/suites/pim-apps.nix
@@ -26,16 +31,13 @@ in {
     ../../modules/suites/tui-apps.nix
   ];
 
-  features.opener = {
-      enable = true;
-      backend = graphicalBackend;
-      alias = "o";
-  };
-
-  features.clipboard = {
-    enable = true;
-    backend = graphicalBackend;
-  };
+  # features.opener/features.clipboard's enable+backend are now set by
+  # modules/rules.nix (compositor != null / isWsl rules) rather than
+  # unconditionally here, so a CLI-only host (no compositor, not WSL)
+  # doesn't get xdg-utils/wl-clipboard installed by default. `alias = "o"`
+  # is a cosmetic default, not axis-dependent, so it stays a plain
+  # `mkDefault` here (harmless even when the feature ends up disabled).
+  features.opener.alias = lib.mkDefault "o";
 
   # Common AI Apps configuration
   suites.ai-apps = {
@@ -109,6 +111,7 @@ in {
       doggo = true;
       xh = true;
       rclone = true;
+      curlie = true;
   };
 
   suites.git-tools = {
@@ -137,14 +140,7 @@ in {
       quarto = true;
       typst = true;
       pandoc = true;
-  };
-
-  suites.sixel-tools = {
-      enable = true;
-      chafa = true;
-      catimg = true;
-      mpv = true;
-      ytdlp = true;
+      prettier = true;
   };
 
   suites.gui-apps = lib.mkIf enableGuiDefaults {
@@ -169,6 +165,7 @@ in {
       zellij = true;
       lazygit = true;
       yazi = true;
+      tailspin = true;
   };
 
   suites.pim-apps = {

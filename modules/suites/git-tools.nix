@@ -38,6 +38,17 @@ in
           name = dotsLocal.realname;
           email = dotsLocal.realmail;
         };
+        # `git difft` runs a one-off diff through difftastic's structural
+        # diff instead of the normal unified diff - scoped to this alias
+        # only (via `-c diff.external=difft`) rather than setting
+        # `diff.external` globally, so it doesn't interfere with delta's
+        # pager integration (programs.delta.enableGitIntegration below),
+        # which expects to receive plain unified-diff output. difftastic
+        # itself (the `difft` binary) is installed unconditionally in
+        # modules/core/default.nix.
+        alias = {
+          difft = "-c diff.external=difft diff";
+        };
       };
     };
 

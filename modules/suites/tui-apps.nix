@@ -14,7 +14,7 @@ let
       pass = { enable = cfg.pass; pkg = pkgs.pass; };
       bandwhich = { enable = cfg.bandwhich; pkg = pkgs.bandwhich; };
       vhs = { enable = cfg.vhs; pkg = pkgs.vhs; };
-      fresh = { enable = cfg.fresh; pkg = pkgs.fresh-editor; alienName = "fresh-editor"; };
+      tailspin = { enable = cfg.tailspin; pkg = pkgs.tailspin; };
 
       # Email
       aerc = { enable = cfg.aerc; pkg = pkgs.aerc; };
@@ -47,7 +47,7 @@ in
     pass = lib.mkEnableOption "pass (password manager)";
     bandwhich = lib.mkEnableOption "bandwhich - network monitor";
     vhs = lib.mkEnableOption "vhs - terminal recorder";
-    fresh = lib.mkEnableOption "fresh-editor - interactive editor";
+    tailspin = lib.mkEnableOption "tailspin (tspin) - log file highlighter";
 
     # Email
     aerc = lib.mkEnableOption "aerc (terminal email client)";

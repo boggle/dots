@@ -10,41 +10,34 @@ home.packages = with pkgs; [
     tree                  # Directory hierarchy
     gnupg                 # Encryption/Signing
     rsync                 # File transfer
-    t3                    # Tree-like utility
-    direnv                # Env loader
-    nix-direnv            # Nix integration for direnv
+    nix-direnv            # Nix integration for direnv (direnv itself comes via programs.direnv.enable below)
     curl                  # HTTP client (classic)
     wget                  # File downloader
-    curlie                # curl with jq-like output
-    psutils               # psutils
     time                  # time
     mmv                   # mmv
         
     # --- 2. ENHANCED WORKFLOW (Modern Unix Replacements) ---
     # Tools that upgrade the interactive Bash experience
+    # NOTE: lsd/zoxide/fzf/bat are NOT listed here even though they're core
+    # tools - they come via programs.lsd/zoxide/fzf/bat.enable below, which
+    # already add the package; listing them again here was a redundant
+    # duplicate (confirmed via `nix eval` - each appeared twice in
+    # config.home.packages before this cleanup).
     bash                              # Updated Bash shell
     bash-completion                   # Tab-completion logic
     bash-language-server              # Editing bash scripts from helix 
     simple-completion-language-server # snippets
     starship                          # Prompt engine
-    moor                              # General pager
-    ov                                # Pager for csv, tsv
-    lsd                               # Next-gen 'ls'
     less                              # Standard pager
-    bat                               # 'cat' with wings
     glow                              # Markdown renderer
     dust                              # 'du' replacement
     tokei                             # Code statistics
     fastfetch                         # System info fetch
     procs                             # 'ps' replacement
-    tailspin                          # Log highlighter (tspin)
     tealdeer                          # Fast 'tldr'
-    difftastic                        # Semantic diff tool
+    difftastic                        # Semantic diff tool (see programs.git's `difft` alias)
     vivid                             # LS_COLORS generator
     gum                               # Shell script TUI components
-    fzf                               # Fuzzy finder
-    zoxide                            # Smarter 'cd'
-    prettier                          # Code formatter
      
     # --- 3. INTERACTIVE TUI (Full-Screen Interfaces) ---
     # Tools with persistent terminal UI/dashboards
@@ -83,6 +76,7 @@ home.packages = with pkgs; [
         batgrep
         batdiff
         batpipe
+        batwatch
     ];
     config = { 
       theme = "TwoDark"; 

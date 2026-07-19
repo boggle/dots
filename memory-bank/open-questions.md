@@ -14,11 +14,10 @@ axis-driven (no more profile-name selection needed). This changes the
 specific point — **must reconfirm before executing Phase 2's flake.nix
 changes.**
 
-### `psutils` / `t3` — keep or drop?
-Both are mislabeled in `modules/core/default.nix`'s comments (see
-`learnings.md`). Confirm whether they're actually used for their *real*
-purpose (PostScript utils / tee-replacement) before removing anything —
-"non-aggressive" trim policy means we don't remove without confirmation.
+### `psutils` / `t3` — RESOLVED, removed
+User confirmed (2026-07-19, core minimization round): remove both. Done -
+see `decisions.md`'s "CLI-only defaults, core minimization, editor/pager
+cleanup" entry.
 
 ### Pagers / HTTP fetchers overlap
 `moor`/`ov`/`less` (three pagers) and `curl`/`wget`/`curlie` (three HTTP

@@ -82,17 +82,13 @@ in
       fi
 
       # Editor/Visual Setup
-      for ed in hx helix nvim vim vi fresh nano; do
+      for ed in hx helix nvim vim vi nano; do
         if command -v "$ed" >/dev/null 2>&1; then
           export EDITOR="$ed"
           export VISUAL="$ed"
           break
         fi
       done
-            
-      if command -v fresh >/dev/null 2>&1; then
-        alias fr="$(type -p fresh)"
-      fi
     
       if ! command -v hx &> /dev/null; then  
         if command -v helix >/dev/null 2>&1; then
@@ -110,20 +106,12 @@ in
       # NIXON=1, no need to duplicate it here.
 
       # Pager & Previewer Logic
-      if command -v moor >/dev/null 2>&1; then
-        export PAGER="$(type -p moor)"
-        export LESS="-RF"
-      else
-        export PAGER="$(type -p less)"
-        export LESS="-RF"
-      fi
+      export PAGER="$(type -p less)"
+      export LESS="-RF"
 
       if command -v bat >/dev/null 2>&1; then
         alias cat="bat -pp"
-        if command -v moor >/dev/null 2>&1; then
-          export BAT_PAGER="$(type -p moor) -no-linenumbers"
-        fi
-        
+
         if command -v batpipe >/dev/null 2>&1; then
           eval "$(batpipe)"
         fi
