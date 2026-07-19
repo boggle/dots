@@ -1169,6 +1169,21 @@ the intended clear assertion error rather than a raw crash. Full
 `config.home.packages` diff and the generated `.bashrc-nix` file
 byte-diff both confirmed identical to before the refactor.
 
+## Post-Phase-9 adjustments — Debian (bookworm) alien specs extended
+User has a real Debian 12 machine, specified 4 suites needed:
+`sixel-tools`, `cloud-tools`, `dev-tools`, `ai-apps`. Added
+`*.debian-packages.nix` for all four - `chafa`/`catimg`/`yt-dlp`,
+`gh`/`azure-cli`, `caddy`, `libfuse2` (for `appimages-fuse`) - each
+individually verified present in bookworm's official archive via
+packages.debian.org first (`lsix`/`lazydocker`/`marksman`/`mkcert`/
+`opencode`/`github-copilot-cli`/`graphify` excluded - not confirmed or
+confirmed unofficial-only). Validated via synthetic `distro = "debian"`
+dots-local test: no spec conflicts, correct packages alien-shadow their
+Nix counterparts, correct `required/apt.txt` contents. Zero impact on
+the real (cachyos) config (byte-identical diff). Remaining suites
+(`gui-apps`/`pim-apps`/`scanning`/`niri-noctalia`/`opener`/`llama-cpp`)
+still have no Debian specs - not requested, revisit if needed.
+
 ## Notes
 - Phases 1->2 are the architectural core; do these right after Phase 0.
 - Phases 3-9 are more independent/reorderable if priorities shift.

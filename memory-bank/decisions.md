@@ -1163,3 +1163,53 @@ embeds the resolved `BACKEND=`/`COPY_CMD=`/`PASTE_CMD=` values) both
 confirmed identical to the pre-refactor commit for the real (default)
 configuration. Updated README.md/OVERVIEW.md's docs to stop describing
 `backend` as a user-settable option on either feature.
+
+---
+
+### 2026-07-19 — Extended Debian (bookworm) alien specs: sixel-tools, cloud-tools, dev-tools, ai-apps
+User now has a real Debian 12 (bookworm) machine and specified which
+suites it needs. Extended `*.debian-packages.nix` coverage for all
+four, verifying every candidate package's presence in bookworm's
+**official** archive individually via packages.debian.org before
+including it (matching the existing conservative,
+official-repos-only convention from `network-tools.debian-packages.nix`/
+`tui-apps.debian-packages.nix`):
+
+- **Included** (confirmed present in bookworm's official main archive):
+  `chafa`, `catimg`, `yt-dlp` (sixel-tools); `gh`, `azure-cli`
+  (cloud-tools); `caddy` (dev-tools); `libfuse2` for the
+  `appimages-fuse` alien-spec key (ai-apps, apt's FUSE2 compat package
+  is named differently than pacman's `fuse2`).
+- **Excluded** (confirmed NOT in the official archive, or inconclusive):
+  `lsix` (sixel-tools - no Debian package found at all); `lazydocker`
+  (cloud-tools - confirmed unofficial-only, via the third-party
+  deb.griffo.io repo per that project's own docs); `marksman` (dev-tools
+  - only available via Snapcraft/direct GitHub releases per upstream);
+  `mkcert` (dev-tools - inconclusive, treated as "not confirmed" per the
+  conservative convention); `opencode`/`github-copilot-cli`/`graphify`
+  (ai-apps - none found in the official archive, all niche/recent tools
+  typically self-installed rather than distro-packaged).
+
+**Also noted, not fixed** (pre-existing, out of scope for this
+request): the `appimages-fuse` alien-spec key (both the pre-existing
+cachyos entry and the new debian one) is never actually referenced by
+any `alienPackages.enabledPackages` list anywhere in the codebase -
+confirmed via repo-wide grep, it only appears in the two spec files
+themselves. This is a dormant/orphaned spec (matches the existing
+cachyos file's state, not a new inconsistency introduced here) - would
+need wiring into `features/appimages.nix` (or wherever FUSE2 support
+is actually meant to be conditionally required) to ever take effect.
+Left as-is since fixing it wasn't requested and doing so would need
+its own design decision about when FUSE2 should actually be required.
+
+**Validated**: real (cachyos) config's full build + byte-identical
+`config.home.packages` diff against the prior commit (new Debian-only
+files have zero effect on cachyos, as expected). Separately, built a
+synthetic `dots-local` with `distro = "debian"` and all four suites
+force-enabled (via a temporary `extraModules` test file, cleaned up
+after) - confirmed: (1) no alien-spec conflicts thrown, (2) every
+newly-added package (`chafa`/`catimg`/`yt-dlp`/`gh`/`azure-cli`/`caddy`)
+correctly disappears from `config.home.packages` (now alien-managed)
+while packages without a new Debian spec (`marksman`/`mkcert`) correctly
+remain as Nix packages (expected fallback), and (3) the generated
+`required/apt.txt` contains exactly the expected package names.

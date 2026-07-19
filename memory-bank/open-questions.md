@@ -24,21 +24,18 @@ tools) look like overlap at a glance but are plausibly intentional
 (2026-07-19, wrap-up round) no further action needed - closing this
 out rather than leaving it open indefinitely.
 
-### Debian support scope — IN PROGRESS, user now has a Debian machine
-Structural support only so far (spec convention + apt backend + CLI
-feature specs - `network-tools.debian-packages.nix`/`tui-apps
-.debian-packages.nix` exist, GUI/AI suites don't have Debian specs at
-all yet). User confirmed (2026-07-19, wrap-up round) they now have a
-real Debian machine available to verify/extend this against - **need
-from the user to proceed**: which suites/features that machine actually
-needs (gui-apps? ai-apps? pim-apps? scanning? sixel-tools?
-cloud-tools?), and the machine's actual Debian/Ubuntu version (package
-names and availability can differ, e.g. between Debian stable/testing
-vs. Ubuntu LTS). Once known, extend the relevant `*.debian-packages.nix`
-files the same way the existing two were done, and validate via a
-synthetic `dots-local` with `distro = "debian"` (same technique used
-throughout this project for testing axis combinations without a real
-machine) before considering it done.
+### Debian support scope — RESOLVED for the 4 suites requested
+User confirmed (2026-07-19) which suites their real Debian 12
+(bookworm) machine needs: `sixel-tools`, `cloud-tools`, `dev-tools`,
+`ai-apps`. Added `*.debian-packages.nix` for all four, verified each
+candidate package's actual presence in bookworm's *official* archive
+via packages.debian.org before including it (matching the existing
+conservative, official-repos-only convention) - see `decisions.md` for
+the full per-package confirm/skip list.
+
+Still not covered (no Debian specs yet, not requested): `gui-apps`,
+`pim-apps`, `scanning`, `niri-noctalia`, `opener`, `llama-cpp` -
+revisit if/when the user's Debian machine needs any of these too.
 
 ### `location` axis concrete usage — CLOSED for now, revisit if a use case emerges
 Currently just a freeform tag with no consuming behavior wired up yet
