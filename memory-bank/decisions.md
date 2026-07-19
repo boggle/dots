@@ -859,3 +859,43 @@ diff against the last commit (`bd1b2e7`, via `git worktree`) shows
 *exactly* the intended removals (one each of `bash`, `delta`, `zellij`,
 two of `lazygit`, one of `gh`) and nothing else - confirms the whole
 round is behavior-preserving except the deliberate dedup fixes.
+
+---
+
+### 2026-07-19 — `suites.git-tools.jj` was installing the wrong package entirely
+User caught this directly: nixpkgs' `pkgs.jj` attribute is **not**
+Jujutsu (https://github.com/jj-vcs/jj, the VCS this option's
+description ("jj (Git alternative)") clearly refers to, and what
+`suites.git-tools.jj = true` was meant to enable) - it's
+`tidwall/jj`, an unrelated JSON Stream Editor (confirmed via `nix eval
+.#homeConfigurations.default.pkgs.jj.meta.{description,homepage}` →
+"JSON Stream Editor (command line utility)" /
+`https://github.com/tidwall/jj`). Real Jujutsu lives under the
+`pkgs.jujutsu` attribute instead (confirmed:
+`meta.description` = "Git-compatible DVCS that is both simple and
+powerful", `meta.homepage` = `https://jj-vcs.dev/`,
+`meta.mainProgram` = `"jj"`). `pkgs.jjui` (the TUI, idursun/jjui) was
+never affected - it's a correctly-named, separate package that already
+depends on the real `jj` binary at runtime regardless of which `jj`
+attribute `dots` itself installed alongside it.
+
+**Fix**: `modules/suites/git-tools.nix`'s `jj` app entry now uses
+`pkgs.jujutsu` instead of `pkgs.jj`. No user-facing change to the CLI
+surface - `jujutsu`'s `meta.mainProgram` is still `jj`, so the command
+stays `jj` either way; only the nixpkgs *attribute name* was wrong, not
+the binary users would type. Verified: `nix build` now fetches
+`jujutsu-0.43.0` (previously would have fetched the unrelated
+`jj-1.9.2` JSON tool), and its `bin/` directory contains exactly one
+binary, `jj`.
+
+**Considered but not needed**: since `pkgs.jj` (the JSON tool) isn't
+referenced anywhere else in `dots` (confirmed via repo-wide grep), there
+was never an actual on-PATH collision between the two - this was purely
+"the wrong package was silently installed under the right command
+name," not "two different `jj` binaries fighting over PATH priority."
+If `dots` ever *also* wants the JSON Stream Editor for its own sake in
+the future, it would need an explicit rename/wrapper at that point
+(e.g. `pkgs.jj // { ... }` aliased under a distinct `home.packages`
+entry, or renaming its binary via `pkgs.runCommand`/`symlinkJoin` to
+something like `jj-json` before adding it) to avoid then colliding with
+`jujutsu`'s real `jj` - not done now since nothing currently needs it.

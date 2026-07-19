@@ -657,3 +657,26 @@ checking consumer" and "listOf option whose type already deep-merges
 per-element". Always verify via a real before/after config diff (toggle
 the flag, diff `config.home.packages`/etc.) before committing a "fix" or
 writing a comment asserting a bug existed.
+
+### 2026-07-19 — nixpkgs short attribute names can silently collide with unrelated tools
+User caught: `pkgs.jj` is `tidwall/jj` (a JSON Stream Editor), not
+Jujutsu (jj-vcs.dev) - the real VCS lives under `pkgs.jujutsu` instead
+(same `meta.mainProgram = "jj"`, so the actual CLI command is
+unaffected, only the nixpkgs *attribute* was wrong). `dots` had been
+silently installing the wrong tool under `suites.git-tools.jj` since
+whenever that option was introduced - see `decisions.md`'s matching
+2026-07-19 entry for the full fix.
+
+**General technique for catching this class of bug**: `nix eval
+.#homeConfigurations.default.pkgs.<name>.meta.{description,homepage}
+--override-input dots-local git+file://$HOME/dots-local` immediately
+reveals a mismatch. Short (≤4 char) package attribute names are the
+highest-risk category in a registry as large as nixpkgs - worth a quick
+sanity pass whenever adding a new short-named tool, and worth an
+occasional repo-wide audit (grep all `pkgs.<name>` references, batch-
+check `meta.description` against what the surrounding option/comment
+claims the tool is). Did exactly this sweep across every ≤4-char
+`pkgs.X` reference in `dots` after finding the `jj` case - `aerc`,
+`bat`, `btop`, `fd`, `fzf`, `gh`, `glow`, `imv`, `jq`, `khal`, `lsd`,
+`lsix`, `mold`, `mpv`, `niri`, `nmap`, `pass`, `tuba`, `vhs`, `vlc`,
+`xh`, `yazi` all confirmed correct - `jj` was the only mismatch found.

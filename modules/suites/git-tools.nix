@@ -20,10 +20,22 @@ let
   # them alien-managed, instead of silently double/triple-installing the
   # same tool via pacman *and* two independent Nix code paths (a real,
   # confirmed-live bug on chromaden before this fix).
+  #
+  # `jj`/`jjui`: nixpkgs' `pkgs.jj` attribute is NOT Jujutsu
+  # (https://github.com/jj-vcs/jj, the "Git alternative" this option's
+  # description refers to) - it's `tidwall/jj`, an unrelated JSON Stream
+  # Editor that happens to share the same short attribute name. The
+  # actual Jujutsu VCS lives under `pkgs.jujutsu` (its `meta.mainProgram`
+  # is still `jj`, so the CLI command stays exactly what users expect -
+  # only the *nixpkgs attribute name* was wrong here, confirmed via
+  # `nix eval .#homeConfigurations.default.pkgs.{jj,jujutsu}.meta.{description,homepage}`).
+  # `pkgs.jjui` (a separate, correctly-named package - "TUI for Jujutsu
+  # VCS", idursun/jjui) was never affected by this mixup and depends on
+  # the real `jj` binary from `pkgs.jujutsu` at runtime, same as before.
   appSet = coreLib.mkAppSet {
     inherit alien;
     apps = {
-      jj = { enable = cfg.jj; pkg = pkgs.jj; };
+      jj = { enable = cfg.jj; pkg = pkgs.jujutsu; };
       jjui = { enable = cfg.jj; pkg = pkgs.jjui; };
       lazygit = { enable = cfg.lazygit; pkg = pkgs.lazygit; };
       gh = { enable = cfg.gh; pkg = pkgs.gh; };
