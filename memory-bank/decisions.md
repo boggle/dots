@@ -352,3 +352,15 @@ change to the command surface.
 `dotsLocal` - there's no longer a real "profile choice" to make via the
 command line, so a generic `default` name is more honest than keeping
 `priv`/`work` around as vestigial selectors.
+
+### 2026-07-19 — `features.fonts.enable`: leave off for now
+**Decision:** User confirmed (Phase 9 checkpoint): leave
+`features.fonts.enable` at its long-standing default of `false` for now;
+revisit later. Fonts continue to be an alien/pacman-managed concern on
+chromaden, not a Nix/Home-Manager-managed one.
+**Rationale:** User's explicit call. `features.fonts.required` (now
+actually wired - `niri-noctalia.nix` contributes `pkgs.inter`, see
+Phase 9 in `plan.md`) stays structurally correct but inert until/unless
+this is revisited - `cfg.base ++ cfg.required` never gets added to
+`home.packages` while `enable` is `false`. No further action needed
+unless the user brings this back up.

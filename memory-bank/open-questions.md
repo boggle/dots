@@ -81,55 +81,11 @@ current concrete use. Revisit if a real need emerges (e.g. distinguishing
 "tuned for my exact CPU" from "compatible with this baseline level" for
 binary distribution scenarios).
 
-### `features.fonts.enable` is `false` everywhere - always has been, not a regression
-Discovered during Phase 9 while wiring `niri-noctalia.nix` to contribute to
-`features.fonts.required` (the literal Phase 9 ask). Confirmed via
-`git log -p` on the pre-Phase-2 `profiles/priv/home.nix` history:
-`features.fonts.enable = true` has **never** been set anywhere in this repo,
-on any host, at any point - this is not something Phase 2's composition
-refactor (or any later phase) broke. `modules/features/fonts.nix`'s entire
-`config = lib.mkIf cfg.enable {...}` block (the `nerd-fonts.iosevka-term`/
-`nerd-fonts.iosevka` packages, `fonts.fontconfig.enable`, and the
-`defaultFonts` monospace/sansSerif/serif preferences) has been completely
-inert on every host the whole time.
-
-On chromaden this has caused no *visible* problem, but only by accident:
-directly checked the live host - `ttf-iosevkaterm-nerd` is installed via
-**native pacman**, `Install Reason: Explicitly installed` (the user ran
-`pacman -S`/an AUR helper directly, outside of dots entirely, 2026-03-09).
-It's also a hard dependency of `yazi`/`goverlay` (both already
-alien-managed via `tui-apps`/`gui-apps`), so even without that manual
-install some nerd font would land via pacman regardless - just not
-necessarily Iosevka specifically. Noctalia's own icon needs (Tabler Icons)
-are bundled inside its own package payload, unrelated to any of this.
-`gui-apps.nix`'s wezterm config also has a hardcoded
-`~/.nix-profile/share/fonts/truetype/NerdFonts/IosevkaTerm/...` path that
-**does not exist** on chromaden today (confirmed directly) - dead/broken
-fallback code, though harmless since wezterm isn't the active terminal.
-
-**What Phase 9 did fix**: `features.fonts.required` is now actually
-contributed to (`niri-noctalia.nix` adds `pkgs.inter`, since Noctalia's UI
-wants "Inter" per `fonts.nix`'s `sansSerif` fontconfig default, and no
-package providing it was ever installed by anything). Also moved
-`fonts.nix` to `composition.nix`'s universal imports (same pattern as the
-Phase 3 opener/clipboard/ai-apps fix) since `niri-noctalia.nix` - itself
-universal - now needs to set `features.fonts.required` regardless of which
-context is active. Verified this resolves correctly (`[ inter-4.1 ]` when
-niri-noctalia is enabled, `[]` when it isn't) across chromaden (real),
-a synthetic `profile = "work"` + `compositor = "niri"` config, and a
-synthetic no-compositor config.
-
-**What Phase 9 deliberately did NOT do**: flip `features.fonts.enable` to
-`true` anywhere. Doing so would be a new, visible, live-system-affecting
-default (actually installing the nerd-fonts/Inter packages via Nix and
-turning on `fonts.fontconfig`'s `defaultFonts`, which could shift actual
-font rendering on the next login/app restart) that goes beyond the literal
-"wire up `fonts.required`" scope - and the current accidental pacman-driven
-state has clearly been working fine for the user's daily use. **Needs an
-explicit user decision**: (a) leave `features.fonts.enable` off forever
-(fonts stay an alien/pacman-managed concern, `features.fonts.required`
-becomes moot dead weight even though now "wired"), or (b) turn it on
-(priv.nix, presumably) so dots/Nix actually manages fonts declaratively
-going forward, understanding it's a live-affecting change worth a
-dedicated `apply-dots` checkpoint rather than folding it silently into
-Phase 9.
+### `features.fonts.enable` - RESOLVED, see decisions.md 2026-07-19
+Was flagged as an open decision during Phase 9 (discovered
+`features.fonts.enable` has never been `true` anywhere, on any host, ever
+- not a regression from this re-architecture; chromaden's fonts currently
+work only by accident via a native pacman package). User decided
+(2026-07-19): leave it off for now, revisit later. Full details in
+`decisions.md`'s "features.fonts.enable: leave off for now" entry and
+`plan.md`'s Phase 9 section.
