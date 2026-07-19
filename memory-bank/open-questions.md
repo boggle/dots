@@ -45,12 +45,15 @@ inert" rather than a lingering open question. Revisit once there's a
 concrete use case (e.g. VPN/proxy/DNS switching) to decide whether it
 needs to become a typed enum or richer submodule.
 
-### Platform/OS detection follow-up candidates
-`network.nix` (ssh-agent socket path differs on macOS) and `viewer.nix`
-(image viewer choice may need a macOS-specific path) were flagged as
-follow-up candidates for the same platform-detection consolidation as
-clipboard/opener, but are not required in the initial pass. Revisit after
-Phase 2/3.
+### Platform/OS detection follow-up candidates — PARTIALLY ADDRESSED, still open
+The consolidation these were meant to plug into now exists
+(`config.core.platformBackend`, `modules/core/platform.nix`, see the
+matching 2026-07-19 decisions.md entry) - `network.nix` (ssh-agent
+socket path differs on macOS) and `viewer.nix` (image viewer choice may
+need a macOS-specific path) could read it directly whenever they're
+actually wired up. Deliberately NOT done yet: there's still no macOS
+host to validate against and no concrete logic drafted for either.
+Revisit if/when a real need emerges.
 
 ### `noctalia-qs` "non-existent input" warning - RESOLVED, removed
 Root-caused (2026-07-19): fetched upstream `noctalia-shell`'s own
