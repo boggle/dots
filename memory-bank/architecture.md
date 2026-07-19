@@ -44,16 +44,29 @@ dotsLocal = {
 };
 ```
 
-Benefits: self-documenting (option descriptions double as docs); a
-`modules/local/template.nix` living in `dots` stays in sync with the
-schema by construction (this is the "current template stored in dots for
-easy setup" the user asked for); typos/misconfig caught at eval time instead
-of silently falling through to a stale default; no more scattered `or`
-fallbacks to keep consistent.
+Benefits: self-documenting (option descriptions double as docs); typos/
+misconfig caught at eval time instead of silently falling through to a
+stale default; no more scattered `or` fallbacks to keep consistent.
 
-`setup.sh` regenerates a starter `dots-local/flake.nix` from the template,
-showing only the required fields plus commented-out examples for optional
-axes — it stops embedding a full copy of e.g. the tuning defaults table.
+**Implemented as (post-Phase-9 update — supersedes this section's original
+`modules/local/template.nix` sketch below):**
+- `templates/dots-local/{flake.nix,appimages.nix,gitignore}` — real,
+  standalone, syntactically valid files (not a single generated
+  `template.nix`, and not a bash heredoc) using `@@TOKEN@@` placeholders.
+  `setup.sh` copies these into a fresh `~/dots-local` and runs one
+  `sed -i` pass to fill in the identity/machine placeholders, showing
+  only the required fields live plus commented-out examples for optional
+  axes (mirroring chromaden's real shape) — it does NOT embed a full copy
+  of e.g. the tuning defaults table (see section 6).
+- `dots-local-options` (a real CLI command, `modules/core/scripts.nix`) —
+  not a static template file at all — is the actual "see every available
+  field" mechanism: it evaluates `dotsLocalEval.options` through
+  nixpkgs's own `lib.optionAttrSetToDocList` and pretty-prints path/type/
+  default/description live from `modules/local/schema.nix`, so it can
+  never drift from the real schema the way a hand-maintained doc could.
+  This is *why* the template file itself doesn't need to be exhaustive.
+- **Standing rule**: see section 12 below - any schema field change MUST
+  also update the template file in the same commit.
 
 ---
 
@@ -120,19 +133,21 @@ manifests). Whenever this happens:
 
 - **Do not just delete it and move on.** Add/update a documentation file in
   the `dots` checkout (near the relevant schema/template, e.g.
-  `modules/local/template.nix` plus prose docs) that shows exactly
+  `templates/dots-local/flake.nix` plus prose docs) that shows exactly
   what to add to `dots-local/flake.nix` to reproduce that config.
 - This is in addition to (not instead of) the schema itself being
-  self-documenting via option descriptions — concrete worked examples
-  matter, especially for fields that used to be inline Nix (e.g. the
-  power-toggle script's display name/resolution, or CUDA `cmakeFlags`
-  overrides) and are now data in `dots-local`.
+  self-documenting via option descriptions, AND `dots-local-options`
+  (section 1's "Implemented as" note) making that documentation queryable
+  live — concrete worked examples in the template still matter though,
+  especially for fields that used to be inline Nix (e.g. the power-toggle
+  script's display name/resolution, or CUDA `cmakeFlags` overrides) and
+  are now data in `dots-local`.
 - Practically: maintain a per-axis "how to configure this in `dots-local`"
-  reference (could be a `docs/dots-local-guide.md` in `dots`, or expanded
-  inline examples in `modules/local/template.nix`) that's updated in
-  the same commit that removes the old home for that config. Never let
-  "it's now overridable via dots-local" be an undocumented, tribal-knowledge
-  fact.
+  reference (README.md's "Adding a New Host" section, or expanded
+  commented-out examples in `templates/dots-local/flake.nix`) that's
+  updated in the same commit that removes the old home for that config.
+  Never let "it's now overridable via dots-local" be an undocumented,
+  tribal-knowledge fact.
 - Apply this retroactively too: as Phase 2 removes
   `profiles/priv/hosts/<name>.nix` files, whatever host-specific data they
   contained needs a documented `dots-local` equivalent before the old file
@@ -387,7 +402,13 @@ bloated. Found during a quick eval-based check:
   `moor`/`ov`/`less` (three pagers) and `curl`/`wget`/`curlie` (three HTTP
   fetchers) look redundant at a glance but are plausibly intentional
   (different habitual uses) — **not** trim candidates without explicit
-  confirmation, per "not aggressive" instruction.
+  confirmation, per "not aggressive" instruction. **Update (post-Phase-9
+  core-minimization round)**: user did later explicitly confirm removing
+  `t3`/`psutils`/`moor`/`ov` (kept `curl`+`wget`, moved `curlie` to
+  `suites.network-tools` as opt-in) - see `decisions.md`'s "CLI-only
+  defaults, core minimization, editor/pager cleanup" entry. This
+  paragraph's original caution was correctly conservative; not a
+  contradiction, just superseded once the user actually weighed in.
 - Everything else (ripgrep/fd/bat/lsd/zoxide/fzf/starship/btop/helix/dust/
   tokei/procs/tailspin/tealdeer/difftastic/vivid/gum/...) is exactly the
   "modern CLI / rust rewrite" toolkit the user explicitly wants kept.
@@ -408,3 +429,76 @@ double-invoked `sync.sh` per activation, `pim-apps.nix`'s `mkOption` vs
 `mkEnableOption` style inconsistency, `sd-switch.nix` missing an `enable`
 option, librewolf's dead HM config block, `programs.ssh.matchBlocks`
 deprecation).
+
+---
+
+## 12. Standing "keep-in-sync" rules (consolidated)
+
+This whole re-architecture repeatedly ran into the same failure pattern:
+something (a doc, a template, a comment) silently drifted from the real
+source of truth across several phases, undetected until a fresh-eyes pass
+or an actual fresh-setup test surfaced it (see `learnings.md`'s "AGENTS.md
+drift" and "conditionally-omitted key vs. conditionally-empty value"
+entries, plus the `features.network` ssh-assertion bug it caused). To stop
+this recurring indefinitely, every "if you change X, you must also touch
+Y" rule discovered/established over the course of this project is
+collected here in one place, rather than left scattered across dated
+`decisions.md` entries where a future session might not think to look:
+
+1. **Change `modules/local/schema.nix` (add/rename/remove a `dotsLocal`
+   field)** → also update:
+   - `templates/dots-local/flake.nix` (the real template `setup.sh`
+     copies + fills in) - only needs the common/illustrative fields as
+     commented examples, not exhaustive (see section 1's "Implemented
+     as" note for why).
+   - `setup.sh`'s "Next steps" echo output, if the change affects what a
+     brand-new user should do first.
+   - Then **run the fresh-setup regression test**: sandboxed `$HOME`, run
+     just `setup.sh`'s identity-generation half, `nix eval`/`nix build`
+     the result. This is the *only* thing that catches "works for
+     chromaden (already fully configured), breaks for a brand-new
+     machine" bugs - chromaden's own `nix eval`/`nix build` checks cannot
+     surface them, by construction (every field is already set there).
+   - `dots-local-options` needs no manual update - it's generated live
+     from the schema every time it runs.
+   - Full write-up/precedent: `decisions.md`'s "setup.sh must track
+     schema.nix" and "setup.sh's embedded heredoc replaced with real
+     template files" entries.
+
+2. **Change `modules/core/tune-defaults.nix` (the tuning flag defaults
+   table)** → check whether any machine's `dots-local` has a `tune.flags`
+   override that's now either (a) redundant (identical to the new
+   default - safe to delete, see the 2026-07-19 "redundant tune.flags
+   override removed" decision) or (b) meaningfully different (a real,
+   intentional per-machine override - leave it, but double check it's
+   still achieving what it originally intended given the new baseline).
+
+3. **Change anything under `modules/features/*.nix`/`modules/suites/*.nix`
+   that a user might reasonably want tracked/synced (new config file
+   under `~/.config/*`, etc.)** → consider whether it needs a new named
+   syncable in `modules/core/syncables.nix`, and whether the owning
+   feature module should assert that syncable is enabled (see
+   `modules/features/niri-noctalia.nix`'s assertion for the pattern) -
+   remembering the syncable itself must NEVER be auto-enabled by the
+   feature, only asserted-for, so temporarily disabling a feature never
+   silently drops sync coverage.
+
+4. **Rename/move a module file** (as happened repeatedly this session:
+   `composition-rules.nix`→`rules.nix`, `dots-local/`→`local/`,
+   `features/git.nix`→`suites/git-tools.nix`, etc.) → grep the *entire*
+   repo (not just `modules/`) for both the old path and old option
+   namespace before considering it done - stale references hide in
+   `AGENTS.md`, `README.md`, `OVERVIEW.md`, `SYNC.md`, and `memory-bank/*.md`
+   just as easily as in other `.nix` files. A `git worktree`-based
+   before/after `config.home.packages` diff (byte-identical expected) is
+   the standard way to confirm a rename introduced zero behavior change.
+
+5. **This file (`architecture.md`) itself** - it's a "living document,
+   refined as design decisions solidify" (see the header), not a fixed
+   historical record like `decisions.md`. When an earlier section's
+   *plan* turns out to differ from what was actually *implemented* (e.g.
+   section 1's original `modules/local/template.nix` sketch vs. the real
+   `templates/dots-local/` + `dots-local-options` implementation), update
+   the section in place with a note explaining what superseded it, rather
+   than letting the stale sketch stand uncorrected as if it were still
+   the plan.

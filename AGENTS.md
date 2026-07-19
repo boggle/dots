@@ -12,6 +12,14 @@ Before making any non-trivial change, **read `memory-bank/*.md`**, at minimum:
    should change, ask the user and log the outcome.
 3. `memory-bank/open-questions.md` — unresolved items that need user input
    before proceeding on the related work.
+4. `memory-bank/architecture.md` section 12 ("Standing 'keep-in-sync'
+   rules") — a consolidated checklist of every "if you change X, you must
+   also touch Y" rule discovered so far (schema changes → template file,
+   tuning defaults → per-machine overrides, new syncable-worthy config →
+   `syncables.nix`, module renames → repo-wide grep, ...). Check this
+   *every time*, not just when a decisions.md entry happens to jog your
+   memory - this list exists specifically because that kind of drift kept
+   happening silently across multiple phases before it did.
 
 As you work:
 - Update `memory-bank/plan.md` checkboxes/status as tasks progress (mark
