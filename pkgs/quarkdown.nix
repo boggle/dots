@@ -1,26 +1,31 @@
-{ lib, stdenvNoCC, fetchzip, jre }:
+{ lib, stdenvNoCC, fetchzip }:
 
+# Since v2.1.0, upstream releases are fully self-contained per-platform
+# archives: a Gradle-style launcher script (bin/quarkdown) next to its own
+# jars (lib/) AND its own bundled, minimal JRE (runtime/) - the launcher
+# resolves APP_HOME/JAVA_HOME relative to its own location and auto-detects
+# the bundled runtime, so this is just "unpack and preserve the directory
+# layout", with no Nix-provided `jre` dependency, no custom launcher
+# substitution, and no JVM/dependency version pinning to maintain - much
+# simpler than the old per-jre-version-pinned setup this replaced.
 stdenvNoCC.mkDerivation rec {
   pname = "quarkdown";
-  version = "2.0.0";
+  version = "2.4.0";
 
   src = fetchzip {
-    url = "https://github.com/iamgio/quarkdown/releases/download/v${version}/quarkdown.zip";
-    hash = "sha256-nZVZ23m/ODFp18otHxDy6LYWmu2wnN+e9Rnznr97DHE=";
+    url = "https://github.com/iamgio/quarkdown/releases/download/v${version}/quarkdown-linux-x64.zip";
+    hash = "sha256-zyOqC+XWl7aY8UugO1QhzP74htJjR61iH5tyEtwH+c8=";
+    stripRoot = true;
   };
 
+  dontBuild = true;
+
   installPhase = ''
-    mkdir -p $out/share/quarkdown $out/bin
-
-    # Copy the full distribution
-    cp -r lib $out/share/quarkdown/
-
-    # Rewrite the launcher to use the nix-provided java and correct APP_HOME
-    substitute ${./quarkdown-launcher.sh} $out/bin/quarkdown \
-      --subst-var-by JAVA_CMD ${jre}/bin/java \
-      --subst-var-by APP_HOME $out/share/quarkdown
-
+    runHook preInstall
+    mkdir -p $out
+    cp -r . $out/
     chmod +x $out/bin/quarkdown
+    runHook postInstall
   '';
 
   meta = {
@@ -28,5 +33,6 @@ stdenvNoCC.mkDerivation rec {
     homepage = "https://github.com/iamgio/quarkdown";
     license = lib.licenses.gpl3;
     mainProgram = "quarkdown";
+    platforms = [ "x86_64-linux" ];
   };
 }

@@ -1213,3 +1213,61 @@ correctly disappears from `config.home.packages` (now alien-managed)
 while packages without a new Debian spec (`marksman`/`mkcert`) correctly
 remain as Nix packages (expected fallback), and (3) the generated
 `required/apt.txt` contains exactly the expected package names.
+
+---
+
+### 2026-07-19 — `pkgs/quarkdown.nix` rewritten for v2.4.0: dropped the Nix-provided `jre` entirely
+User asked to update to the just-released Quarkdown 2.4.0 and, in the
+same pass, throw away the old setup's complexity ("massively
+complicated due to having to pin versions of dependencies").
+
+**Root cause of the old complexity**: the v2.0.0-era release only
+shipped a lib-only `quarkdown.zip` (jars, no runtime), requiring `dots`
+to supply its own `jre` and a hand-substituted launcher script
+(`pkgs/quarkdown-launcher.sh`, `--subst-var-by JAVA_CMD/APP_HOME`) -
+meaning the Nix-provided JRE version had to stay compatible with
+whatever JVM bytecode/dependencies that specific Quarkdown release was
+built against, an ongoing pinning burden across upgrades.
+
+**What changed upstream**: as of v2.1.0 (per its changelog - "Bundled
+Java runtime" - confirmed by inspecting the actual v2.4.0 release
+assets), Quarkdown ships fully self-contained **per-platform** archives
+(`quarkdown-linux-x64.zip`, `quarkdown-macos-*.zip`, `quarkdown-
+windows-x64.zip` - no more generic `quarkdown.zip`) bundling their own
+~50MB jlink-trimmed JRE (`runtime/`) alongside the launcher (`bin/
+quarkdown`) and jars (`lib/`). Inspected the bundled launcher script
+directly: it's a standard Gradle-generated POSIX start script (APP_HOME
+resolved relative to `$0`, following symlinks) with a small prepended
+prelude that auto-detects `$SCRIPT_DIR/../runtime` and sets `JAVA_HOME`
+to it when present - fully relocatable, no absolute-path assumptions,
+as long as the `bin/`+`lib/`+`runtime/` directory structure is preserved
+verbatim relative to each other.
+
+**Fix**: rewrote `pkgs/quarkdown.nix` to just `fetchzip` the
+`quarkdown-linux-x64.zip` release asset (`stripRoot = true`) and copy
+the whole extracted tree into `$out` unmodified (`cp -r . $out/;
+chmod +x $out/bin/quarkdown`). No `jre` input, no launcher-script
+substitution, no version-compatibility pinning to maintain going
+forward - upstream's own bundled runtime is used as-is. Deleted the
+now-unused `pkgs/quarkdown-launcher.sh`. Added `meta.platforms = [
+"x86_64-linux" ]` since only that Linux architecture's bundle is
+wired up (macOS/Windows assets exist upstream but aren't fetched -
+no current need, `dots` doesn't target those platforms today).
+
+**Validated**: built the derivation directly (`nix build
+.#homeConfigurations.default.pkgs.external.quarkdown`), ran the
+resulting binary directly - `quarkdown --version` reports `2.4.0`, and
+a full `quarkdown c main.qd` compile of a trivial test document
+succeeded end-to-end (verified the actual rendered HTML output
+contained the expected content) - confirms the bundled JRE runs
+correctly on this system with zero patching (`autoPatchelfHook` etc.
+were not needed - this project targets Nix-as-secondary-package-manager
+on real FHS Linux distros, not NixOS itself, so a standard prebuilt
+ELF binary expecting `/lib64/ld-linux-x86-64.so.2` at the conventional
+system path finds it via the host distro's own glibc, same as any
+other non-Nix-packaged binary would). Full flake build succeeds;
+byte-identical `config.home.packages` diff against the prior commit
+(expected - `features.quarkdown.enable = false` on chromaden currently,
+so this has zero live effect until/unless the user turns it on;
+package-definition correctness was validated by direct invocation
+instead, as shown above).
