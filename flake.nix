@@ -23,8 +23,19 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nur.url = "github:nix-community/NUR";
-    nixgl = { url = "github:nix-community/nixGL"; inputs.nixpkgs.follows = "nixpkgs"; };
+    # `nur`/`nixgl` - confirmed unused anywhere in `dots` or `dots-local`
+    # (2026-07-19 flake.nix audit: no module reads `pkgs.nur.*`, `nixgl`
+    # wasn't even applied as an overlay). Commented out rather than
+    # deleted outright, per explicit user decision, in case either is
+    # wanted again later (nixgl in particular is the standard fix for
+    # OpenGL-dependent Nix packages on non-NixOS hosts, which this
+    # project's whole premise - Nix atop a real FHS distro - could
+    # plausibly need someday). Re-enable by uncommenting here, adding
+    # back to the `outputs` function's argument list below, and (for
+    # `nur`) re-adding `nur.overlays.default` to the `overlays` list in
+    # `mkHomeConfig`.
+    # nur.url = "github:nix-community/NUR";
+    # nixgl = { url = "github:nix-community/nixGL"; inputs.nixpkgs.follows = "nixpkgs"; };
     niri = { url = "github:sodiboo/niri-flake"; inputs.nixpkgs.follows = "nixpkgs"; };
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
@@ -46,7 +57,7 @@
     dots-local = { url = "path:../dots-local"; };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-quarto-pin, home-manager, nur, nixgl, niri, noctalia, noctalia-qs, snippets-ls, bookokrat, dots-local, ... } @ inputs:
+  outputs = { self, nixpkgs, nixpkgs-quarto-pin, home-manager, niri, noctalia, noctalia-qs, snippets-ls, bookokrat, dots-local, ... } @ inputs:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -142,7 +153,8 @@
         let
           tuneOverlay = tuning.mkTuneOverlay tunePackages ./modules;
           overlays = [
-            nur.overlays.default
+            # nur.overlays.default - see the `nur`/`nixgl` comment on the
+            # flake input declarations above.
             niri.overlays.niri
             noctalia-qs.overlays.default
             externalOverlay

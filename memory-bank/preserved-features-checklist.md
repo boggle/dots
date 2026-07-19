@@ -152,3 +152,12 @@ the re-architecture. Check off once verified post-refactor (not just
       Phase 1 (`modules/core/dots-local-shell.nix`), flows through the
       existing gutter-eval pipeline to `.bashrc-nix` unchanged since then;
       not touched again in any later phase.
+
+**Update (2026-07-19)**: two entries above (`nur`, `nixgl`) no longer
+apply as-is - a user-requested flake.nix necessity audit confirmed both
+have zero consumers anywhere in `dots` or `dots-local`, and the user
+explicitly authorized commenting them out (inputs + `nur`'s overlay),
+superseding the "must survive unchanged" framing above for just these
+two. See `architecture.md` section 1b's matching update and
+`decisions.md`'s 2026-07-19 entry for the full rationale/validation.
+Everything else on this checklist is unaffected.

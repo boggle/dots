@@ -122,6 +122,21 @@ in behavior (see `preserved-features-checklist.md` for the checklist form):
   checks (e.g. `quarto`, `pandoc`, `bookokrat`) before/after, not just "it
   builds".
 
+**Update (2026-07-19)**: this section describes the Phase 1/2-era
+inventory, when the directive's purpose was "don't lose anything
+*accidentally* mid-refactor." Since then, the user explicitly asked for
+(and got) a deliberate flake.nix necessity audit: `nur`/`nixgl` were
+confirmed (exhaustive repo-wide grep across both `dots` and
+`dots-local`) to have zero consumers anywhere - `nixgl` wasn't even
+applied as an overlay, and nothing ever reads `pkgs.nur.*`. Per explicit
+user decision, both are now commented out (not deleted) in
+`flake.nix`'s `inputs` block, with `nur.overlays.default` similarly
+commented out of the applied `overlays` list - see `decisions.md`'s
+matching 2026-07-19 entry. This is a deliberate, explicitly-authorized
+exception to the "non-negotiable" framing above, not a silent reversal
+- the directive's actual intent (no *accidental* drops) still stands for
+everything else.
+
 ### 1c. When config loses its home in `dots`, document its `dots-local` replacement
 
 **Explicit user directive.** As Phase 1/2 strip host-specific and

@@ -1322,3 +1322,53 @@ combination `dots`'s config will actually use post-fix (pinned quarto
 1.8.26 + `QUARTO_PANDOC` explicitly forced to the main-nixpkgs pandoc
 build) - renders cleanly, confirming this specific real-world pairing
 works, not just each piece in isolation.
+
+---
+
+### 2026-07-19 — flake.nix necessity audit: `nur`/`nixgl` confirmed unused, commented out
+User asked to go through every flake input/overlay and confirm each is
+still actually needed. Audited all 9 (at the time): `nixpkgs`/
+`nixpkgs-quarto-pin`/`home-manager`/`niri`/`noctalia`/`noctalia-qs`/
+`snippets-ls`/`bookokrat`/`dots-local` all confirmed genuinely consumed
+somewhere (direct grep evidence for each - `niri`/`noctalia`'s
+`homeModules` imports in `niri-noctalia.nix`, `noctalia-qs`'s real
+tune-spec entry in `niri-noctalia.tune-specs.nix`, `snippets-ls`/
+`bookokrat`/`quarkdown` all wired through `externalOverlay`, etc.).
+`dotsLocal.extraOverlays` (the escape hatch) is real but currently
+unset on chromaden - inert-but-legitimate, matching the `barch`/
+`location`-axis precedent, not flagged as an issue.
+
+**`nur` and `nixgl` confirmed genuinely unused** - exhaustive grep
+across both `dots` and `dots-local` repos found zero consumers: `nixgl`
+wasn't even applied as an overlay in `flake.nix`'s own `overlays` list
+(despite being declared as an input), and while `nur.overlays.default`
+IS applied, nothing anywhere ever reads `pkgs.nur.*`.
+
+This directly bumps into the Phase 1/2-era "preserve all overlays/
+package sources, non-negotiable" directive (`architecture.md` section
+1b, `decisions.md` 2026-07-18) - flagged this explicitly rather than
+silently removing, since that directive was on record. User's decision:
+**keep both, but commented out** (not deleted) - preserves easy
+reactivation later (nixgl in particular is the standard fix for
+OpenGL-dependent packages on non-NixOS hosts, plausible future need
+given this project's whole "Nix atop a real FHS distro" premise) while
+being honest that neither is currently doing anything.
+
+**Implementation**: commented out `nur.url`/`nixgl = {...}` in
+`flake.nix`'s `inputs` block (with a comment explaining what's needed
+to re-enable each), removed both from the `outputs = { ... }:`
+function's destructured argument list (required - Nix errors on a
+named-but-absent input otherwise), and commented out
+`nur.overlays.default` from the applied `overlays` list in
+`mkHomeConfig`.
+
+**Validated**: full build succeeds; `nix build` output explicitly
+confirms `nixgl`/`nur` and all their transitive sub-inputs
+(`flake-utils`, `flake-parts`, `nixpkgs-lib`, nested `nixpkgs`) are
+cleanly removed from the flake's lock graph. Byte-identical
+`config.home.packages` diff against the prior commit (expected - by
+definition, removing genuinely-unused inputs/overlays cannot change any
+resolved package). Updated `architecture.md` section 1b and
+`preserved-features-checklist.md` in place to note this explicitly-
+authorized exception rather than leave them looking silently
+contradicted.
