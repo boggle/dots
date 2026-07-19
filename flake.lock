@@ -23,13 +23,13 @@
     },
     "dots-local": {
       "locked": {
-        "lastModified": 1784487874,
-        "narHash": "sha256-i4NRw2CYSz3vsiVfD615fEXzTH14tLeNvZ9bzZ9bmCQ=",
-        "ref": "refs/heads/master",
-        "rev": "3644521d3ec1b91698c18816435cee13539328a0",
-        "revCount": 30,
+        "lastModified": 1784504770,
+        "narHash": "sha256-wggJFaHl0BCoSza1NfE8/xGf0K/t/MRZgGGXE132oaQ=",
+        "ref": "refs/heads/main",
+        "rev": "cd5aef3b20c00452cea76eb0ec85369f78470bff",
+        "revCount": 2,
         "type": "git",
-        "url": "file:///home/pc0w/dots-local"
+        "url": "file:///home/sp/dots-local"
       },
       "original": {
         "path": "../dots-local",
