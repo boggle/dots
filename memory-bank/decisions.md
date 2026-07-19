@@ -364,3 +364,28 @@ Phase 9 in `plan.md`) stays structurally correct but inert until/unless
 this is revisited - `cfg.base ++ cfg.required` never gets added to
 `home.packages` while `enable` is `false`. No further action needed
 unless the user brings this back up.
+
+### 2026-07-19 — Post-Phase-9 module renames
+**Decision:** `modules/composition-rules.nix` -> `modules/rules.nix`,
+`modules/dots-local/` -> `modules/local/` (both requested directly by the
+user). The separate, private `~/dots-local` repo/flake input is
+unaffected - only the schema directory inside *this* repo moved.
+**Rationale:** User's explicit call, purely mechanical/naming - no
+behavior change. Verified via `nix eval`/`nix build` (zero rebuilds
+needed, confirming a pure rename) plus a spot-check of the `.#dotsLocal`
+and `default-opt` flake outputs.
+
+### 2026-07-19 — `modules/distros/*` deleted (not repurposed)
+**Decision:** Deleted `modules/distros/{cachyos,opensuse,azurelinux3,default}.nix`
+entirely, per the user's choice after an assessment (requested by the
+user) confirmed it was fully dead code.
+**Rationale:** Zero references anywhere in the codebase (confirmed via
+grep); the `packageManagers = [...]` "order of preference" concept it
+encoded is not how the real alien-package system works (each package's
+alien spec directly declares which specific managers it's available on -
+see `*.<distro>-packages.nix` files). It was also stale relative to that
+real system: missing `azurelinux4` (dnf5) and `debian` (apt), both added
+in Phase 3, never backfilled here. This closes out the "repurpose
+modules/distros/*" item deferred since Phase 2 (see the 2026-07-18
+"Phase 2 scope" decision above) - resolved by deletion rather than the
+originally-sketched repurposing, since nothing ever ended up needing it.

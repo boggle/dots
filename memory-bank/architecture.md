@@ -176,10 +176,11 @@ Consequences:
   with axis values.
 - The (currently broken) `work` profile issue disappears: `work` becomes
   `dotsLocal.context = "work"`, a data value, not a missing directory.
-- `modules/distros/*` (currently dead/vestigial registry) gets repurposed as
-  real per-distro metadata feeding composition rules + the alien-package
-  layer (package-manager list, GUI-capable flag, etc.) instead of being
-  deleted outright.
+- `modules/distros/*` (dead/vestigial registry) - originally sketched here
+  as something to repurpose into real per-distro metadata; ended up
+  **deleted entirely instead** post-Phase-9 (see decisions.md's
+  "modules/distros/* deleted" entry) since nothing ever needed it and it
+  had drifted out of sync with the real alien-package distro list.
 - `cloud-tools` (currently defined but never imported anywhere) becomes
   available like every other suite, axis-defaulted.
 - True one-off host quirks (e.g. a power-toggle script hardcoded to

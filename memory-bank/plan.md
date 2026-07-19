@@ -332,8 +332,8 @@ etc).
   structurally-ready-but-runtime-unverified** - flagged in
   `memory-bank/open-questions.md`, to be revisited once real Debian
   hardware exists. `modules/distros/*` repurposing (deferred from Phase 2)
-  still not done - remains vestigial; low priority, revisit if it becomes
-  actually useful rather than doing it preemptively.
+  was ultimately never done - **deleted entirely post-Phase-9** instead of
+  repurposed, see decisions.md's "modules/distros/* deleted" entry.
 
 ### Phase 3 addendum — Azure Linux 4 (`dnf5`) support
 - [x] Added `dnf5` as a new alien-package manager backend (Azure Linux 4.0
