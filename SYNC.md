@@ -115,15 +115,19 @@ dots/settings/laputa/root/etc/NetworkManager/system-connections/Wifi.nmconnectio
 
 ### apply-dots
 ```bash
-apply-dots [profile] [-- <nh-args>...]    # Apply dots config + run sync
+apply-dots [opt] [-- <nh-args>...]    # Apply dots config + run sync
 ```
+
+Which context (priv/work) you get comes from `dots-local`'s `profile`
+field, not a CLI argument - the only argument `apply-dots` takes is the
+optional `opt` (baseline vs. optimized build).
 
 Examples:
 ```bash
-apply-dots                    # Apply default profile from dots-local
-apply-dots priv               # Apply specific profile
+apply-dots                    # Baseline build (homeConfigurations.default)
+apply-dots opt                # Optimized build (homeConfigurations.default-opt)
 apply-dots -- -b backup       # Pass -b backup to nh home switch
-apply-dots priv -- -b backup  # Profile + nh arguments
+apply-dots opt -- -b backup   # Optimized build + nh arguments
 ```
 
 Features:
@@ -233,15 +237,17 @@ apply-dots                    # Will auto-regenerate if needed
 dots/                           (main repo, committed)
 ├── profiles/
 │   ├── priv/
-│   │   ├── home.nix           ← Profile configuration
 │   │   └── sync.json          ← Global ignores for priv
 │   ├── work/
 │   │   └── sync.json          ← Global ignores for work  
 │   └── common/
-│   │   └── sync.json          ← Shared ignores across profiles
-│   └── hosts/
-│       └── <hostname>.nix     ← Host-specific configuration
+│       └── sync.json          ← Shared ignores across profiles
+│       (no per-host directory anymore - host-specific config now comes
+│       from dots-local fields/extraModules, see modules/composition.nix)
 ├── modules/
+│   ├── contexts/
+│   │   ├── priv.nix           ← Personal context config (was profiles/priv/home.nix)
+│   │   └── work.nix           ← Work context config
 │   └── core/
 │       └── scripts.nix        ← Commands (apply-dots, dots-sync, etc.)
 ├── sync.sh                    ← Core sync script
@@ -255,6 +261,8 @@ dots-local/                     (machine-specific, gitignored)
 ├── flake.nix                  ← Your config (EDIT THIS!)
 ├── sync-config.json           ← Generated from flake.nix (gitignored)
 ├── appimages.nix              ← Host-local AppImages config
+├── host-<hostname>.nix         ← Bespoke config too specific to generalize
+│                                 (referenced via flake.nix's extraModules)
 ├── .gitignore                 ← Ignores generated files
 └── setup.sh                   ← One-time setup script
 ```

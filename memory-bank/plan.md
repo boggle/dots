@@ -708,7 +708,46 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
       `nix build .../activationPackage` passes for all three (chromaden,
       synthetic work+niri, synthetic no-compositor) - confirming the
       universal-import fix doesn't break any context.
-- [ ] Update README.md/OVERVIEW.md/SYNC.md to match new architecture
+- [x] Update README.md/OVERVIEW.md/SYNC.md to match new architecture. Found
+      and fixed a real backlog of staleness across all three (mostly
+      predating this phase - leftover from Phase 2's flake-output rename
+      and profile-directory retirement that the earlier Phase 2 docs pass
+      didn't fully catch):
+      - README.md: `apply-dots priv`/`apply-dots priv -- ...` examples
+        (stale - only `apply-dots [opt]` is valid now); wrong viewer tool
+        names (`timg` doesn't exist, should be `catimg`; `meowpdf` doesn't
+        exist, PDF viewing is just `bat`); stale `nix eval
+        .#homeConfigurations.priv` troubleshooting example (-> `default`);
+        viewer feature table/config example didn't mention the 5 options
+        Phase 9 just wired up.
+      - OVERVIEW.md (had the most drift): same `timg`/`meowpdf` wrong tool
+        names; "Global (Overlay)" tuning example still showed the retired
+        `priv = mkProfile { tunePackages = {...}; }` syntax instead of
+        flake.nix's actual `tunePackagesByContext` table; "Local (PATH
+        Shadowing)" example said "In profile/home.nix" (that file no
+        longer exists); "Profiles"/"Commands" sections still said
+        `priv`/`work`/`priv-opt`/`work-opt` and `apply-dots priv-opt`
+        instead of `default`/`default-opt`/`apply-dots opt`; "Using Alien
+        Packages in Features" example demonstrated the old hand-written
+        `alien.mkEntry` boilerplate pattern Phase 4's `mkAppSet` helper
+        was specifically introduced to replace - added a `mkAppSet`
+        example (matching tui-apps.nix's real usage) as the now-preferred
+        pattern for suites with more than a couple of toggles, kept the
+        manual pattern as a documented alternative for single one-off
+        toggles.
+      - SYNC.md: same `apply-dots priv` staleness; "File Relationships"
+        tree diagram still showed the deleted `profiles/priv/home.nix`
+        and `profiles/hosts/<hostname>.nix` - updated to show
+        `modules/contexts/{priv,work}.nix` and `dots-local/host-
+        <hostname>.nix` instead.
+      Confirmed via repo-wide grep (`priv-opt`/`work-opt`/`apply-dots
+      priv`/`mkProfile`/`profileDefinitions`/`profiles/priv/hosts`/
+      `profiles/*/hosts/`) that no stale references remain in any of the
+      three files afterward. Doc-only changes - no `nix eval`/`nix build`
+      validation applicable, but cross-checked every corrected code
+      example against the actual current source (`flake.nix`,
+      `modules/core/scripts.nix`, `modules/core/lib.nix`,
+      `modules/suites/tui-apps.nix`) rather than guessing.
 - [ ] Finalize `preserved-features-checklist.md`, mark everything verified
 - Validation: `(live)` final checkpoint
 

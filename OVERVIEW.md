@@ -69,7 +69,7 @@ Views files in the terminal with appropriate tools.
 ```bash
 # Single file (interactive mode)
 v README.md             # Renders markdown with glow
-v image.png             # Shows image in terminal (chafa/timg)
+v image.png             # Shows image in terminal (chafa/catimg)
 v app.log               # Syntax highlighted with bat
 
 # Multiple files (continuous/streaming mode)
@@ -88,21 +88,27 @@ v -h                    # Show full help
 | Extension | Viewer | Notes |
 |-----------|--------|-------|
 | `.md` | `glow` | Renders to formatted text |
-| Images | `chafa` → `timg` | Terminal graphics via sixel |
-| `.pdf` | `meowpdf` | PDF pages as images |
-| `.mp4` | `mpv` | Video playback in terminal |
-| `.csv` | `column` | Table formatting |
-| `.json` | `jq` | Pretty-printed |
+| Images | `chafa`/`catimg` → `bat` | Terminal graphics, falls back to bat |
+| `.pdf` | `bat` | Falls back to bat (no dedicated PDF renderer) |
+| `.mp4` | `mpv --vo=sixel` | Video playback in terminal, if `enableVideo` |
+| `.csv` | `column` | Table formatting, if `enableDataFormats` |
+| `.json` | `jq` | Pretty-printed, if `enableDataFormats` |
 | `.log` | `bat` | With line numbers |
-| `.diff` | `delta` | Side-by-side if available |
-| Archives | `unzip`/`tar` | Lists contents only |
+| `.diff` | `delta` | Side-by-side if available, else bat |
+| Archives | `unzip`/`tar`/`7z`/`unrar` | Lists contents, if `enableArchives` |
+| Directory | `lsd --tree` | Tree view, if `enableDirectoryTree` |
 | Binary | `xxd` | Hex dump |
+
+Each `enable*` option (`enableVideo`, `enableDirectoryTree`, `enableArchives`,
+`enableDataFormats`, `enableFzfPicker`) falls back to plain `bat` (or a flat
+`lsd` listing, for directories) when disabled, rather than erroring - see
+`features.viewer`'s option descriptions.
 
 **Mode Details:**
 - **Single file** → Interactive (glow -t, bat with pager)
 - **Multiple files** → Continuous streaming (no pager)
 - **Video in continuous** → Shows metadata only
-- **FZF picker** → When run with no arguments
+- **FZF picker** → When run with no arguments, if `enableFzfPicker`
 
 ---
 
@@ -120,11 +126,14 @@ Most Nix packages are built for generic `x86_64-linux` to work on any machine. I
 Replaces the package everywhere in your configuration.
 
 ```nix
-# In flake.nix
-priv = mkProfile { 
-  tunePackages = {
-    ripgrep = { enable = true; mode = "fast"; };
+# In flake.nix's tunePackagesByContext table, keyed by dotsLocal.profile
+# (not a per-profile directory anymore - see modules/composition.nix)
+tunePackagesByContext = {
+  priv = {
+    ripgrep.enable = true;
+    fd.enable = true;
   };
+  work = {};
 };
 ```
 
@@ -134,7 +143,7 @@ priv = mkProfile {
 Adds tuned version to PATH, shadows baseline.
 
 ```nix
-# In profile/home.nix
+# In modules/contexts/priv.nix (or work.nix)
 features.tune.packages.bat = {
   enable = true; 
   scope = "local"; 
@@ -207,19 +216,22 @@ Set your CPU in `~/dots-local/flake.nix`:
 
 Common `march` values: `znver3` (AMD Zen 3), `skylake`, `alderlake`, `sapphirerapids`
 
-## Profiles
+## Build Variants
 
-- **`priv`/`work`** - Baseline, uses cache.nixos.org + tune overlay
-- **`priv-opt`/`work-opt`** - Rebuilds everything with `localSystem.gcc.arch = barch`
+- **`default`** - Baseline, uses cache.nixos.org + tune overlay
+- **`default-opt`** - Rebuilds everything with `localSystem.gcc.arch` set
+  from `dotsLocal.march`
 
-Baseline is faster to install. Optimized profiles rebuild all packages locally (takes hours first time).
+Which context (priv/work) you get comes from `dots-local`'s `profile`
+field, not the flake output name - `default`/`default-opt` only choose
+baseline vs. optimized. Baseline is faster to install; the optimized
+variant rebuilds all packages locally (takes hours first time).
 
 ## Commands
 
 ```bash
-apply-dots           # Use dots-local.profile (usually priv)
-apply-dots priv      # Baseline + tuned packages
-apply-dots priv-opt  # Fully optimized (rebuilds everything)
+apply-dots           # Baseline build (homeConfigurations.default)
+apply-dots opt       # Fully optimized (homeConfigurations.default-opt)
 
 update-dots          # Update flake inputs
 which yazi-tuned     # Verify tuned version exists
@@ -299,7 +311,8 @@ Exec bit is preserved during updates: if an AppImage was executable before updat
 
 ### Enable/Disable Individual Apps
 
-In your profile or host config:
+In `modules/contexts/<profile>.nix`, or `dots-local`'s `extraModules` for
+something more host-specific:
 ```nix
 features.appimages = {
   enable = true;
@@ -346,30 +359,51 @@ Create a `<feature>.<distro>-packages.nix` file next to your feature:
 
 ### Using Alien Packages in Features
 
-Features check if an alien package exists and skip the Nix version:
+Features check if an alien package exists and skip the Nix version. For
+suites with more than a couple of toggles, use `modules/core/lib.nix`'s
+`mkAppSet` helper (Phase 4 of the re-architecture) instead of repeating the
+`alien.mkEntry`/`alienPackages.enabledPackages` boilerplate by hand for
+every single toggle:
 
 ```nix
 { config, lib, pkgs, alien, ... }:
 
 let
   cfg = config.suites.tui-apps;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      yazi = { enable = cfg.yazi; pkg = pkgs.yazi; };
+      # `alienName` when the alien-spec key differs from the toggle name:
+      deltachat = { enable = cfg.deltachat; pkg = pkgs.deltachat-desktop; alienName = "deltachat-desktop"; };
+    };
+  };
 in {
   options.suites.tui-apps = {
     enable = lib.mkEnableOption "Enable interactive TUI tools";
     yazi = lib.mkEnableOption "Yazi file manager";
+    deltachat = lib.mkEnableOption "Delta Chat";
   };
 
   config = lib.mkIf cfg.enable {
-    # Use alien.mkEntry - returns null if alien package exists
-    home.packages = builtins.filter (p: p != null) [
-      (alien.mkEntry cfg.yazi "yazi" pkgs.yazi)
-    ];
-
-    # Declare which alien packages are enabled
-    alienPackages.enabledPackages =
-      lib.optional cfg.yazi "yazi";
+    home.packages = appSet.packages;
+    alienPackages.enabledPackages = appSet.alienEnabled;
   };
 }
+```
+
+For a single one-off toggle, the manual `alien.mkEntry`/
+`alienPackages.enabledPackages` pattern (without `mkAppSet`) is still fine
+and reads more directly:
+
+```nix
+config = lib.mkIf cfg.enable {
+  home.packages = builtins.filter (p: p != null) [
+    (alien.mkEntry cfg.yazi "yazi" pkgs.yazi)
+  ];
+  alienPackages.enabledPackages = lib.optional cfg.yazi "yazi";
+};
 ```
 
 ### Commands

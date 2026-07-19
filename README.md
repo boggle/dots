@@ -87,7 +87,7 @@ features.appimages.enable = true;              # Host-local AppImage support
 | `niri-noctalia` | `enable`, `renderDrmDevice`, `terminal` | Niri compositor with Noctalia integration |
 | `opener` | `enable`, `backend`, `alias` | Cross-platform file opener (`o` command) |
 | `tune` | `enable`, `packages` | Package optimization (see [OVERVIEW.md](OVERVIEW.md)) |
-| `viewer` | `enable`, `alias`, `ripgrepAll`, `preferImageViewer` | Terminal file viewer (`v` command) |
+| `viewer` | `enable`, `alias`, `ripgrepAll`, `preferImageViewer`, `enableVideo`, `enableDirectoryTree`, `enableArchives`, `enableDataFormats`, `enableFzfPicker` | Terminal file viewer (`v` command) |
 
 **Suites** (`suites.<name>`) - Bundled application groups:
 
@@ -107,10 +107,10 @@ Daily workflow commands (installed via Home Manager):
 
 ```bash
 # Apply configuration
-apply-dots                    # Apply default profile from dots-local
-apply-dots priv               # Apply specific profile
+apply-dots                    # Baseline build (homeConfigurations.default)
+apply-dots opt                # Optimized build for your CPU (default-opt)
 apply-dots -- -b backup       # Pass arguments to nh home switch
-apply-dots priv -- -b backup --dry  # Profile + nh arguments
+apply-dots opt -- -b backup --dry  # Optimized build + nh arguments
 
 # Update flake inputs
 update-dots                   # Update all flake inputs
@@ -170,9 +170,9 @@ Smart file viewer that picks the right tool based on file type.
 
 ```bash
 v file.md               # Render markdown with glow
-v image.png             # View image in terminal (chafa/timg)
-v document.pdf          # View PDF in terminal (meowpdf)
-v video.mp4             # Play video (mpv)
+v image.png             # View image in terminal (chafa/catimg, falls back to bat)
+v document.pdf          # View PDF in terminal (bat)
+v video.mp4             # Play video (mpv --vo=sixel)
 v *.log                 # View multiple files (continuous mode)
 v -c *.json | less      # Stream to less (continuous mode)
 v -s binary.dat         # Strip ANSI colors
@@ -189,9 +189,13 @@ Configuration:
 features.viewer = {
   enable = true;
   alias = "v";
-  preferImageViewer = "chafa";  # chafa or timg
-  enableVideo = true;
-  enableDirectoryTree = true;
+  preferImageViewer = "chafa";  # chafa or catimg
+  enableVideo = true;           # mpv --vo=sixel for video files (else metadata only)
+  enableDirectoryTree = true;   # lsd --tree for directories (else flat listing)
+  enableArchives = true;        # List zip/tar/7z contents (else plain bat)
+  enableDataFormats = true;     # Pretty print csv/json/yaml (else plain bat)
+  enableFzfPicker = true;       # Interactive picker when called with no args
+  ripgrepAll = true;            # Also install ripgrep-all (rga)
 };
 ```
 
@@ -364,7 +368,7 @@ Ensure `dots-local/flake.nix` has a valid `profile` attribute (e.g., `profile = 
 **Nix evaluation errors:**
 ```bash
 # Test evaluation without building
-nix eval .#homeConfigurations.priv --override-input dots-local git+file://$HOME/dots-local
+nix eval .#homeConfigurations.default --override-input dots-local git+file://$HOME/dots-local
 ```
 
 ### Getting Help
