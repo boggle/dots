@@ -1085,3 +1085,31 @@ cleanly, confirmed the build returns to green. Full
 `config.home.packages` diff against the prior commit is byte-identical
 (expected - this round only touched spec-file metadata and the
 discovery function's internals, not any actual package data).
+
+---
+
+### 2026-07-19 — `noctalia-qs` "non-existent input" warning: root-caused and removed
+Long-standing (flagged twice previously, deliberately left alone
+pending investigation - see the superseded `open-questions.md` entry)
+cosmetic warning on every eval: `input 'noctalia' has an override for a
+non-existent input 'noctalia-qs'`. Root-caused conclusively this time:
+fetched `noctalia-shell`'s own `flake.nix` directly from GitHub (and
+cross-checked via `nix flake metadata github:noctalia-dev/
+noctalia-shell --json`'s `locks.nodes.root.inputs`) - it declares only
+`nixpkgs` as an input, never `noctalia-qs`, and never has. `dots`'s own
+`inputs.noctalia.inputs.noctalia-qs.follows = "noctalia-qs";` was
+therefore always a permanent no-op, not a transient lock-file staleness
+issue as previously suspected.
+
+**Fix**: removed just that one cross-reference line from the `noctalia`
+input block. Did NOT touch the separate, standalone `noctalia-qs` flake
+input declared right below it (`noctalia-qs = { url = "github:
+noctalia-dev/noctalia-qs"; ...};`) - that one is genuinely used
+elsewhere (`noctalia-qs.enable`, `noctalia-qs.overlays.default`) and was
+never actually part of the dead cross-reference; the two coincidentally
+share a name but are otherwise unrelated.
+
+**Validated**: warning confirmed gone from `nix build` output;
+byte-identical `config.home.packages` diff against the prior commit
+(via `git worktree`) confirms zero behavior change - purely removed a
+no-op line.

@@ -42,18 +42,17 @@ follow-up candidates for the same platform-detection consolidation as
 clipboard/opener, but are not required in the initial pass. Revisit after
 Phase 2/3.
 
-### `noctalia-qs` "non-existent input" warning - investigate later
-Confirmed not a regression (identical since before this session, see
-decisions.md 2026-07-18 "noctalia-qs input override: intentional, do not
-touch"), but flagged by user (2026-07-18, second time) for eventual
-root-cause investigation: why does `inputs.noctalia.inputs.noctalia-qs.follows
-= "noctalia-qs"` trigger "has an override for a non-existent input" - does
-the upstream `noctalia-shell` flake not declare a `noctalia-qs` input at
-all (making this override a permanent no-op), or is this a transient
-lock-file staleness issue? Low priority, purely cosmetic today, but worth
-resolving cleanly at some point rather than leaving a permanent warning in
-every eval. Do NOT remove the override without figuring out the actual
-answer first - user has twice confirmed dots needs it for something.
+### `noctalia-qs` "non-existent input" warning - RESOLVED, removed
+Root-caused (2026-07-19): fetched upstream `noctalia-shell`'s own
+`flake.nix` directly (github raw + `nix flake metadata`'s `locks.root
+.inputs`) - it has only ever declared `nixpkgs` as an input, never
+`noctalia-qs`. `dots`'s `inputs.noctalia.inputs.noctalia-qs.follows =
+"noctalia-qs";` was therefore a permanent no-op, not a transient
+lock-file issue. Removed just that cross-reference line; the separate,
+standalone `noctalia-qs` flake input (genuinely used via
+`noctalia-qs.enable`/`noctalia-qs.overlays.default` elsewhere in
+flake.nix) is completely untouched. Verified the warning is gone and
+`config.home.packages` is byte-identical to before.
 
 ### `sync.sh` / `setup.sh` deeper improvements — mostly done, note is stale
 Originally deferred by the user ("stash this for later") beyond

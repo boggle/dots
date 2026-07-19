@@ -168,7 +168,7 @@ etc).
       live - not yet applied as of this note (next live checkpoint will
       cover it).
 
-## Phase 1 — `dots-local` schema `[x] DONE (uncommitted)`
+## Phase 1 — `dots-local` schema `[x] DONE`
 - [x] Design `modules/local/schema.nix` (lib.evalModules) - kept
       additive/backward-compatible (existing fields stay flat) rather than
       the fully-nested design originally sketched; see decisions.md
@@ -215,7 +215,7 @@ etc).
   live-checkpointed** - awaiting the next `apply-dots` per user's usual
   validation cadence.
 
-## Phase 2 — Composition layer (replaces profile hierarchy) `(live)` `[x] DONE (uncommitted)`
+## Phase 2 — Composition layer (replaces profile hierarchy) `(live)` `[x] DONE`
 - [x] **Decision checkpoint resolved**: flake output naming confirmed by
       user -> `homeConfigurations.{default,default-opt}` (replacing
       `{priv,work,priv-opt,work-opt}`). `apply-dots priv`/`apply-dots

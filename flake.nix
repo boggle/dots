@@ -17,7 +17,16 @@
     noctalia = {
       url = "github:noctalia-dev/noctalia-shell";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.noctalia-qs.follows = "noctalia-qs";
+      # NOTE: no `inputs.noctalia-qs.follows` here (there used to be one,
+      # which produced a permanent "has an override for a non-existent
+      # input" warning on every eval) - confirmed by fetching upstream's
+      # own flake.nix directly that `noctalia-shell` has only ever
+      # declared `nixpkgs` as an input, never `noctalia-qs`. The
+      # standalone `noctalia-qs` input right below is a completely
+      # separate, genuinely-used flake input in its own right (see
+      # `noctalia-qs.enable`/`noctalia-qs.overlays.default` usages further
+      # down) - only the now-removed *cross-reference* between the two
+      # was dead.
     };
     noctalia-qs = { url = "github:noctalia-dev/noctalia-qs"; inputs.nixpkgs.follows = "nixpkgs"; };
     snippets-ls = { url = "github:quantonganh/snippets-ls"; inputs.nixpkgs.follows = "nixpkgs"; };
