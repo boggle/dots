@@ -50,14 +50,21 @@ stale default; no more scattered `or` fallbacks to keep consistent.
 
 **Implemented as (post-Phase-9 update — supersedes this section's original
 `modules/local/template.nix` sketch below):**
-- `templates/dots-local/{flake.nix,appimages.nix,gitignore}` — real,
+- `templates/local/{flake.nix,appimages.nix,gitignore,host.nix}` — real,
   standalone, syntactically valid files (not a single generated
   `template.nix`, and not a bash heredoc) using `@@TOKEN@@` placeholders.
   `setup.sh` copies these into a fresh `~/dots-local` and runs one
   `sed -i` pass to fill in the identity/machine placeholders, showing
   only the required fields live plus commented-out examples for optional
   axes (mirroring chromaden's real shape) — it does NOT embed a full copy
-  of e.g. the tuning defaults table (see section 6).
+  of e.g. the tuning defaults table (see section 6). `host.nix` is wired
+  in via `extraModules` unconditionally (not commented out, matching
+  `appimages.nix`'s own always-present pattern) - deliberately almost
+  empty, the standard escape hatch for anything too bespoke to
+  generalize (renamed directory `templates/dots-local/` →
+  `templates/local/` on 2026-07-19, following the earlier
+  `modules/dots-local/` → `modules/local/` precedent - see
+  `decisions.md`).
 - `dots-local-options` (a real CLI command, `modules/core/scripts.nix`) —
   not a static template file at all — is the actual "see every available
   field" mechanism: it evaluates `dotsLocalEval.options` through
@@ -148,7 +155,7 @@ manifests). Whenever this happens:
 
 - **Do not just delete it and move on.** Add/update a documentation file in
   the `dots` checkout (near the relevant schema/template, e.g.
-  `templates/dots-local/flake.nix` plus prose docs) that shows exactly
+  `templates/local/flake.nix` plus prose docs) that shows exactly
   what to add to `dots-local/flake.nix` to reproduce that config.
 - This is in addition to (not instead of) the schema itself being
   self-documenting via option descriptions, AND `dots-local-options`
@@ -159,7 +166,7 @@ manifests). Whenever this happens:
   are now data in `dots-local`.
 - Practically: maintain a per-axis "how to configure this in `dots-local`"
   reference (README.md's "Adding a New Host" section, or expanded
-  commented-out examples in `templates/dots-local/flake.nix`) that's
+  commented-out examples in `templates/local/flake.nix`) that's
   updated in the same commit that removes the old home for that config.
   Never let "it's now overridable via dots-local" be an undocumented,
   tribal-knowledge fact.
@@ -462,7 +469,7 @@ collected here in one place, rather than left scattered across dated
 
 1. **Change `modules/local/schema.nix` (add/rename/remove a `dotsLocal`
    field)** → also update:
-   - `templates/dots-local/flake.nix` (the real template `setup.sh`
+   - `templates/local/flake.nix` (the real template `setup.sh`
      copies + fills in) - only needs the common/illustrative fields as
      commented examples, not exhaustive (see section 1's "Implemented
      as" note for why).
@@ -513,7 +520,7 @@ collected here in one place, rather than left scattered across dated
    historical record like `decisions.md`. When an earlier section's
    *plan* turns out to differ from what was actually *implemented* (e.g.
    section 1's original `modules/local/template.nix` sketch vs. the real
-   `templates/dots-local/` + `dots-local-options` implementation), update
+   `templates/local/` + `dots-local-options` implementation), update
    the section in place with a note explaining what superseded it, rather
    than letting the stale sketch stand uncorrected as if it were still
    the plan.

@@ -51,9 +51,11 @@
       # };
 
       # For anything too bespoke to express as an axis above (e.g. exact
-      # CUDA/compiler flags for one particular GPU), add a small module
-      # file next to this one and reference it here:
-      # extraModules = [ ./host-@@HOSTNAME@@.nix ];
+      # CUDA/compiler flags for one particular GPU) - host.nix (next to
+      # this file) is where that goes, deliberately almost empty until
+      # you actually need it. No need to weave the hostname into the
+      # filename - one machine, one dots-local checkout, one host.nix.
+      extraModules = [ ./host.nix ];
 
       # Butterfish / local LLM endpoint - only needed if features.butterfish
       # is enabled somewhere (off by default).

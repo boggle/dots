@@ -309,7 +309,7 @@ sync with the real schema.
 
 **Standing rule - always do this, every time:** whenever you add, rename,
 or remove a `dotsLocal` field in `modules/local/schema.nix`, you MUST also
-update `templates/dots-local/flake.nix` (the real, standalone template
+update `templates/local/flake.nix` (the real, standalone template
 `setup.sh` copies + fills in for a brand-new machine - not a bash
 heredoc, see its own header comment) and `setup.sh`'s "Next steps" echo
 output, in the same change. This is the *only* onboarding path for a

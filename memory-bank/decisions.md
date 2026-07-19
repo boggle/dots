@@ -1372,3 +1372,59 @@ resolved package). Updated `architecture.md` section 1b and
 `preserved-features-checklist.md` in place to note this explicitly-
 authorized exception rather than leave them looking silently
 contradicted.
+
+---
+
+### 2026-07-19 — `dots-local`'s sync-config.json confirmed still relevant (it's a generated cache, correctly not templated); `templates/dots-local/` renamed to `templates/local/`; added `templates/local/host.nix`
+User asked whether `dots-local`'s `sync-config.json` was still relevant,
+and if so why it wasn't represented in the template. Investigated
+`sync.sh` directly: `sync-config.json` is a **generated cache artifact**
+- `ensure_sync_config_current()` auto-regenerates it from `dots-local/
+flake.nix`'s `sync` field (`enable`/`tracked`) plus dots's own
+`modules/core/syncables.nix` registry, on every single `sync.sh`
+invocation (mtime-checked, unconditional with `-g`/`--force-regen`).
+Confirmed correctly gitignored in both the real `dots-local` and the
+template (`templates/dots-local/gitignore`, now `templates/local/
+gitignore`) - it's not something a user ever hand-authors, so it
+correctly has no template counterpart. The REAL source (`dotsLocal.sync
+.enable`/`.tracked`) was already present in the template's `flake.nix`
+as a commented-out example - nothing was actually missing. While
+checking this, found and fixed two genuinely stale, unrelated
+`SYNC.md` doc bugs: its "Initial setup on new machine" section told
+readers to manually run `nix eval --json .#sync > sync-config.json`,
+which has been unnecessary since `sync.sh`'s auto-regeneration was
+added (post-Phase-9 round 7) - replaced with just running `dots-sync`.
+
+**Rename**: `templates/dots-local/` → `templates/local/`, following the
+earlier `modules/dots-local/` → `modules/local/` precedent (same
+"drop the redundant `dots-local` qualifier once it's unambiguous from
+context" reasoning). Updated every current-state reference across
+`setup.sh`, `AGENTS.md`, `SYNC.md`, and `architecture.md` (a living
+document, updated in place per its own section 12 rule #5) - left
+`decisions.md`/`plan.md`/`open-questions.md`'s existing historical
+entries using the old name untouched (they describe what was true when
+written, matching this project's established convention of appending
+new entries rather than rewriting old ones for pure renames).
+
+**New `templates/local/host.nix`**: user asked for a generic, always-
+present host-specific escape-hatch file in the template (mirroring
+chromaden's real `host-chromaden.nix`, but explicitly NOT weaving the
+hostname into the filename - "one machine, one dots-local checkout, one
+host.nix" per the user's own framing). Added as a deliberately
+near-empty module (commented-out illustrative examples only, matching
+the style of the rest of the template) and wired into `flake.nix`'s
+`extraModules` **unconditionally** (not commented out) - matching
+`appimages.nix`'s own "always present, always imported" pattern rather
+than treating it as one-of-several optional axis examples. `setup.sh`
+updated to copy and `git add` it alongside the other template files;
+its "Next steps" output updated to mention it.
+
+**Validated**: ran the standing fresh-setup regression test (sandboxed
+`$HOME`, real `setup.sh priv` invocation end-to-end including the
+actual `git init`/`git add`/`git commit` steps, not just the identity-
+substitution half) - confirmed `host.nix` is copied/committed correctly
+alongside the other template files, and a full `nix build .../
+activationPackage` against the freshly-generated `dots-local` succeeds
+cleanly. Also re-confirmed the real chromaden config is completely
+unaffected (as expected - `templates/` is never imported by the actual
+flake build graph, only referenced by `setup.sh` itself).

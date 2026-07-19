@@ -13,7 +13,7 @@ fi
 
 DOTS_DIR="${DOTS_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 DOTS_LOCAL="$HOME/dots-local"
-TEMPLATE_DIR="$DOTS_DIR/templates/dots-local"
+TEMPLATE_DIR="$DOTS_DIR/templates/local"
 
 # Determine hostname (use short hostname by default)
 HOSTNAME="$HOSTNAME"
@@ -42,13 +42,14 @@ if [ ! -d "$DOTS_LOCAL" ]; then
 
     # Copy the template files as-is, then fill in the @@TOKEN@@
     # placeholders below with real values. The templates
-    # (dots/templates/dots-local/) are real, standalone, syntactically
+    # (dots/templates/local/) are real, standalone, syntactically
     # valid Nix files - not a bash heredoc mixed with Nix escaping - so
     # they're easy to read/edit/diff on their own, independent of this
     # script.
     cp "$TEMPLATE_DIR/gitignore" .gitignore
     cp "$TEMPLATE_DIR/appimages.nix" appimages.nix
     cp "$TEMPLATE_DIR/flake.nix" flake.nix
+    cp "$TEMPLATE_DIR/host.nix" host.nix
 
     sed -i \
         -e "s|@@SYSTEM@@|${SYSTEM}|g" \
@@ -63,7 +64,7 @@ if [ ! -d "$DOTS_LOCAL" ]; then
         -e "s|@@PROFILE@@|${PROFILE}|g" \
         flake.nix
 
-    git add flake.nix .gitignore appimages.nix
+    git add flake.nix .gitignore appimages.nix host.nix
     git commit -m "Initial identity for ${PROFILE}"
     cd - > /dev/null
 else
@@ -90,4 +91,6 @@ echo "   toggle anytime with the nixon/nixoff aliases regardless of this default
 echo "3. Run 'dots-local-options' to see every available field (gpu/compositor/isWsl/machine/"
 echo "   sync/etc.) with its type/default/description, generated live from the real schema"
 echo "4. Add AppImages to ~/dots-local/appimages.nix"
-echo "5. Run apply-dots to activate changes"
+echo "5. Put anything too bespoke to generalize (exact CUDA flags, one-off"
+echo "   packages, ...) in ~/dots-local/host.nix - already wired in via extraModules"
+echo "6. Run apply-dots to activate changes"
