@@ -10,14 +10,12 @@
 # against) - see memory-bank/open-questions.md.
 {
   nmap = {
-    feature = "network-tools";
     packages = {
       apt = [ "nmap" ];
     };
   };
 
   rclone = {
-    feature = "network-tools";
     packages = {
       apt = [ "rclone" ];
     };

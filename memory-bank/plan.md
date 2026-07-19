@@ -1125,6 +1125,19 @@ guessing. Validated via full build + zero-diff `config.home.packages`
 check (all fixes were config/doc-only, no package-list impact
 expected or found).
 
+## Post-Phase-9 adjustments — remove `.feature` key, add alien-spec conflict detection
+Resolved the `.feature`-key open question: removed all ~101
+occurrences (never consumed since the repo's first commit; shadowing
+already works via plain package-name matching). More substantively,
+added real validation the user proposed instead:
+`modules/flake/alien-discovery.nix` now `throw`s a build-time error if
+the same package name is ever defined with different content across
+more than one `*.<distro>-packages.nix` file (previously silently
+"last file wins"), running automatically on every `nix build`/
+`apply-dots`. Verified via a synthetic conflict test (introduced, fired
+correctly, reverted). Zero package-list impact (confirmed via
+byte-diff) - purely a discovery-time correctness improvement.
+
 ## Cross-cutting, not yet scheduled to a phase
 - Shared platform/OS detection (`modules/core/platform.nix`) consolidating
   clipboard.nix + opener.nix's duplicated `backend` enum — natural fit

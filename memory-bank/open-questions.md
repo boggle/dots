@@ -84,38 +84,35 @@ work only by accident via a native pacman package). User decided
 `decisions.md`'s "features.fonts.enable: leave off for now" entry and
 `plan.md`'s Phase 9 section.
 
-### `.feature = "..."` key in alien-package spec files - never consumed, intended purpose unclear
-Every entry in every `*.<distro>-packages.nix` file (`ai-apps`,
-`cloud-tools`, `dev-tools`, `git-tools`(via tui-apps/cloud-tools specs),
-`gui-apps`, `network-tools`, `pim-apps`, `scanning`, `sixel-tools`,
-`tui-apps` - ~80+ occurrences total) carries a `feature = "<name>";`
-key. Confirmed via `git show` of the repo's very first commit
-(`ecd7c0c`, predating this whole re-architecture) that neither consumer
-(`modules/flake/alien-package-specs.nix` / `modules/core/
-alien-packages.nix`) has ever read `.feature` - only `.packages` is
-used. Not a regression; always inert, always-been-metadata-only.
+### `.feature = "..."` key in alien-package spec files - RESOLVED, removed
+User clarified (2026-07-19) the original intent: shadowing an alien
+(distro-native) package over its Nix counterpart when a feature is
+enabled for the current distro. That's exactly what already happens
+today via plain package-**name** matching (`hasAlien pkgName =
+rawAlienSpecs ? ${pkgName}` in both `alien-package-specs.nix`/
+`alien-packages.nix`) - the `.feature` field was never part of that
+mechanism (confirmed unconsumed since the repo's very first commit).
+User agreed: nothing to salvage, remove it - all ~101 occurrences
+deleted across every `*.<distro>-packages.nix` file; `OVERVIEW.md`/
+`AGENTS.md`'s matching doc examples updated to match (and `AGENTS.md`'s
+"use the feature name as the key" instruction corrected to "use the
+package name as the key", which was already slightly wrong
+independent of the `.feature` field itself).
 
-User recalled (2026-07-19) intending this field to "bind to the
-corresponding Nix package as an alternative overlay" but couldn't
-recall further specifics, and no trace of this intended wiring was
-found anywhere in `OVERVIEW.md`/`architecture.md`/`decisions.md`/
-`learnings.md`. Two plausible interpretations worth asking about
-directly:
-1. A cross-reference so tooling could verify "this alien spec's key
-   actually corresponds to a real `pkgs.<key>` used by the
-   `feature`-named suite/feature's own `mkAppSet` call" - which would
-   have caught the `jj`/`jujutsu` nixpkgs-attribute-name mismatch bug
-   (see the matching 2026-07-19 decisions.md entry) automatically,
-   rather than requiring a manual repo-wide sweep.
-2. A way to declare "if this alien package is unavailable/disabled,
-   fall back to a specific alternate Nix package/overlay source"
-   (rather than just `alien.mkEntry`'s current binary enabled-or-not
-   toggle) - e.g. for cases where the *distro* package and the
-   *default* nixpkgs attribute genuinely diverge in a way that isn't
-   just a naming accident.
-
-Need the user to clarify which (if either) matches original intent
-before implementing anything - guessing wrong risks over-engineering a
-feature nobody needs. Until resolved, `.feature` stays as harmless,
-unconsumed self-documentation (matching the `barch`/`location`-axis
-precedent for fields kept despite no current consumer).
+Follow-up the user raised while discussing this (not a re-litigation,
+a genuinely new and better idea): rather than re-introducing any kind
+of per-feature ownership/isolation for alien specs ("a bit weird" per
+the user's own words), instead **detect and report if the same package
+name is ever defined with different content by more than one spec
+file** - since the previous plain `//` merge silently let whichever
+file was walked last win, with zero indication of an override. Done:
+`modules/flake/alien-discovery.nix`'s `collectAlienSpecs` now throws a
+clear build-time error identifying every such conflict (file paths
+included), naturally running as part of every `nix build`/`apply-dots`
+since alien-spec discovery is on that critical path already - no
+separate validation script needed. Verified end-to-end by introducing
+a synthetic conflict (temporarily duplicating `nmap`'s key with
+different content across two spec files) and confirming the exact
+expected error fires, then reverting. Identical-content duplicates
+across files are deliberately NOT flagged (harmless redundancy, not a
+real disagreement).

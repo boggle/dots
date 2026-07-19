@@ -8,7 +8,6 @@
 # modules/core/alien-packages.nix). Structurally ready, runtime-unverified.
 {
   nmap = {
-    feature = "network-tools";
     packages = {
       dnf5 = [ "nmap" ];
     };

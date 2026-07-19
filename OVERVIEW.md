@@ -370,13 +370,22 @@ Create a `<feature>.<distro>-packages.nix` file next to your feature:
 # modules/suites/gui-apps.cachyos-packages.nix
 {
   ghostty = {
-    feature = "gui-apps";
     packages = {
       pacman = [ "ghostty" ];
     };
   };
 }
 ```
+
+The spec is looked up purely by package **name** (`ghostty` above,
+matched against whatever `pkgName` a suite/feature's `mkAppSet`/
+`alien.mkEntry` call passes) - the `<feature>` prefix in the filename
+is just a human-organizing convention (keep a suite/feature's alien
+specs next to its own module file), not something any code reads. A
+package can be, and often is, consumed by more than one suite/feature
+(e.g. `lazygit`'s spec lives in `tui-apps.cachyos-packages.nix` but is
+also used by `suites.git-tools.lazygit`) - there's deliberately no
+single "owning feature" field on a spec.
 
 ### Using Alien Packages in Features
 

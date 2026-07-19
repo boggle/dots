@@ -159,13 +159,18 @@ Create `<feature>.<distro>-packages.nix` for alien packages:
 # modules/suites/gui-apps.cachyos-packages.nix
 {
   ghostty = {
-    feature = "gui-apps";
     packages = {
       pacman = [ "ghostty" ];
     };
   };
 }
 ```
+
+The `<feature>` filename prefix is just an organizing convention (keep
+a suite/feature's specs next to its own module) - specs are looked up
+purely by package name (matched against the `pkgName` a `mkAppSet`/
+`alien.mkEntry` call passes), so a package can be, and often is,
+consumed by more than one suite/feature.
 
 #### 4. Gutter Evaluation
 
@@ -232,12 +237,20 @@ Commands like `apply-dots` are generated in `modules/core/scripts.nix` using `pk
 ### Adding Alien Package Support
 
 1. Create `<feature>.<distro>-packages.nix` next to your feature
-2. Use the feature name as the key
+2. Use the **package name** as the key (matching the `pkgName` you pass
+   to `alien.mkEntry`/`mkAppSet` - e.g. `pkgs.mypkg` -> key `mypkg`), NOT
+   the feature name - `<feature>` in the filename is just an organizing
+   convention for where to put the file, and a package name can be
+   consumed by more than one suite/feature (see e.g. `lazygit`, defined
+   once in `tui-apps.cachyos-packages.nix` but also used by
+   `suites.git-tools.lazygit`). Each package name must have exactly one
+   spec across the whole repo - defining the same name differently in
+   two files is a hard build-time error (see `modules/flake/
+   alien-discovery.nix`'s conflict check).
 3. Define packages for relevant package managers:
    ```nix
    {
-     myfeature = {
-       feature = "myfeature";  # Must match
+     mypkg = {
        packages = {
          pacman = [ "pkg1" "pkg2" ];
          paru = [ "aur-pkg" ];

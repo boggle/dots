@@ -5,49 +5,42 @@
 # (e.g. deb.griffo.io), not dots's official-repos-only convention.
 {
   btop = {
-    feature = "tui-apps";
     packages = {
       apt = [ "btop" ];
     };
   };
 
   lazygit = {
-    feature = "tui-apps";
     packages = {
       apt = [ "lazygit" ];
     };
   };
 
   imagemagick = {
-    feature = "tui-apps";
     packages = {
       apt = [ "imagemagick" ];
     };
   };
 
   graphviz = {
-    feature = "tui-apps";
     packages = {
       apt = [ "graphviz" ];
     };
   };
 
   pandoc = {
-    feature = "tui-apps";
     packages = {
       apt = [ "pandoc" ];
     };
   };
 
   pass = {
-    feature = "tui-apps";
     packages = {
       apt = [ "pass" ];
     };
   };
 
   hledger = {
-    feature = "tui-apps";
     packages = {
       apt = [ "hledger" ];
     };

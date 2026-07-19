@@ -1047,3 +1047,41 @@ precedent for kept-but-unconsumed fields).
 `config.home.packages` diff (via `git worktree` against the prior
 commit) confirming zero package-list impact from this round (all
 config/doc-only fixes, as expected).
+
+---
+
+### 2026-07-19 — `.feature` key removed; added alien-spec conflict detection instead
+Follow-up to the open question above: user clarified the original
+intent (alien package shadows the Nix counterpart when a feature is
+enabled) is already fully achieved by plain package-name matching,
+independent of the `.feature` field - confirmed nothing to salvage.
+Removed all ~101 occurrences across every `*.<distro>-packages.nix`
+file; updated `OVERVIEW.md`/`AGENTS.md`'s doc examples to match, and
+fixed `AGENTS.md`'s "use the feature name as the key" instruction
+(should always have said "package name", independent of this cleanup).
+
+**More significant part of this round**: user proposed a genuinely new
+validation, not just a removal - `modules/flake/alien-discovery.nix`'s
+`collectAlienSpecs` previously merged all spec files via a plain `//`
+fold with an explicitly-documented-but-silent "later files win on key
+collision" behavior. Changed it to detect when the same package name is
+defined with **different** content by more than one spec file, and
+`throw` a clear build-time error (file paths included) rather than
+silently picking one. This runs automatically on every `nix build`/
+`apply-dots` (alien-spec discovery is already unconditionally on that
+path via the `alien` specialArg) - no separate validation script
+needed. Identical-content duplicates across files are deliberately NOT
+flagged (harmless redundancy, not a real disagreement) - only genuine
+divergence.
+
+**Validated**: confirmed zero real conflicts exist today across all 5
+distros' spec files (`cachyos`/`azurelinux3`/`azurelinux4`/`debian`/
+`opensuse`) before adding the check, so the new `throw` path can't
+regress the current build. Then verified the check actually fires:
+temporarily duplicated `nmap`'s key into a second spec file with
+deliberately different pacman package content, confirmed the exact
+expected error (naming both conflicting files) on `nix eval`, reverted
+cleanly, confirmed the build returns to green. Full
+`config.home.packages` diff against the prior commit is byte-identical
+(expected - this round only touched spec-file metadata and the
+discovery function's internals, not any actual package data).

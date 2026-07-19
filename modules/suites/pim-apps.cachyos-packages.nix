@@ -1,6 +1,5 @@
 {
   khal = {
-    feature = "pim-apps";
     option = "khal";
     packages = {
       pacman = [ "khal" ];
@@ -9,7 +8,6 @@
   };
   
   todoman = {
-    feature = "pim-apps";
     option = "todoman";
     packages = {
       pacman = [ "todoman" ];
@@ -18,7 +16,6 @@
   };
   
   pimsync = {
-    feature = "pim-apps";
     option = "pimsync";
     packages = {
       pacman = [ "pimsync" ];
@@ -27,7 +24,6 @@
   };
   
   khard = {
-    feature = "pim-apps";
     option = "khard";
     packages = {
       pacman = [ "khard" ];
@@ -36,7 +32,6 @@
   };
   
   taskwarrior = {
-    feature = "pim-apps";
     option = "taskwarrior";
     packages = {
       pacman = [ "taskwarrior" ];
@@ -45,7 +40,6 @@
   };
   
   superproductivity = {
-    feature = "pim-apps";
     option = "superproductivity";
     packages = {
       pacman = [];
