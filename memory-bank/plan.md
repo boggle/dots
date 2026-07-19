@@ -748,7 +748,37 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
       example against the actual current source (`flake.nix`,
       `modules/core/scripts.nix`, `modules/core/lib.nix`,
       `modules/suites/tui-apps.nix`) rather than guessing.
-- [ ] Finalize `preserved-features-checklist.md`, mark everything verified
+- [x] Finalize `preserved-features-checklist.md`, mark everything verified.
+      Every previously-unchecked item now checked off with real evidence,
+      not just "ported the code":
+      - Alien package management: confirmed all 5 distro backends
+        structurally verified (Phase 3), pacman/paru live-verified
+        throughout.
+      - AppImages shared (Nix store) mode: previously untested since no
+        `manifest.nix` exists anywhere in the repo - temporarily created
+        a real one + a fake `.AppImage` file, confirmed the full
+        discovery -> wrapper-build -> desktop-entry pipeline works
+        end-to-end (ran the wrapper, inspected the `.desktop` file),
+        then removed the test files (`git status` clean again).
+      - Settings sync system: live-ran `dots-sync -n` (dry-run, safe) for
+        real on chromaden - correctly resolved profile/patterns/ignores
+        and reported real file states.
+      - tui-apps/pim-apps/sixel-tools/dev-tools suites, git feature: spot-
+        checked each one's full resolved config on chromaden directly
+        (these were already covered by Phase 4's comprehensive
+        byte-identical `config.home.packages` diff, just hadn't been
+        individually checked off here).
+      - fonts feature: updated to reflect Phase 9's actual wiring fix,
+        with the important caveat that `features.fonts.enable` itself
+        remains an open user decision (not silently marked "done" when
+        it's actually still dormant).
+      - Flake inputs/overlays/`noctalia.homeModules.default`/dots-local
+        shell vars: re-confirmed via direct grep and package-resolution
+        spot-checks (`quarto`/`pandoc`/`external.bookokrat`/
+        `external.quarkdown` all resolve correctly).
+      - Per-host settings sync data / two GitHub remotes: confirmed
+        genuinely out of scope for this re-architecture (pre-existing
+        state/user's own concern), not gaps to close.
 - Validation: `(live)` final checkpoint
 
 ---
