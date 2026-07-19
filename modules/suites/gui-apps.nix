@@ -164,6 +164,18 @@ in
       '';
     };
 
+    # NOTE: unlike zellij/lazygit (see suites/tui-apps.nix), this genuinely
+    # needs `programs.wezterm` for its real `extraConfig` below - but
+    # `programs.wezterm.package` is NOT nullable (unlike lazygit's), so
+    # this unconditionally re-adds `pkgs.wezterm` to home.packages even
+    # when alien-managed (wezterm has a real alien spec, see
+    # gui-apps.cachyos-packages.nix, and `appSet` above already correctly
+    # omits the Nix package whenever it is). Accepted, harmless tradeoff
+    # for now (a second, unused copy of the same derivation in the Nix
+    # store) rather than hand-rolling this config via `home.file` -
+    # wezterm isn't currently enabled anywhere, so this isn't costing
+    # anything today; revisit if wezterm actually gets used and the
+    # duplication becomes worth avoiding.
     programs.wezterm = lib.mkIf cfg.wezterm {
       enable = true;
       package = pkgs.wezterm;

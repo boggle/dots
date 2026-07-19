@@ -80,13 +80,19 @@ features.appimages.enable = true;              # Host-local AppImage support
 |---------|---------|-------------|
 | `appimages` | `enable`, `localDir`, `apps` | Host-local AppImage integration |
 | `bookokrat` | `enable` | Documentation tool |
+| `butterfish` | `enable`, `baseUrl`, `apiKey`, `model`, `shell` | Shell wrapper for local/OpenAI-compatible LLMs (`bf` command) |
 | `clipboard` | `enable`, `backend` (wayland/x11/wsl/macos) | Cross-platform clipboard (clipin/clipout) |
 | `fonts` | `enable` | Font configuration |
+| `llama-cpp` | `enable`, `cmakeFlags` | llama.cpp built with CUDA + march-tuned flags |
 | `network` | `enable`, `sshAgent`, `gpgAgent`, `gpgSsh` | SSH/GPG agents |
 | `niri-noctalia` | `enable`, `renderDrmDevice`, `terminal` | Niri compositor with Noctalia integration |
+| `nix` | `enable`, `nh`, `nvd`, `nixDiff`, `nixTree`, `nixLocate`, `deadnix`, `statix`, `manix`, `envfs`, `nixIndex`, `cachix`, `comma` | Nix tooling (helpers, linters, diffing, search) - not enabled on any host today |
 | `opener` | `enable`, `backend`, `alias` | Cross-platform file opener (`o` command) |
+| `quarkdown` | `enable` | Markdown typesetting system |
+| `sd-switch` | `enable` | Aggressive systemd --user service restarts on activation |
 | `tune` | `enable`, `packages` | Package optimization (see [OVERVIEW.md](OVERVIEW.md)) |
 | `viewer` | `enable`, `alias`, `ripgrepAll`, `preferImageViewer`, `enableVideo`, `enableDirectoryTree`, `enableArchives`, `enableDataFormats`, `enableFzfPicker` | Terminal file viewer (`v` command) |
+| `wsl-shell-integration` | `enable` | VSCode Remote-SSH + WSL2 shell integration compatibility fixes |
 
 **Suites** (`suites.<name>`) - Bundled application groups:
 

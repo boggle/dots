@@ -194,8 +194,6 @@ let
     esac
   '';
 
-  # Legacy - kept for reference but not used
-  piDataDir = "''${config.home.homeDirectory}/.local/share/pi-agent";
 in
 {
   options.suites.ai-apps = {

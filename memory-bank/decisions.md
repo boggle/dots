@@ -773,3 +773,89 @@ result) - confirms the template-generated `dots-local` evaluates and
 builds cleanly end-to-end; also re-verified chromaden's own real
 `dots-local` (unaffected by this change, since it's a hand-edited file
 already, not regenerated) still builds with zero new derivations.
+
+---
+
+### 2026-07-19 — Post-Phase-9 wrap-up audit round (batch of small fixes)
+**Context**: user asked for a final pass - anything unhandled, not
+nicely fitting the re-architecture, lingering clean-up, or further
+consolidation opportunities. Ran research audits plus direct
+verification; applied the confirmed, low-risk fixes below in one round
+(all committed together after full validation).
+
+**Fixes applied:**
+- `modules/suites/git-tools.nix` rewritten to use `mkAppSet` (same
+  helper already used by tui-apps/gui-apps/etc.) - `lazygit` and `gh`
+  are now correctly alien-aware (their alien specs are owned by
+  `tui-apps.cachyos-packages.nix`/`cloud-tools.cachyos-packages.nix`
+  respectively; git-tools.nix previously added both as unconditional
+  Nix packages with zero alien-awareness, duplicating them whenever the
+  native package was already installed). `delta` deliberately excluded
+  from the appSet - it has no alien spec anywhere, relies solely on
+  `programs.delta.enable` (which already adds the package); it was
+  *also* separately hardcoded into `home.packages` before this fix,
+  causing a real duplicate.
+- `modules/suites/tui-apps.nix`: removed the `programs.zellij.enable =
+  true` and `programs.lazygit.enable = true` blocks - both were
+  confirmed (by reading home-manager's own module source for each) to
+  be pure no-ops beyond re-adding the package a second time (neither
+  config's other options were ever set), since the KDL config for
+  zellij is written independently via `home.file`, and lazygit needs no
+  HM-level config at all here.
+- `modules/core/default.nix`: removed the explicit `bash` package-list
+  entry - same duplicate class as the already-fixed direnv/lsd/zoxide/
+  fzf/bat (round 5); `programs.bash.enable` already adds it.
+- `modules/suites/gui-apps.nix`: added a documenting comment on
+  `programs.wezterm` explaining it's an accepted, currently-inert
+  package-duplication tradeoff (unlike lazygit/zellij, wezterm's
+  `package` option is NOT nullable, and it has real `extraConfig` this
+  module needs - avoiding the duplicate would require hand-rolling the
+  Lua config via `home.file` instead; not worth doing for a feature
+  that's enabled nowhere today).
+- `modules/suites/ai-apps.nix`: removed dead `piDataDir` let-binding
+  (explicitly commented "legacy, kept for reference but not used" -
+  confirmed genuinely unreferenced anywhere in the file).
+- `modules/features/butterfish.nix`: wired up the previously-declared-
+  but-unused `shell` option (was always hardcoded to bash regardless of
+  the setting) - `bf`'s `-b` flag now actually resolves to
+  `pkgs.zsh`/`pkgs.bash` based on `cfg.shell`; tightened its type from
+  freeform `str` to `enum [ "bash" "zsh" ]` and clarified in its
+  description that this only affects the shell butterfish itself
+  spawns, not the user's actual login/interactive shell (which stays
+  bash-only regardless, per nixon.nix).
+- `README.md`: added missing feature-table rows for `butterfish`,
+  `llama-cpp`, `nix` (nix-tools.nix - noted as "not enabled on any host
+  today", same as the existing `fonts` precedent), `quarkdown`,
+  `sd-switch`, `wsl-shell-integration` - all real, fully-implemented
+  features that were simply never added to the table.
+- `memory-bank/open-questions.md`: marked the "flake output naming"
+  question RESOLVED (already executed as `default`/`default-opt` back
+  in Phase 2, just never marked done here); rewrote the "sync.sh/
+  setup.sh deeper improvements" entry to reflect the substantial work
+  that has landed since it was written (named syncables, `sync.sh -g`,
+  the ssh-assertion bug fix, the real template files) rather than
+  reading as still "explicitly deferred, entirely untouched".
+
+**Investigated but NOT changed (findings, not bugs):**
+- `modules/flake/alien-package-specs.nix` - confirmed still genuinely
+  used (imported directly by `flake.nix:94`), not vestigial; the
+  "duplicate discovery engines" issue this filename evokes (see
+  `learnings.md`'s 2026-07-18 entry) was already resolved back in
+  Phase 3 by extracting shared logic into `alien-discovery.nix` (see
+  `plan.md:306-307`) - both `alien-package-specs.nix` (flake-level) and
+  `core/alien-packages.nix` (home-level) now call into that shared
+  helper rather than duplicating it.
+- Seriously considered, then reverted, a "fix" to `modules/core/
+  nix-tools.nix`'s `lib.mkIf cfg.foo pkg` pattern inside a
+  `home.packages` list literal, believing it to be the same class of
+  bug as the ssh-settings one - empirically proven NOT to be a bug (see
+  `learnings.md`'s 2026-07-19 "listOf v2 merge" entry for the full
+  mechanism and why). No code change needed there or in
+  `viewer.nix`/`dev-tools.nix`, which use the identical pattern.
+
+**Validated**: full `nix build .#homeConfigurations.default
+.activationPackage` after all fixes; byte-level `config.home.packages`
+diff against the last commit (`bd1b2e7`, via `git worktree`) shows
+*exactly* the intended removals (one each of `bash`, `delta`, `zellij`,
+two of `lazygit`, one of `gh`) and nothing else - confirms the whole
+round is behavior-preserving except the deliberate dedup fixes.

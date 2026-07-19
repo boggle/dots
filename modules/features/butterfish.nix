@@ -3,6 +3,16 @@
 let
   cfg = config.features.butterfish;
 
+  # Resolves cfg.shell ("bash" or "zsh") to the actual binary path used
+  # by the `bf` alias below - this was previously a declared-but-
+  # unwired option (the alias always hardcoded bash regardless of this
+  # setting). Only the shell *butterfish itself wraps/spawns* is
+  # affected here - the rest of `dots` remains bash-only (nixon.nix,
+  # the whole shell-bootstrap hybrid, etc. have no zsh support), so
+  # setting `shell = "zsh"` gets you a zsh subshell under `bf` without
+  # changing anything about your actual login/interactive shell setup.
+  shellPkg = if cfg.shell == "zsh" then pkgs.zsh else pkgs.bash;
+
   # Butterfish shell wrapper for local LLMs
   # https://butterfi.sh - OpenAI-compatible CLI shell
   butterfish-pkg = pkgs.buildGoModule rec {
@@ -50,9 +60,14 @@ in {
     };
 
     shell = lib.mkOption {
-      type = lib.types.str;
+      type = lib.types.enum [ "bash" "zsh" ];
       default = "bash";
-      description = "Shell to wrap (bash or zsh)";
+      description = ''
+        Shell for butterfish itself to wrap/spawn when running `bf`
+        (`butterfish shell -b <shell>`) - does not affect your actual
+        login/interactive shell setup, which stays bash-only regardless
+        (see modules/core/nixon.nix).
+      '';
     };
   };
 
@@ -68,7 +83,7 @@ in {
 
     # Alias for easy invocation
     programs.bash.shellAliases = {
-      bf = "butterfish shell -u '${cfg.baseUrl}' -m '${cfg.model}' -b ${pkgs.bash}/bin/bash";
+      bf = "butterfish shell -u '${cfg.baseUrl}' -m '${cfg.model}' -b ${shellPkg}/bin/${cfg.shell}";
     };
   };
 }

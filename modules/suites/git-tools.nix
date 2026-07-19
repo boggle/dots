@@ -1,7 +1,36 @@
-{ config, lib, pkgs, dotsLocal, ... }:
+{ config, lib, pkgs, alien, dotsLocal, ... }:
 
 let
   cfg = config.suites.git-tools;
+  coreLib = import ../core/lib.nix { inherit lib; };
+  # `delta` is deliberately NOT in this appSet - `programs.delta.enable`
+  # below already adds its package unconditionally (its `package` option
+  # isn't nullable, unlike lazygit's), so listing it again here would
+  # just re-duplicate it (same pattern already fixed for
+  # lsd/zoxide/fzf/bat/direnv in modules/core/default.nix - see its
+  # comment for the general rule).
+  #
+  # `lazygit` and `gh` DO have real alien specs (owned by
+  # tui-apps.cachyos-packages.nix and cloud-tools.cachyos-packages.nix
+  # respectively, since those suites also offer their own toggle for the
+  # same tool) - routing them through `mkAppSet` here (rather than a
+  # plain, non-alien-aware package list, as this file did before) makes
+  # this suite correctly avoid re-installing them via Nix whenever
+  # `suites.tui-apps.lazygit`/`suites.cloud-tools.github` already have
+  # them alien-managed, instead of silently double/triple-installing the
+  # same tool via pacman *and* two independent Nix code paths (a real,
+  # confirmed-live bug on chromaden before this fix).
+  appSet = coreLib.mkAppSet {
+    inherit alien;
+    apps = {
+      jj = { enable = cfg.jj; pkg = pkgs.jj; };
+      jjui = { enable = cfg.jj; pkg = pkgs.jjui; };
+      lazygit = { enable = cfg.lazygit; pkg = pkgs.lazygit; };
+      gh = { enable = cfg.gh; pkg = pkgs.gh; };
+      gh-dash = { enable = cfg.gh-dash; pkg = pkgs.gh-dash; };
+      gitCredentialManager = { enable = cfg.gitCredentialManager; pkg = pkgs.git-credential-manager; alienName = "git-credential-manager"; };
+    };
+  };
 in
 {
   options.suites.git-tools = {
@@ -20,15 +49,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = with pkgs; builtins.filter (x: x != null) [
-      (lib.mkIf cfg.jj jj)
-      (lib.mkIf cfg.jj jjui)
-      (lib.mkIf cfg.delta delta)
-      (lib.mkIf cfg.lazygit lazygit)
-      (lib.mkIf cfg.gh gh)
-      (lib.mkIf cfg.gh-dash gh-dash)
-      (lib.mkIf cfg.gitCredentialManager git-credential-manager)
-    ];
+    home.packages = appSet.packages;
+    alienPackages.enabledPackages = appSet.alienEnabled;
 
     programs.git = lib.mkIf cfg.git {
       enable = true;

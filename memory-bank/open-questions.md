@@ -5,14 +5,12 @@ phase. Move items to `decisions.md` once resolved.
 
 ---
 
-### Flake output naming (Phase 2 checkpoint)
-Proposed collapsing `homeConfigurations.{priv,work,priv-opt,work-opt}` into
-something like `default`/`default-opt` once composition is fully
-axis-driven (no more profile-name selection needed). This changes the
-`apply-dots priv` / `apply-dots priv-opt` command surface. User said
-"roughly right" to the overall plan but didn't explicitly re-confirm this
-specific point — **must reconfirm before executing Phase 2's flake.nix
-changes.**
+### Flake output naming (Phase 2 checkpoint) — RESOLVED, executed
+Collapsed `homeConfigurations.{priv,work,priv-opt,work-opt}` into
+`default`/`default-opt` once composition became fully axis-driven (see
+`flake.nix:172-175`). `apply-dots` / `apply-dots opt` now select
+baseline vs. optimized with no profile-name argument. Done as part of
+Phase 2; this entry is kept only as a historical record.
 
 ### `psutils` / `t3` — RESOLVED, removed
 User confirmed (2026-07-19, core minimization round): remove both. Done -
@@ -57,19 +55,16 @@ resolving cleanly at some point rather than leaving a permanent warning in
 every eval. Do NOT remove the override without figuring out the actual
 answer first - user has twice confirmed dots needs it for something.
 
-### `sync.sh` / `setup.sh` deeper improvements
-Explicitly deferred by the user ("stash this for later"). Only touched
-where a phase directly requires it (Phase 5 tuning-table removal). Full
-sync.sh/setup.sh overhaul is a distinct future project, not part of this
-one. **Update (Phase 1)**: decided NOT to create `modules/local/
-template.nix` in Phase 1 after all - nothing was actually removed from
-`dots-local`'s responsibility in Phase 1 (schema formalizes existing fields
-+ adds new inert ones), so there's no new "config that lost its home"
-requiring a fresh template yet. `schema.nix`'s option descriptions serve as
-the self-documentation for now. Deferred to Phase 2, when host files
-actually get retired and dots-local gains genuinely new required fields
-(display config, CUDA arch, etc.) - that's when a real template becomes
-necessary, per architecture.md section 1c's standing rule.
+### `sync.sh` / `setup.sh` deeper improvements — mostly done, note is stale
+Originally deferred by the user ("stash this for later") beyond
+what each phase directly required. Since then, substantially more has
+landed than "deferred": named syncables + `sync.sh -g`/`--force-regen`
+(post-Phase-9 round 4/7), the SSH-assertion bug fix (round 4), and real
+standalone `templates/dots-local/*` files replacing the `setup.sh`
+heredoc (round 10) - see `decisions.md` for each. What remains
+genuinely deferred/undone: no broader sync.sh/setup.sh redesign beyond
+these targeted fixes has been attempted, and none is currently
+planned unless the user asks for one.
 
 ### `barch` remains unused/dead
 Confirmed during Phase 1: `dotsLocal.barch` (baseline arch level, e.g.

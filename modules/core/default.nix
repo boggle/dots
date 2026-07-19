@@ -18,12 +18,11 @@ home.packages = with pkgs; [
         
     # --- 2. ENHANCED WORKFLOW (Modern Unix Replacements) ---
     # Tools that upgrade the interactive Bash experience
-    # NOTE: lsd/zoxide/fzf/bat are NOT listed here even though they're core
-    # tools - they come via programs.lsd/zoxide/fzf/bat.enable below, which
-    # already add the package; listing them again here was a redundant
-    # duplicate (confirmed via `nix eval` - each appeared twice in
-    # config.home.packages before this cleanup).
-    bash                              # Updated Bash shell
+    # NOTE: bash/lsd/zoxide/fzf/bat are NOT listed here even though
+    # they're core tools - they come via programs.bash/lsd/zoxide/fzf/
+    # bat.enable below, which already add the package; listing them
+    # again here was a redundant duplicate (confirmed via `nix eval` -
+    # each appeared twice in config.home.packages before this cleanup).
     bash-completion                   # Tab-completion logic
     bash-language-server              # Editing bash scripts from helix 
     simple-completion-language-server # snippets

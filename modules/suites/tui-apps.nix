@@ -79,10 +79,14 @@ in
       };      
     };
 
-    programs.zellij = lib.mkIf cfg.zellij {
-      enable = true;
-    };
-
+    # NOTE: no `programs.zellij.enable = true;` here (deliberately) - it
+    # would only re-add `pkgs.zellij` to home.packages a second time
+    # (already provided above via `appSet`/`alien.mkEntry`, alien-aware),
+    # since `cfg.settings`/`cfg.extraConfig` are never touched (the KDL
+    # config below is written directly via `home.file`, not through the
+    # module), and no shell integration is enabled - `programs.zellij`
+    # would genuinely do nothing else for us here. Confirmed via reading
+    # home-manager's own zellij.nix module source.
     home.file.".config/zellij/config.kdl" = lib.mkIf cfg.zellij {
       force = true;
       text = ''
@@ -220,9 +224,12 @@ in
       fi
     '';
 
-    programs.lazygit = lib.mkIf cfg.lazygit {
-      enable = true;
-    };
+    # NOTE: no `programs.lazygit.enable = true;` here (deliberately) -
+    # `lazygit` has no `settings`/shell-integration set anywhere in this
+    # file, so the module would do nothing except re-add `pkgs.lazygit`
+    # to home.packages a second time (already provided above via
+    # `appSet`/`alien.mkEntry`, alien-aware). Confirmed via reading
+    # home-manager's own lazygit.nix module source.
 
     # Declare alien packages for this suite
     alienPackages.enabledPackages = appSet.alienEnabled;

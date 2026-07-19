@@ -611,3 +611,49 @@ the conditional at the plain-value level instead
 (`if cond then {...} else {}`), so the option path is always assigned
 *something*, keeping the key's mere presence unconditional even though
 its contents vary.
+
+### 2026-07-19 — `lib.mkIf` INSIDE a plain list literal actually works fine for `listOf`-typed options (correcting a wrong hypothesis mid-session)
+While auditing for duplicate-package bugs, found `modules/core/nix-tools.nix`
+and `modules/features/viewer.nix` using `home.packages = builtins.filter
+(p: p != null) [ (lib.mkIf cfg.foo pkg) ... ]`. Assumed this was the same
+class of bug as the `programs.ssh.settings."*"` one above (i.e. that
+`lib.mkIf false pkg` evaluates to an unresolved `{ _type = "if";
+condition = false; content = pkg; }` marker in plain Nix, which is never
+`null`, so `filter (p: p != null)` would never actually remove it) and
+started "fixing" `nix-tools.nix` to use `if cond then pkg else null`
+instead (matching `modules/core/lib.nix`'s `mkAppSet` pattern).
+
+**This was wrong — reverted, no fix was needed.** Empirically confirmed
+(toggling `ripgrepAll`/`nh`/`nvd`/`nixTree` via a temporary override and
+diffing `config.home.packages` before/after) that disabled entries are
+correctly excluded either way, with zero leftover `_type = "if"` markers
+in the final list. The reason: `types.listOf`'s "v2" merge (nixpkgs
+`lib/types.nix`, search `listOf =`) does NOT just concatenate each
+module's raw list value - it treats **each list element from each
+definition as its own separate definition** and runs the *full*
+`mergeDefinitions` machinery (mkIf/mkMerge discharge included) on every
+element individually before the final list is assembled. So `lib.mkIf
+cond pkg` as a bare list element of a `listOf`-typed option (like
+`home.packages`) is genuinely fine, not a bug - unlike the ssh-settings
+case above, which involved an *attrset-valued* option and a downstream
+consumer checking mere key-presence (`?`) rather than the option's own
+type-level list-merge logic.
+
+**Why `mkAppSet`/`alien.mkEntry` still deliberately use a plain
+`if/else null` instead of `lib.mkIf`, then**: not because `lib.mkIf`
+would be broken there too, but because `mkAppSet`'s `packages` output is
+a *plain returned list value* (not itself assigned directly as an
+option's definition in the module doing the returning) that calling
+sites then splice into `home.packages` themselves - and more simply,
+because it's the established, self-contained, non-module-system-
+dependent idiom already in use, worth keeping consistent. It is not
+evidence that `lib.mkIf`-in-a-list is unsafe.
+
+**Process lesson**: don't generalize a confirmed bug pattern (the ssh
+one) to a superficially-similar case (bare `lib.mkIf` in a list) without
+empirically testing that *specific* case first - the underlying module-
+system mechanics differ meaningfully between "attrset option + presence-
+checking consumer" and "listOf option whose type already deep-merges
+per-element". Always verify via a real before/after config diff (toggle
+the flag, diff `config.home.packages`/etc.) before committing a "fix" or
+writing a comment asserting a bug existed.
