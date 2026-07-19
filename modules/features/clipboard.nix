@@ -2,7 +2,10 @@
 
 let
   cfg = config.features.clipboard;
-  backend = cfg.backend;
+  # Shared, derived value (modules/core/platform.nix) - not an
+  # independently-set option on this feature anymore (see that file's
+  # comment for why).
+  backend = config.core.platformBackend;
   sed = "${pkgs.gnused}/bin/sed";
 
   # Bash array literals (each element individually double-quoted) so the
@@ -28,13 +31,22 @@ in
 {
   options.features.clipboard = {
     enable = lib.mkEnableOption "Cross-platform clipboard feature";
-    backend = lib.mkOption {
-      type = lib.types.enum [ "wayland" "x11" "wsl" "macos" ];
-      description = "Clipboard backend to use.";
-    };
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = backend != null;
+        message = ''
+          features.clipboard.enable requires a non-null
+          config.core.platformBackend (no compositor and not WSL - see
+          modules/core/platform.nix). Set dotsLocal.compositor/isWsl
+          appropriately, or leave features.clipboard disabled on a
+          CLI-only host.
+        '';
+      }
+    ];
+
     home.packages = with pkgs; [ gnused ]
       ++ lib.optionals (backend == "wayland") [ wl-clipboard ]
       ++ lib.optionals (backend == "x11") [ xclip ];

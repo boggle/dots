@@ -43,6 +43,7 @@ in {
     ./core/scripts.nix
     ./core/alien-packages.nix
     ./core/tune-support.nix
+    ./core/platform.nix
     ./contexts/common.nix
 
     # Universally imported - each module's own `enable` option, defaulting

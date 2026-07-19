@@ -2,7 +2,10 @@
 
 let
   cfg = config.features.opener;
-  backend = cfg.backend;
+  # Shared, derived value (modules/core/platform.nix) - not an
+  # independently-set option on this feature anymore (see that file's
+  # comment for why).
+  backend = config.core.platformBackend;
 
   # Platform-specific open commands
   openCmd = {
@@ -16,12 +19,7 @@ in
 {
   options.features.opener = {
     enable = lib.mkEnableOption "Cross-platform file opener feature";
-    
-    backend = lib.mkOption {
-      type = lib.types.enum [ "wayland" "x11" "wsl" "macos" ];
-      description = "Desktop environment backend to use for opening opener.";
-    };
-    
+
     alias = lib.mkOption {
       type = lib.types.str;
       default = "o";
@@ -30,6 +28,19 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = backend != null;
+        message = ''
+          features.opener.enable requires a non-null
+          config.core.platformBackend (no compositor and not WSL - see
+          modules/core/platform.nix). Set dotsLocal.compositor/isWsl
+          appropriately, or leave features.opener disabled on a CLI-only
+          host.
+        '';
+      }
+    ];
+
     home.packages = builtins.filter (p: p != null) (
       (lib.optionals (backend == "wayland" || backend == "x11") [ pkgs.xdg-utils ])
       ++ [ (alien.mkEntry (backend == "wsl") "wslu" null) ]

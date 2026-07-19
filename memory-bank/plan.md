@@ -1138,11 +1138,36 @@ more than one `*.<distro>-packages.nix` file (previously silently
 correctly, reverted). Zero package-list impact (confirmed via
 byte-diff) - purely a discovery-time correctness improvement.
 
-## Cross-cutting, not yet scheduled to a phase
-- Shared platform/OS detection (`modules/core/platform.nix`) consolidating
-  clipboard.nix + opener.nix's duplicated `backend` enum — natural fit
-  inside Phase 2 (composition) since it's axis-driven, or as its own small
-  slice right after. **Needs explicit slot** — add during Phase 2 planning.
+## Post-Phase-9 adjustments — `modules/core/platform.nix` consolidation
+Resolved the long-pending "needs explicit slot" cross-cutting item
+below: `features.clipboard`/`features.opener` each declared their own
+independently-set `backend` enum, with `rules.nix` setting both in
+lockstep across two separate rules (harmless duplication, but every
+future platform-aware feature would've had to repeat the same pattern
+by hand). Replaced with a single shared, `readOnly` derived option,
+`config.core.platformBackend` (`modules/core/platform.nix`), computed
+once from `dotsLocal.isWsl`/`compositor`/`graphicalBackend`; both
+features now just read it, with an explicit assertion (clear error
+message, not a raw Nix crash) if ever enabled while it's null.
+`rules.nix` now only decides whether to enable opener/clipboard, not
+what value to give their (now-removed) `backend` options. Updated
+README.md/OVERVIEW.md's docs to match (backend is no longer a
+user-settable field on either feature).
+
+Left `network.nix`'s ssh-agent socket path and `viewer.nix`'s image
+viewer choice (the "Platform/OS detection follow-up candidates" open
+question) unwired into this for now - there's currently no macOS host
+to validate against and no concrete logic drafted for either, so
+there'd be nothing real to test; revisit if/when a concrete need
+arises, same as before.
+
+Validated: full build; three synthetic scenarios (default niri/
+wayland, WSL, and CLI-only/no-compositor) each confirmed
+`config.core.platformBackend` resolves correctly, `features.opener/
+clipboard.enable` react correctly, and the null-backend case produces
+the intended clear assertion error rather than a raw crash. Full
+`config.home.packages` diff and the generated `.bashrc-nix` file
+byte-diff both confirmed identical to before the refactor.
 
 ## Notes
 - Phases 1->2 are the architectural core; do these right after Phase 0.

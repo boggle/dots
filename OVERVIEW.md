@@ -39,7 +39,7 @@ o image.png             # Opens in image viewer
 o https://example.com   # Opens in browser
 ```
 
-**How it works:** Uses `xdg-open` (Linux), `open` (macOS), or `wslview` (WSL) depending on the `backend` setting.
+**How it works:** Uses `xdg-open` (Linux), `open` (macOS), or `wslview` (WSL) depending on the auto-derived `config.core.platformBackend` (`modules/core/platform.nix`).
 
 ### Clipboard Commands
 

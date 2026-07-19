@@ -1113,3 +1113,53 @@ share a name but are otherwise unrelated.
 byte-identical `config.home.packages` diff against the prior commit
 (via `git worktree`) confirms zero behavior change - purely removed a
 no-op line.
+
+---
+
+### 2026-07-19 — `modules/core/platform.nix`: consolidated clipboard/opener backend detection
+Resolved the long-pending (since Phase 2) "needs explicit slot"
+cross-cutting item: `features.clipboard.backend`/`features.opener
+.backend` were two independently-declared `enum [ "wayland" "x11"
+"wsl" "macos" ]` options with no default, both set to the identical
+value by the same two `rules.nix` rules (WSL -> `"wsl"`, niri desktop
+-> `dotsLocal.graphicalBackend`) - confirmed via repo-wide grep that
+nothing ever overrode them independently, so a single shared value was
+always safe.
+
+**Implementation**: new `modules/core/platform.nix` exposes
+`config.core.platformBackend` (`nullOr (enum [...])`, `readOnly =
+true`, default computed directly from `dotsLocal.isWsl`/`compositor`/
+`graphicalBackend`). Imported universally in `composition.nix` (same
+reasoning as `features.opener`/`features.clipboard` themselves - their
+config needs this option path to exist regardless of context).
+`clipboard.nix`/`opener.nix` no longer declare their own `backend`
+option at all - they read `config.core.platformBackend` directly, with
+an explicit `assertions` entry (clear message, not a raw Nix
+attribute-lookup crash) if ever enabled while it resolves to `null`.
+`rules.nix`'s two rules now only set `enable = true` for both
+features - the backend VALUE is no longer set there at all, since it's
+derived automatically from the exact same `dotsLocal` fields those
+rules already gate on.
+
+**Deliberately NOT done**: did not wire `network.nix` (ssh-agent socket
+path) or `viewer.nix` (image viewer choice) into this - both were
+flagged as "follow-up candidates" for the same platform-detection
+consolidation, but there's no macOS host to validate against and no
+concrete logic drafted for either yet. Revisit if/when a real need
+emerges, same status as before this round.
+
+**Validated**: full `nix build`. Three synthetic scenarios tested via
+temporary `dots-local` edits (backed up, reverted immediately after
+each): (1) default niri/wayland - `platformBackend` = `"wayland"`,
+unaffected; (2) `isWsl = true` - `platformBackend` = `"wsl"`,
+`features.opener.enable` = `true`, matching pre-refactor behavior; (3)
+`compositor = null` with `features.clipboard.enable` force-set via
+`lib.mkForce true` (bypassing rules.nix's own gating) - confirmed the
+new assertion fires with its intended clear message, not a raw
+"cannot coerce null to string" crash from the `.${backend}` attrset
+lookups inside `clipboard.nix`/`opener.nix`. Full `config.home.packages`
+diff AND the generated `.bashrc-nix` file's byte-for-byte content (which
+embeds the resolved `BACKEND=`/`COPY_CMD=`/`PASTE_CMD=` values) both
+confirmed identical to the pre-refactor commit for the real (default)
+configuration. Updated README.md/OVERVIEW.md's docs to stop describing
+`backend` as a user-settable option on either feature.

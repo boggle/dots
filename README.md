@@ -45,10 +45,11 @@ features.network.enable = true;                # SSH/GPG agents
 
 # GUI and applications
 features.opener.enable = true;                 # File opener ('o' command)
-features.opener.backend = "wayland";           # wayland, x11, wsl, or macos
 features.clipboard.enable = true;              # Clipboard manager (clipin/clipout)
-features.clipboard.backend = "wayland";        # Wayland or X11
 features.fonts.enable = true;                  # Font configuration
+# Both opener/clipboard read the shared config.core.platformBackend
+# (modules/core/platform.nix, derived from dotsLocal.isWsl/compositor/
+# graphicalBackend) - no per-feature backend option to set yourself.
 
 # Application suites
 suites.gui-apps.enable = true;                 # GUI applications (browser, editor, etc.)
@@ -81,13 +82,13 @@ features.appimages.enable = true;              # Host-local AppImage support
 | `appimages` | `enable`, `localDir`, `apps` | Host-local AppImage integration |
 | `bookokrat` | `enable` | Documentation tool |
 | `butterfish` | `enable`, `baseUrl`, `apiKey`, `model`, `shell` | Shell wrapper for local/OpenAI-compatible LLMs (`bf` command) |
-| `clipboard` | `enable`, `backend` (wayland/x11/wsl/macos) | Cross-platform clipboard (clipin/clipout) |
+| `clipboard` | `enable` | Cross-platform clipboard (clipin/clipout) - backend auto-derived, see `core.platformBackend` |
 | `fonts` | `enable` | Font configuration |
 | `llama-cpp` | `enable`, `cmakeFlags` | llama.cpp built with CUDA + march-tuned flags |
 | `network` | `enable`, `sshAgent`, `gpgAgent`, `gpgSsh` | SSH/GPG agents |
 | `niri-noctalia` | `enable`, `renderDrmDevice`, `terminal` | Niri compositor with Noctalia integration |
 | `nix` | `enable`, `nh`, `nvd`, `nixDiff`, `nixTree`, `nixLocate`, `deadnix`, `statix`, `manix`, `envfs`, `nixIndex`, `cachix`, `comma` | Nix tooling (helpers, linters, diffing, search) - not enabled on any host today |
-| `opener` | `enable`, `backend`, `alias` | Cross-platform file opener (`o` command) |
+| `opener` | `enable`, `alias` | Cross-platform file opener (`o` command) - backend auto-derived, see `core.platformBackend` |
 | `quarkdown` | `enable` | Markdown typesetting system |
 | `sd-switch` | `enable` | Aggressive systemd --user service restarts on activation |
 | `tune` | `enable`, `packages` | Package optimization (see [OVERVIEW.md](OVERVIEW.md)) |
@@ -153,10 +154,14 @@ Configuration:
 ```nix
 features.opener = {
   enable = true;
-  backend = "wayland";  # wayland, x11, wsl, or macos
   alias = "o";          # Custom alias name
 };
 ```
+
+Backend (wayland/x11/wsl/macos) is auto-derived from `dotsLocal.isWsl`/
+`compositor`/`graphicalBackend` - see `config.core.platformBackend`
+(`modules/core/platform.nix`), not something you set on `features.opener`
+itself.
 
 ### `clipin`/`clipout` - Clipboard (clipboard)
 
@@ -173,9 +178,11 @@ Configuration:
 ```nix
 features.clipboard = {
   enable = true;
-  backend = "wayland";  # wayland, x11, wsl, or macos
 };
 ```
+
+Backend is auto-derived the same way as `features.opener` above - see
+`config.core.platformBackend`.
 
 ### `v` - Terminal File Viewer (viewer)
 

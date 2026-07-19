@@ -17,23 +17,36 @@ User confirmed (2026-07-19, core minimization round): remove both. Done -
 see `decisions.md`'s "CLI-only defaults, core minimization, editor/pager
 cleanup" entry.
 
-### Pagers / HTTP fetchers overlap
+### Pagers / HTTP fetchers overlap — CLOSED, keep as-is
 `moor`/`ov`/`less` (three pagers) and `curl`/`wget`/`curlie` (three HTTP
 tools) look like overlap at a glance but are plausibly intentional
-(different habitual uses per the inline comments). Not touching these
-without explicit user input.
+(different habitual uses per the inline comments). User confirmed
+(2026-07-19, wrap-up round) no further action needed - closing this
+out rather than leaving it open indefinitely.
 
-### Debian support scope
-Structural support only for now (spec convention + apt backend + CLI
-feature specs). GUI/AI suite Debian specs deferred until there's an actual
-Debian machine to verify against. Confirm this scoping is acceptable when
-Phase 3 starts, and revisit once a Debian machine exists.
+### Debian support scope — IN PROGRESS, user now has a Debian machine
+Structural support only so far (spec convention + apt backend + CLI
+feature specs - `network-tools.debian-packages.nix`/`tui-apps
+.debian-packages.nix` exist, GUI/AI suites don't have Debian specs at
+all yet). User confirmed (2026-07-19, wrap-up round) they now have a
+real Debian machine available to verify/extend this against - **need
+from the user to proceed**: which suites/features that machine actually
+needs (gui-apps? ai-apps? pim-apps? scanning? sixel-tools?
+cloud-tools?), and the machine's actual Debian/Ubuntu version (package
+names and availability can differ, e.g. between Debian stable/testing
+vs. Ubuntu LTS). Once known, extend the relevant `*.debian-packages.nix`
+files the same way the existing two were done, and validate via a
+synthetic `dots-local` with `distro = "debian"` (same technique used
+throughout this project for testing axis combinations without a real
+machine) before considering it done.
 
-### `location` axis concrete usage
+### `location` axis concrete usage — CLOSED for now, revisit if a use case emerges
 Currently just a freeform tag with no consuming behavior wired up yet
-(per the 2026-07-18 decision). Revisit once there's a concrete use case
-(e.g. VPN/proxy/DNS switching) to decide whether it needs to become a
-typed enum or richer submodule.
+(per the 2026-07-18 decision). User confirmed (2026-07-19, wrap-up
+round) no concrete use case yet - closing this out as "intentionally
+inert" rather than a lingering open question. Revisit once there's a
+concrete use case (e.g. VPN/proxy/DNS switching) to decide whether it
+needs to become a typed enum or richer submodule.
 
 ### Platform/OS detection follow-up candidates
 `network.nix` (ssh-agent socket path differs on macOS) and `viewer.nix`
@@ -54,25 +67,26 @@ standalone `noctalia-qs` flake input (genuinely used via
 flake.nix) is completely untouched. Verified the warning is gone and
 `config.home.packages` is byte-identical to before.
 
-### `sync.sh` / `setup.sh` deeper improvements — mostly done, note is stale
+### `sync.sh` / `setup.sh` deeper improvements — CLOSED, substantially done
 Originally deferred by the user ("stash this for later") beyond
 what each phase directly required. Since then, substantially more has
 landed than "deferred": named syncables + `sync.sh -g`/`--force-regen`
 (post-Phase-9 round 4/7), the SSH-assertion bug fix (round 4), and real
 standalone `templates/dots-local/*` files replacing the `setup.sh`
-heredoc (round 10) - see `decisions.md` for each. What remains
-genuinely deferred/undone: no broader sync.sh/setup.sh redesign beyond
-these targeted fixes has been attempted, and none is currently
-planned unless the user asks for one.
+heredoc (round 10) - see `decisions.md` for each. User confirmed
+(2026-07-19, wrap-up round) closing this out - no broader sync.sh/
+setup.sh redesign is currently planned; revisit only if a new concrete
+need comes up.
 
-### `barch` remains unused/dead
+### `barch` remains unused/dead — CLOSED for now, revisit if a use case emerges
 Confirmed during Phase 1: `dotsLocal.barch` (baseline arch level, e.g.
 "x86_64-v3") is still not consumed by any module - only `march` is (now
 correctly wired into the `-opt` profile build, see decisions.md). Kept as a
 schema field for forward-compat since it costs nothing, but there's no
-current concrete use. Revisit if a real need emerges (e.g. distinguishing
-"tuned for my exact CPU" from "compatible with this baseline level" for
-binary distribution scenarios).
+current concrete use. User confirmed (2026-07-19, wrap-up round) closing
+this out - revisit if a real need emerges (e.g. distinguishing "tuned for
+my exact CPU" from "compatible with this baseline level" for binary
+distribution scenarios).
 
 ### `features.fonts.enable` - RESOLVED, see decisions.md 2026-07-19
 Was flagged as an open decision during Phase 9 (discovered
