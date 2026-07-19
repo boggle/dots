@@ -160,6 +160,50 @@
       exec "$DOTS_DIR/sync.sh" "$@"
     '')
 
+    (pkgs.writeShellScriptBin "dots-local-options" ''
+      #!/usr/bin/env bash
+      # dots-local-options - Show every option settable in dots-local/flake.nix
+      # Usage: dots-local-options [search-term]
+      #
+      # Reads the option list straight from modules/local/schema.nix (via
+      # the .#dotsLocalOptionsDoc flake output, generated with nixpkgs's
+      # own lib.optionAttrSetToDocList - the same machinery NixOS/Home
+      # Manager use for their own option docs) - so this is always exactly
+      # in sync with the real schema, never a separate doc that can drift.
+      #
+      # Examples:
+      #   dots-local-options              # show everything
+      #   dots-local-options machine      # only machine.* options
+      #   dots-local-options sync         # only sync.* options (enable/tracked)
+
+      set -e
+
+      DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
+      DOTS_LOCAL_DIR="''${DOTS_LOCAL_DIR:-$HOME/dots-local}"
+
+      source ${./scripts/common.sh}
+
+      FILTER="''${1:-}"
+
+      print_header "📋" "dots-local options"
+      if [ -n "$FILTER" ]; then
+        echo -e "   ''${YELLOW}Filter:''${NC} ''${GREEN}$FILTER''${NC}"
+      fi
+      echo ""
+
+      DOC_JSON=$(nix eval --json "$DOTS_DIR#dotsLocalOptionsDoc" \
+        --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>/dev/null) \
+        || { print_error "Failed to evaluate .#dotsLocalOptionsDoc"; exit 1; }
+
+      echo "$DOC_JSON" | jq -r --arg filter "$FILTER" '
+        .[] | select($filter == "" or (.path | contains($filter))) |
+        "\u001b[1;36m\(.path)\u001b[0m\n" +
+        "  \u001b[1;33mtype:\u001b[0m \(.type)\n" +
+        "  \u001b[1;33mdefault:\u001b[0m \(if .default == null then "(required, no default)" else .default end)\n" +
+        "  " + (.description | gsub("\n"; "\n  ")) + "\n"
+      '
+    '')
+
     (pkgs.writeShellScriptBin "update-dots" ''
       #!/usr/bin/env bash
       # update-dots - Update dots flake inputs

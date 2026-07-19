@@ -678,3 +678,49 @@ syncable (fails with the intended message), feature off with syncable
 still on (builds fine, syncable stays active) - covering exactly the
 "don't lose sync coverage when temp-disabling" scenario the user
 described.
+
+### 2026-07-19 — Redundant `tune.flags` override removed from chromaden's dots-local
+**Decision:** User asked for chromaden's `dots-local` tune flags to
+become the actual dots default so it doesn't need setting there.
+**Finding:** They already were - a field-by-field `nix eval` comparison
+confirmed chromaden's `tune.flags` override (`c`/`rust`/`go`/`haskell`,
+all three modes) was byte-for-byte identical to
+`modules/core/tune-defaults.nix`'s built-in table (both parametrized by
+the same `march`). Removed the entire block from
+`dots-local/flake.nix` - a full `nix build` afterward produced **zero**
+new derivations (every resolved store path identical), confirming no
+behavior change whatsoever.
+**Rationale:** Pure redundancy elimination - `tune-defaults.nix` was
+already the single source of truth (per Phase 5), chromaden's copy just
+happened to restate it verbatim. `dotsLocal.tune.flags` remains available
+as a genuine override mechanism for any future machine that needs
+something actually different.
+
+### 2026-07-19 — `dots-local-options` command for schema discoverability
+**Decision:** User asked for the best way to see every option settable
+in `dots-local/flake.nix` - considered options: a hand-maintained parallel
+`.md` doc (rejected - exactly the kind of drift this whole session has
+repeatedly found and fixed, e.g. `setup.sh`/`AGENTS.md`), a docstring
+convention + grep (workable but fragile for a multi-line, nested
+structure), or an extraction script reading the schema directly
+(chosen).
+**Implementation:** New flake output `dotsLocalOptionsDoc` (`flake.nix`)
+evaluates `dotsLocalEval.options` through nixpkgs's own
+`lib.optionAttrSetToDocList` - the exact same machinery NixOS/Home
+Manager use to generate their own option reference docs - filtering out
+internal module-system plumbing (`_module.args`/`check`/etc) that isn't
+anything a `dots-local` author would ever set. New command
+`dots-local-options` (`modules/core/scripts.nix`) evaluates this output
+and pretty-prints path/type/default/description per option, with an
+optional substring filter (`dots-local-options machine`). Distinguishes
+"no default, required" (option truly has no `default`) from "default is
+literal null" (option's `default` value happens to be `null`) - the two
+look identical unless checked via `o ? default` specifically.
+**Rationale:** Guarantees the option reference can never drift from the
+real schema, since it's generated live from `modules/local/schema.nix`
+itself rather than maintained as a parallel document - directly avoids
+repeating the exact failure mode found and fixed multiple times already
+this session (AGENTS.md, `setup.sh`, both left undocumented/stale
+relative to schema changes across several phases). Documented in
+README.md/AGENTS.md pointing here instead of "read schema.nix's
+comments" as the primary discovery path.

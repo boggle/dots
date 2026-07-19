@@ -55,6 +55,29 @@
       };
       dotsLocal = dotsLocalEval.config;
 
+      # Full, always-in-sync option reference for dots-local/flake.nix -
+      # every field you can set, with its type/default/description, read
+      # straight from modules/local/schema.nix's option declarations via
+      # nixpkgs's own `lib.optionAttrSetToDocList` (the same machinery
+      # NixOS/Home Manager use to generate their own option docs) - not a
+      # hand-maintained parallel .md file that can drift from the real
+      # schema. See the `dots-local-options` command
+      # (modules/core/scripts.nix) for a human-readable CLI view of this.
+      dotsLocalOptionsDoc =
+        let
+          rawDocs = lib.optionAttrSetToDocList dotsLocalEval.options;
+          # Drop internal module-system plumbing every submodule level
+          # carries (_module.args/check/freeformType/specialArgs) - noise,
+          # not anything a dots-local author would ever set.
+          isReal = o: !(lib.elem "_module" o.loc);
+        in
+          map (o: {
+            path = lib.concatStringsSep "." o.loc;
+            type = o.type;
+            default = if o ? default then (o.default.text or (builtins.toJSON o.default)) else null;
+            description = lib.trim (o.description or "");
+          }) (builtins.filter isReal rawDocs);
+
         externalOverlay = final: prev: {
            external.snippets-ls = snippets-ls.packages.${prev.stdenv.hostPlatform.system}.snippets-ls;
            external.bookokrat = bookokrat.packages.${prev.stdenv.hostPlatform.system}.default.overrideAttrs (oldAttrs: {
@@ -156,5 +179,11 @@
       #   nix eval .#dotsLocal --override-input dots-local git+file://$HOME/dots-local
       #   nix eval .#dotsLocal.march --override-input dots-local git+file://$HOME/dots-local
       dotsLocal = dotsLocal;
+
+      # Full dots-local/flake.nix option reference (path/type/default/
+      # description) - see `dots-local-options` command for a formatted
+      # CLI view, or query directly:
+      #   nix eval --json .#dotsLocalOptionsDoc --override-input dots-local git+file://$HOME/dots-local
+      dotsLocalOptionsDoc = dotsLocalOptionsDoc;
     };
 }

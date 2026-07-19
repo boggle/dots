@@ -124,6 +124,11 @@ dots-sync                     # Sync system → git (safe mode)
 dots-sync -f                  # Force sync (overwrite git)
 dots-sync -i                  # Generate install script (git → system)
 dots-sync -n                  # Dry run (preview changes)
+dots-sync -g                  # Force-regenerate sync-config.json
+
+# Discover every option settable in dots-local/flake.nix
+dots-local-options            # Show everything (path/type/default/description)
+dots-local-options machine    # Filter by substring (e.g. only machine.*)
 ```
 
 Three cross-platform utilities for daily workflow:
@@ -325,8 +330,9 @@ to `dots-local/flake.nix` and reference it via `extraModules`:
 extraModules = [ ./host-myhostname.nix ];
 ```
 
-Then run `apply-dots`. See `modules/local/schema.nix`'s option
-descriptions for the full list of available fields.
+Then run `apply-dots`. Run `dots-local-options` to see every available
+field (path/type/default/description), generated live from
+`modules/local/schema.nix` - never a separate doc to fall out of sync.
 
 ## Troubleshooting
 

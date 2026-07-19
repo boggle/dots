@@ -275,8 +275,11 @@ to `dots-local/flake.nix` and reference it via `extraModules`:
 extraModules = [ ./host-myhostname.nix ];
 ```
 
-Then run `apply-dots`. See `modules/local/schema.nix`'s option
-descriptions for the full list of available fields.
+Then run `apply-dots`. Run `dots-local-options` (or
+`nix eval --json .#dotsLocalOptionsDoc`) to see every available field -
+generated live from `modules/local/schema.nix` via nixpkgs's own
+`lib.optionAttrSetToDocList`, so it's never a separate doc to fall out of
+sync with the real schema.
 
 ### Changing `modules/local/schema.nix` (adding/renaming/removing a field)
 

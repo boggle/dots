@@ -999,6 +999,35 @@ chromaden and multiple synthetic hosts; a before/after
 `config.home.packages` diff (via `git worktree`) confirming byte-
 identical output across all three changes; `sync.sh -g -n` run for real.
 
+## Post-Phase-9 adjustments — redundant tune override removed, schema discoverability
+Two more user-requested changes:
+
+1. **Removed chromaden's redundant `tune.flags` override** - confirmed
+   via field-by-field `nix eval` comparison that it was already
+   byte-identical to `modules/core/tune-defaults.nix`'s built-in table.
+   Removed from `dots-local/flake.nix`; a full rebuild afterward produced
+   zero new derivations (every store path identical).
+2. **`dots-local-options` command** - user asked for the best way to
+   discover every `dots-local/flake.nix`-settable option (considered:
+   parallel `.md` doc, docstring+grep, extraction script - chose the
+   extraction script approach). New flake output `dotsLocalOptionsDoc`
+   uses nixpkgs's own `lib.optionAttrSetToDocList` (same machinery
+   NixOS/Home Manager use for their own option docs) against
+   `dotsLocalEval.options`, filtering out `_module.*` plumbing. New
+   `dots-local-options [filter]` command pretty-prints path/type/
+   default/description, correctly distinguishing "required, no default"
+   from "default is literal null". Always exactly in sync with
+   `modules/local/schema.nix` since it's generated live, not a separate
+   doc - directly addresses the exact drift failure mode (AGENTS.md,
+   `setup.sh`) found and fixed multiple times this session. Documented
+   in README.md/AGENTS.md.
+
+Validated: full `nix build .../activationPackage` + `nix flake check`
+for chromaden; ran the built `dots-local-options` binary for real
+(filtered and unfiltered) confirming correct, readable output for every
+option including nested submodules (`machine.display.ecoMode.*`) and
+required-vs-null-default disambiguation.
+
 ## Cross-cutting, not yet scheduled to a phase
 - Shared platform/OS detection (`modules/core/platform.nix`) consolidating
   clipboard.nix + opener.nix's duplicated `backend` enum — natural fit
