@@ -27,7 +27,6 @@ in
   home.file.".profile-dots" = {
     text = ''
       if [ -z "''${NIXON+x}" ]; then export NIXON=${nixonDefaultStr}; fi
-      [[ -f ~/.profile-core ]] && . ~/.profile-core
       if [ "$NIXON" = "1" ]; then [[ -f ~/.profile-nix ]] && . ~/.profile-nix; fi
       [[ -f ~/.bashrc-dots ]] && . ~/.bashrc-dots
     '';
@@ -51,7 +50,6 @@ in
       echo -n -e "\e[10;440]"
      
       # --- 2. THE NIXON GATEKEEPER ---
-      [[ -f ~/.bashrc-core ]] && . ~/.bashrc-core
       alias nixon='NIXON=1 exec bash -l'
       alias nixoff='NIXON=0 exec bash -l'
  
