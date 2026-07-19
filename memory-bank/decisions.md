@@ -389,3 +389,46 @@ in Phase 3, never backfilled here. This closes out the "repurpose
 modules/distros/*" item deferred since Phase 2 (see the 2026-07-18
 "Phase 2 scope" decision above) - resolved by deletion rather than the
 originally-sketched repurposing, since nothing ever ended up needing it.
+
+### 2026-07-19 — Reclassify `features.git`/`features.dev-tools` as suites, split `features.network`
+**Decision:** User asked to assess whether the features/suites separation
+still made sense. Found the documented rule (AGENTS.md: "features = 
+individual capabilities", "suites = bundled application groups, multiple
+related packages at once") was not being followed consistently:
+- `features.git` (7 independent tools: git, jj, delta, lazygit, gh,
+  gh-dash, gitCredentialManager) and `features.dev-tools` (18 independent
+  language toolchains/tools) were both structurally identical in shape to
+  a suite - every option maps 1:1 to a separate package, not a config
+  knob for one cohesive capability. `dev-tools` was in fact bigger than
+  most actual suites.
+- `features.network` was a genuine hybrid: `nmap`/`rclone`/`doggo`/`xh`
+  are independent tools (suite-shaped); `sshAgent`/`gpgAgent`/`gpgSsh`
+  are real behavioral config (feature-shaped).
+- Confirmed via grep that nothing in the codebase ever treats
+  `features.*`/`suites.*` as bulk categories - every reference is to one
+  specific named module, so the split has zero programmatic
+  significance; purely a human-organization convention.
+
+User chose the most thorough option: move `git.nix` -> `suites/git-
+tools.nix` (`suites.git-tools`), `dev-tools.nix` -> `suites/dev-tools.nix`
+(`suites.dev-tools`, plus its 3 alien-package spec files), and split
+`network.nix` into `features.network` (kept: `enable`/`sshAgent`/
+`gpgAgent`/`gpgSsh`/`programs.ssh`/the SSH-include-files activation hook)
++ new `suites.network-tools` (`nmap`/`rclone`/`doggo`/`xh`, its own
+`enable`, matching every sibling suite's pattern) - including moving and
+renaming its 4 alien-package spec files
+(`network.*-packages.nix` -> `network-tools.*-packages.nix`, updating
+each file's `feature = "network"` field to `"network-tools"`).
+
+Also tightened AGENTS.md's Module Types section itself to state the
+distinguishing rule precisely (options are config knobs for one thing
+vs. options that each map to a distinct package), matching what the
+assessment actually found in practice, and updated its own `features.git`
+example (ironically the doc's own suite-shaped example) to
+`suites.git-tools`.
+
+**Rationale:** Purely organizational, no functional impact (confirmed via
+a before/after `config.home.packages`/`config.alienPackages.enabledPackages`
+diff - byte-identical - plus every renamed option's resolved value
+spot-checked to match its pre-move value exactly). Improves discoverability
+and keeps the documented convention actually true going forward.

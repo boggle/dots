@@ -7,8 +7,9 @@
   imports = [
     ../features/viewer.nix
     ../features/network.nix
-    ../features/git.nix
-    ../features/dev-tools.nix
+    ../suites/network-tools.nix
+    ../suites/git-tools.nix
+    ../suites/dev-tools.nix
   ];
 
   features.tune = {
@@ -24,6 +25,10 @@
   features.network = {
     enable = lib.mkDefault true;
     sshAgent = lib.mkDefault true;
+  };
+
+  suites.network-tools = {
+    enable = lib.mkDefault true;
     nmap = lib.mkDefault false;
     rclone = lib.mkDefault false;
     doggo = lib.mkDefault false;
@@ -31,13 +36,13 @@
   };
 
   # Set defaults for common profile
-  features.git = {
+  suites.git-tools = {
     enable = lib.mkDefault true;
     git = lib.mkDefault true;
     delta = lib.mkDefault true;
   };
 
-  features.dev-tools = {
+  suites.dev-tools = {
     enable = lib.mkDefault true;
     nixd = lib.mkDefault true;
     entr = lib.mkDefault true;

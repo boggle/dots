@@ -1,7 +1,7 @@
 { config, lib, pkgs, alien, ... }:
 
 let
-  cfg = config.features.dev-tools;
+  cfg = config.suites.dev-tools;
   coreLib = import ../core/lib.nix { inherit lib; };
   # Only the alien-managed subset (marksman/mkcert/caddy) - everything else
   # in this feature is a plain, always-Nix-installed package with no alien
@@ -16,7 +16,7 @@ let
   };
 in
 {
-  options.features.dev-tools = {
+  options.suites.dev-tools = {
     enable = lib.mkEnableOption "Enable dev tools";
 
     # Nix tooling

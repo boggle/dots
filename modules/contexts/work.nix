@@ -11,7 +11,7 @@
 { pkgs, lib, dotsLocal, ... }:
 
 {
-  features.git = {
+  suites.git-tools = {
     enable = lib.mkDefault true;
     git = lib.mkDefault true;
     delta = lib.mkDefault true;
@@ -19,7 +19,7 @@
     gh = lib.mkDefault true;
   };
 
-  features.dev-tools = {
+  suites.dev-tools = {
     enable = lib.mkDefault true;
     rust = lib.mkDefault false;
     python = lib.mkDefault false;

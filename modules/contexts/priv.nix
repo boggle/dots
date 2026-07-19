@@ -102,12 +102,16 @@ in {
       sshAgent = true;
       gpgAgent = true;
       gpgSsh = false;
+  };
+
+  suites.network-tools = {
+      enable = true;
       doggo = true;
       xh = true;
       rclone = true;
   };
 
-  features.git = {
+  suites.git-tools = {
       enable = true;
       git = true;
       jj = true;
@@ -118,7 +122,7 @@ in {
       gitCredentialManager = true;
   };
 
-  features.dev-tools = {
+  suites.dev-tools = {
       enable = true;
       rust = true;
       haskell = true;

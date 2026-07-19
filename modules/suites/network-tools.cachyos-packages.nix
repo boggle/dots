@@ -1,27 +1,27 @@
 {
   nmap = {
-    feature = "network";
+    feature = "network-tools";
     packages = {
       pacman = [ "nmap" ];
     };
   };
 
   rclone = {
-    feature = "network";
+    feature = "network-tools";
     packages = {
       pacman = [ "rclone" ];
     };
   };
 
   doggo = {
-    feature = "network";
+    feature = "network-tools";
     packages = {
       pacman = [ "doggo" ];
     };
   };
 
   xh = {
-    feature = "network";
+    feature = "network-tools";
     packages = {
       pacman = [ "xh" ];
     };

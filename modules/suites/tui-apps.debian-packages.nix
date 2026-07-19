@@ -1,4 +1,4 @@
-# See network.debian-packages.nix for the conservative-scope rationale.
+# See network-tools.debian-packages.nix for the conservative-scope rationale.
 # `lazygit` confirmed present in Debian's official archive (trixie/stable,
 # 2026) via packages.debian.org - unlike zellij/yazi, which are only
 # reliably available through unofficial third-party repos

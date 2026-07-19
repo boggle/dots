@@ -75,10 +75,10 @@ the re-architecture. Check off once verified post-refactor (not just
 - [x] dev-tools feature (Phase 1's homeDirectory fix; Phase 4's partial
       `mkAppSet` migration - marksman/mkcert/caddy only - covered by the
       full-config byte-identical diff; Phase 9 spot-check confirms
-      `config.features.dev-tools` resolves correctly on chromaden, all
+      `config.suites.dev-tools` resolves correctly on chromaden, all
       18 sub-toggles present with expected values)
 - [x] git feature (untouched throughout; Phase 9 spot-check confirms
-      `config.features.git` resolves correctly on chromaden, all 6
+      `config.suites.git-tools` resolves correctly on chromaden, all 6
       sub-toggles present with expected values)
 - [x] clipboard (`clipin`/`clipout`/`clipfile`/`teeclip`) — wsl backend
       confirmed auto-selected via the `isWsl` composition rule for

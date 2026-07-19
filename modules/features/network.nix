@@ -1,27 +1,11 @@
-{ config, lib, pkgs, alien, dotsLocal, ... }:
+{ config, lib, pkgs, dotsLocal, ... }:
 
 let
   cfg = config.features.network;
-  coreLib = import ../core/lib.nix { inherit lib; };
-  appSet = coreLib.mkAppSet {
-    inherit alien;
-    apps = {
-      nmap = { enable = cfg.nmap; pkg = pkgs.nmap; };
-      rclone = { enable = cfg.rclone; pkg = pkgs.rclone; };
-      doggo = { enable = cfg.doggo; pkg = pkgs.doggo; };
-      xh = { enable = cfg.xh; pkg = pkgs.xh; };
-    };
-  };
 in
 {
   options.features.network = {
     enable = lib.mkEnableOption "Enable network services";
-
-    # Network tools
-    nmap = lib.mkEnableOption "nmap (network scanner)";
-    rclone = lib.mkEnableOption "rclone (cloud sync)";
-    doggo = lib.mkEnableOption "doggo (DNS client)";
-    xh = lib.mkEnableOption "xh (modern HTTP client)";
 
     # SSH
     sshAgent = lib.mkEnableOption "SSH agent";
@@ -32,10 +16,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = appSet.packages;
-
-    alienPackages.enabledPackages = appSet.alienEnabled;
-
     programs.ssh = {
       enable = true;
       enableDefaultConfig = false;

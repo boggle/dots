@@ -41,9 +41,7 @@ Enable features in `modules/contexts/priv.nix` or `modules/contexts/work.nix`:
 ```nix
 # Core environment (always enabled via common profile)
 features.viewer.enable = true;                 # Terminal file viewer ('v' command)
-features.network.enable = true;                # SSH/GPG agents, network tools
-features.git.enable = true;                    # Git tooling (delta, lazygit, etc.)
-features.dev-tools.enable = true;              # Dev tools (nixd, entr, rust, etc.)
+features.network.enable = true;                # SSH/GPG agents
 
 # GUI and applications
 features.opener.enable = true;                 # File opener ('o' command)
@@ -60,6 +58,9 @@ suites.sixel-tools.enable = true;              # Terminal graphics (chafa, mpv)
 suites.ai-apps.enable = true;                  # AI tooling (opencode, grabcontext)
 suites.ai-apps.opencode = true;
 suites.scanning.enable = true;                 # Document scanning tools
+suites.git-tools.enable = true;                # Git tooling (delta, lazygit, etc.)
+suites.dev-tools.enable = true;                # Dev tools (nixd, entr, rust, etc.)
+suites.network-tools.enable = true;            # Network CLI tools (nmap, rclone, doggo, xh)
 
 # Tuning
 features.tune.enable = true;                   # Package optimization
@@ -80,10 +81,8 @@ features.appimages.enable = true;              # Host-local AppImage support
 | `appimages` | `enable`, `localDir`, `apps` | Host-local AppImage integration |
 | `bookokrat` | `enable` | Documentation tool |
 | `clipboard` | `enable`, `backend` (wayland/x11/wsl/macos) | Cross-platform clipboard (clipin/clipout) |
-| `dev-tools` | `enable`, `nixd`, `entr`, `rust`, `python`, ... | Development tooling |
 | `fonts` | `enable` | Font configuration |
-| `git` | `enable`, `git`, `jj`, `delta`, `lazygit` | Version control tools |
-| `network` | `enable`, `sshAgent`, `gpgAgent`, `gpgSsh` | Network and crypto agents |
+| `network` | `enable`, `sshAgent`, `gpgAgent`, `gpgSsh` | SSH/GPG agents |
 | `niri-noctalia` | `enable`, `renderDrmDevice`, `terminal` | Niri compositor with Noctalia integration |
 | `opener` | `enable`, `backend`, `alias` | Cross-platform file opener (`o` command) |
 | `tune` | `enable`, `packages` | Package optimization (see [OVERVIEW.md](OVERVIEW.md)) |
@@ -95,7 +94,10 @@ features.appimages.enable = true;              # Host-local AppImage support
 |---------|---------|-------------|
 | `ai-apps` | `enable`, `opencode`, `grabcontext` | AI assistants and context tools |
 | `cloud-tools` | `enable`, `aws`, `azure`, `gcp`, `k8s` | Cloud CLI tools |
+| `dev-tools` | `enable`, `nixd`, `entr`, `rust`, `python`, ... | Development tooling |
+| `git-tools` | `enable`, `git`, `jj`, `delta`, `lazygit` | Version control tools |
 | `gui-apps` | `enable`, `ghostty`, `librewolf`, `vscodium`, `keepassxc`, ... | Desktop GUI applications |
+| `network-tools` | `enable`, `nmap`, `rclone`, `doggo`, `xh` | Network CLI tools |
 | `pim-apps` | `enable`, `superproductivity` | Personal information management |
 | `scanning` | `enable`, `simple-scan`, `gscan2pdf`, `tesseract` | Document scanning tools |
 | `sixel-tools` | `enable`, `chafa`, `catimg`, `mpv`, `ytdlp` | Terminal graphics & media |

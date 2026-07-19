@@ -1,6 +1,6 @@
 # Azure Linux 4.0 alien-package specs.
 #
-# Mirrors network.azurelinux3-packages.nix's exact package set (same
+# Mirrors network-tools.azurelinux3-packages.nix's exact package set (same
 # conservative confidence level - Azure Linux is an intentionally lean,
 # cloud/container-focused distro, not a general-purpose one, so this
 # deliberately does not extend further the way debian's specs did).
@@ -8,7 +8,7 @@
 # modules/core/alien-packages.nix). Structurally ready, runtime-unverified.
 {
   nmap = {
-    feature = "network";
+    feature = "network-tools";
     packages = {
       dnf5 = [ "nmap" ];
     };

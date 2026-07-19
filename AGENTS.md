@@ -94,11 +94,16 @@ need to set their options regardless of which context is active.
 
 **Features** (`features.<name>`): Individual capabilities
 - Can be enabled/disabled independently
-- Example: `features.git`, `features.clipboard`
+- Options are config/behavior knobs for ONE cohesive thing, not a bundle
+  of separate apps
+- Example: `features.clipboard`, `features.viewer`, `features.network`
+  (SSH/GPG agent config)
 
 **Suites** (`suites.<name>`): Bundled application groups
-- Enable multiple related packages at once
-- Example: `suites.gui-apps`, `suites.tui-apps`
+- Enable multiple related, independently-toggleable packages at once
+- Each option maps 1:1 to a distinct package/tool, not a behavior knob
+- Example: `suites.gui-apps`, `suites.tui-apps`, `suites.git-tools`,
+  `suites.dev-tools`, `suites.network-tools`
 
 ### Key Design Patterns
 
@@ -108,11 +113,11 @@ The common context uses `lib.mkDefault` for all options, allowing other contexts
 
 ```nix
 # modules/contexts/common.nix
-features.git.enable = lib.mkDefault true;
-features.git.delta = lib.mkDefault true;
+suites.git-tools.enable = lib.mkDefault true;
+suites.git-tools.delta = lib.mkDefault true;
 
 # modules/contexts/priv.nix (can override)
-features.git.jj = true;  # Also enable jujutsu
+suites.git-tools.jj = true;  # Also enable jujutsu
 ```
 
 #### 2. Alien Package Integration

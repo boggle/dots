@@ -1,6 +1,6 @@
 {
   nmap = {
-    feature = "network";
+    feature = "network-tools";
     packages = {
       tdnf = [ "nmap" ];
     };

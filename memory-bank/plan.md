@@ -840,6 +840,39 @@ Validation: comment-only changes - confirmed via a before/after
 that output is byte-for-byte identical, plus a full
 `nix build .../activationPackage` still succeeds cleanly.
 
+## Post-Phase-9 adjustments — renames + suites/features reclassification
+User-requested adjustments after the comment cleanup:
+
+1. **`modules/composition-rules.nix` -> `modules/rules.nix`**,
+   **`modules/dots-local/` -> `modules/local/`** (the schema directory in
+   this repo, not the separate `~/dots-local` repo/flake input, which is
+   untouched). Purely mechanical; see decisions.md.
+2. **`modules/distros/*` assessed and deleted** - user asked to compare it
+   against the real alien-package overlay files; confirmed zero references
+   anywhere and stale (missing azurelinux4/debian). User chose deletion
+   over updating it. See decisions.md.
+3. **Suites vs. features assessment** - user asked whether the separation
+   still made sense. Found `features.git`/`features.dev-tools` were
+   structurally suite-shaped (bundles of independent tools, not config
+   knobs for one thing) and `features.network` was a genuine hybrid.
+   Reclassified: `git.nix` -> `suites/git-tools.nix`, `dev-tools.nix` ->
+   `suites/dev-tools.nix` (+ 3 alien-package spec files), and split
+   `network.nix` into `features.network` (SSH/GPG agent config, kept) +
+   new `suites/network-tools.nix` (nmap/rclone/doggo/xh, + 4 renamed
+   alien-package spec files). Also tightened AGENTS.md's Module Types
+   rule to state the actual distinguishing criterion precisely. See
+   decisions.md for full rationale.
+
+Validation for all three: `nix eval`/`nix build .../activationPackage`
+for chromaden (real dots-local) and a synthetic `profile = "work"` config;
+a before/after `config.home.packages` +
+`config.alienPackages.enabledPackages` diff (`git worktree` against the
+prior commit) confirms byte-identical output; every renamed option's
+resolved value spot-checked individually
+(`config.suites.git-tools`/`config.suites.dev-tools`/
+`config.suites.network-tools`/`config.features.network`) to match its
+pre-move value exactly.
+
 ---
 
 ## Cross-cutting, not yet scheduled to a phase

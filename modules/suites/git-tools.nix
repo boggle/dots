@@ -1,10 +1,10 @@
 { config, lib, pkgs, dotsLocal, ... }:
 
 let
-  cfg = config.features.git;
+  cfg = config.suites.git-tools;
 in
 {
-  options.features.git = {
+  options.suites.git-tools = {
     enable = lib.mkEnableOption "Enable Git tools";
 
     # Core
