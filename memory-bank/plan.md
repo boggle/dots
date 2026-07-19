@@ -650,7 +650,7 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
   for wait-for-x11); a final `shellcheck` pass over all extracted files.
   **Phase 8 fully complete.**
 
-## Phase 9 — Wire up dead options, close out, final docs `[~] IN PROGRESS`
+## Phase 9 — Wire up dead options, close out, final docs `[x] DONE`
 - [x] `viewer.nix`'s 5 dead options actually gate script behavior
       (enableVideo, enableDirectoryTree, enableArchives, enableDataFormats,
       enableFzfPicker). Each option now flows through as a shell variable
@@ -779,7 +779,29 @@ line; `~/.bashrc-dots` correctly symlinked into the new generation's
       - Per-host settings sync data / two GitHub remotes: confirmed
         genuinely out of scope for this re-architecture (pre-existing
         state/user's own concern), not gaps to close.
-- Validation: `(live)` final checkpoint
+- Validation: full `nix eval`/`nix build .../activationPackage` passes
+  cleanly on chromaden (real dots-local) after every commit in this phase;
+  a before/after full-config diff (`config.home.packages` +
+  `config.alienPackages.enabledPackages`, via a `git worktree` against the
+  pre-Phase-8 commit `2dc9557` rather than `git stash`/`pop` since this
+  spans multiple commits) confirms **byte-identical** output across the
+  entirety of Phase 8+9's work - expected, since the one behavior-affecting
+  change (`niri-noctalia.nix` contributing `pkgs.inter` to
+  `features.fonts.required`) remains inert while `features.fonts.enable`
+  stays `false`. **`(live)` final checkpoint explicitly NOT run by the
+  agent** - flagged to the user instead, per the standing procedure of not
+  unilaterally applying live-system-affecting changes. See the session
+  summary / `open-questions.md`'s `features.fonts.enable` entry for the
+  one decision that needs the user's input before (or as part of) that
+  checkpoint.
+
+**All 9 phases of the re-architecture are now structurally complete.**
+Remaining before this can be considered fully closed out: (1) the user's
+decision on `features.fonts.enable` (open-questions.md), (2) a final live
+`apply-dots` checkpoint covering everything since generation 316 (Phase 6),
+(3) the laputa/triomino follow-up already documented in
+`host-migration-phase2.md` (unchanged - still needs the user to add the
+documented fields to those machines' own `dots-local` repos).
 
 ---
 
