@@ -256,6 +256,112 @@
       '
     '')
 
+    (pkgs.writeShellScriptBin "dots-context-options" ''
+      #!/usr/bin/env bash
+      # dots-context-options - Show every features.*/suites.* toggle,
+      # its type/default/description, AND this machine's actual current
+      # value (companion to dots-local-options, same UX/flags).
+      # Usage: dots-context-options [-i|--interactive] [search-term]
+      #
+      # Reads straight from the full evaluated Home Manager option tree
+      # (via the .#dotsContextOptionsDoc flake output, generated with
+      # nixpkgs's own lib.optionAttrSetToDocList) - always exactly in
+      # sync with the real features/*.nix and suites/*.nix option
+      # declarations, never a separate doc that can drift. Unlike
+      # dots-local-options, "current" reflects this machine's real
+      # resolved value (many of these are mkDefaults computed from
+      # dotsLocal axes, e.g. core.enableGuiDefaults, so the declared
+      # default text alone wouldn't tell you what's actually enabled
+      # here).
+      #
+      # Examples:
+      #   dots-context-options              # show everything
+      #   dots-context-options gui-apps     # only suites.gui-apps.* options
+      #   dots-context-options appimages    # only features.appimages.* options
+      #   dots-context-options -i           # fuzzy-search/browse interactively (needs gum)
+      #   dots-context-options -i network   # interactive, pre-narrowed to *network*
+
+      set -e
+
+      DOTS_DIR="''${DOTS_DIR:-$HOME/dots}"
+      DOTS_LOCAL_DIR="''${DOTS_LOCAL_DIR:-$HOME/dots-local}"
+
+      source ${./scripts/common.sh}
+
+      INTERACTIVE=0
+      FILTER=""
+      for arg in "$@"; do
+        case "$arg" in
+          -i|--interactive) INTERACTIVE=1 ;;
+          *) FILTER="$arg" ;;
+        esac
+      done
+
+      print_header "🧩" "features/suites options"
+      if [ -n "$FILTER" ]; then
+        echo -e "   ''${YELLOW}Filter:''${NC} ''${GREEN}$FILTER''${NC}"
+      fi
+      echo ""
+
+      DOC_JSON=$(nix eval --json "$DOTS_DIR#dotsContextOptionsDoc" \
+        --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>/dev/null) \
+        || { print_error "Failed to evaluate .#dotsContextOptionsDoc"; exit 1; }
+
+      render_option() {
+        # $1 = a single option's JSON object
+        echo "$1" | jq -r '
+          "\u001b[1;36m\(.path)\u001b[0m\n" +
+          "  \u001b[1;33mtype:\u001b[0m \(.type)\n" +
+          "  \u001b[1;33mdefault:\u001b[0m \(if .default == null then "(required, no default)" else .default end)\n" +
+          "  \u001b[1;32mcurrent:\u001b[0m \(.current) \u001b[2m(this machine)\u001b[0m\n" +
+          "  " + (.description | gsub("\n"; "\n  ")) + "\n"
+        '
+      }
+
+      if [ "$INTERACTIVE" -eq 1 ]; then
+        if [ "$USE_GUM" -ne 1 ]; then
+          print_error "Interactive mode (-i/--interactive) needs gum, which isn't on PATH."
+          exit 1
+        fi
+
+        # One tab-separated "path<TAB>current<TAB>default" line per
+        # option, fed to gum filter for fuzzy narrowing (path is the
+        # sortable/filterable column; current+default ride along as a
+        # quick-glance preview).
+        LINES=$(echo "$DOC_JSON" | jq -r --arg filter "$FILTER" '
+          .[] | select($filter == "" or (.path | contains($filter))) |
+          "\(.path)\t\(.current)\t\(if .default == null then "(required)" else .default end)"
+        ')
+
+        if [ -z "$LINES" ]; then
+          print_error "No options match filter: $FILTER"
+          exit 1
+        fi
+
+        while true; do
+          SELECTED_PATH=$(echo "$LINES" | gum filter \
+            --placeholder "Search features/suites options... (esc to quit)" \
+            --height 20 --indicator "→" \
+            --header "↑↓/type to narrow · enter to view · esc to quit" \
+            | cut -f1) || break
+          [ -z "$SELECTED_PATH" ] && break
+
+          OPTION_JSON=$(echo "$DOC_JSON" | jq -c --arg path "$SELECTED_PATH" '.[] | select(.path == $path)')
+          render_option "$OPTION_JSON" | gum style --border rounded --border-foreground 62 --padding "0 1"
+        done
+        exit 0
+      fi
+
+      echo "$DOC_JSON" | jq -r --arg filter "$FILTER" '
+        .[] | select($filter == "" or (.path | contains($filter))) |
+        "\u001b[1;36m\(.path)\u001b[0m\n" +
+        "  \u001b[1;33mtype:\u001b[0m \(.type)\n" +
+        "  \u001b[1;33mdefault:\u001b[0m \(if .default == null then "(required, no default)" else .default end)\n" +
+        "  \u001b[1;32mcurrent:\u001b[0m \(.current) \u001b[2m(this machine)\u001b[0m\n" +
+        "  " + (.description | gsub("\n"; "\n  ")) + "\n"
+      '
+    '')
+
     (pkgs.writeShellScriptBin "update-dots" ''
       #!/usr/bin/env bash
       # update-dots - Update dots flake inputs

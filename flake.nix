@@ -202,13 +202,61 @@
           };
         };
 
+      # Bound once so both `homeConfigurations.default` and
+      # `dotsContextOptionsDoc` (below) share the exact same evaluation -
+      # the doc's "current" column is this machine's real, fully-resolved
+      # config (not the tuned `-opt` variant, which is build-perf-only and
+      # never differs in features./suites. values).
+      defaultHomeConfig = mkHomeConfig { optimized = false; };
+
+      # Full features.*/suites.* option reference - the toggle-level
+      # companion to dotsLocalOptionsDoc above, generated the same way
+      # (nixpkgs's own `lib.optionAttrSetToDocList`, this time over the
+      # full evaluated Home Manager module tree rather than just
+      # modules/local/schema.nix) so it can never drift from the real
+      # options either. Unlike dotsLocalOptionsDoc, each entry also
+      # carries `current` - this machine's actual resolved value (as
+      # picked up from `dots-local`/rules.nix/contexts), not just the
+      # option's own static declared default - since many of these
+      # (suites.gui-apps.enable, features.appimages.enable, ...) are
+      # `mkDefault`s computed from dotsLocal axes rather than plain
+      # literals, so the declared default text alone (e.g.
+      # "config.core.enableGuiDefaults") wouldn't tell you what's
+      # actually enabled on this machine. See the `dots-context-options`
+      # command (modules/core/scripts.nix) for a human-readable CLI view.
+      dotsContextOptionsDoc =
+        let
+          rawDocs = lib.optionAttrSetToDocList defaultHomeConfig.options;
+          # Only features.*/suites.* - everything else (home-manager's
+          # own programs.*/home.*/... options) is out of scope for this
+          # doc, and there's a LOT of it.
+          isFeatureOrSuite = o:
+            o.loc != [] &&
+            builtins.elem (builtins.head o.loc) [ "features" "suites" ] &&
+            !(lib.elem "_module" o.loc);
+          # Some option values (functions, infinite/self-referential
+          # attrsets, packages with unevaluated placeholders) can't be
+          # rendered as JSON - swallow those rather than failing the
+          # whole doc build.
+          safeJson = v:
+            let r = builtins.tryEval (builtins.toJSON v);
+            in if r.success then r.value else "\"<unrepresentable>\"";
+        in
+          map (o: {
+            path = lib.concatStringsSep "." o.loc;
+            type = o.type;
+            default = if o ? default then (o.default.text or (builtins.toJSON o.default)) else null;
+            current = safeJson (lib.attrByPath o.loc null defaultHomeConfig.config);
+            description = lib.trim (if (o.description or null) == null then "" else o.description);
+          }) (builtins.filter isFeatureOrSuite rawDocs);
+
     in {
       # There's no "context choice" to make on the command line - it's
       # fully determined by whatever dots-local.flake.nix's `context` (and
       # other axis fields) say. `apply-dots` (no argument) / `apply-dots
       # opt` select baseline vs. optimized.
       homeConfigurations = {
-        default = mkHomeConfig { optimized = false; };
+        default = defaultHomeConfig;
         default-opt = mkHomeConfig { optimized = true; };
       };
 
@@ -223,5 +271,11 @@
       # CLI view, or query directly:
       #   nix eval --json .#dotsLocalOptionsDoc --override-input dots-local git+file://$HOME/dots-local
       dotsLocalOptionsDoc = dotsLocalOptionsDoc;
+
+      # Full features.*/suites.* option reference (path/type/default/
+      # current/description) - see `dots-context-options` command for a
+      # formatted CLI view, or query directly:
+      #   nix eval --json .#dotsContextOptionsDoc --override-input dots-local git+file://$HOME/dots-local
+      dotsContextOptionsDoc = dotsContextOptionsDoc;
     };
 }

@@ -1780,3 +1780,53 @@ appimages.enable` returns `true` on this machine (context `work`,
 `enableGuiDefaults = true` in `~/dots-local/flake.nix`) with no explicit
 appimages setting in `dots-local` at all - confirming the default now
 propagates correctly outside `priv`.
+
+## 2026-07-20: added dots-context-options (companion to dots-local-options)
+
+New `dots-context-options` command (`modules/core/scripts.nix`), same
+flag surface (`-i`/`--interactive` via gum filter, plain filter arg
+otherwise) as `dots-local-options`, but covering `features.*`/`suites.*`
+toggles instead of `dotsLocal` schema fields. Backed by a new
+`dotsContextOptionsDoc` flake output (`flake.nix`), generated the same
+way (`lib.optionAttrSetToDocList`) but over the full evaluated Home
+Manager option tree (`defaultHomeConfig.options`, filtered to
+`features.`/`suites.` path prefixes) rather than just
+`modules/local/schema.nix`.
+
+Key difference from `dotsLocalOptionsDoc`: each entry also carries
+`current` - this machine's actual resolved value (`lib.attrByPath o.loc
+null defaultHomeConfig.config`, JSON-stringified via a `tryEval`-guarded
+`safeJson` helper to tolerate any non-serializable values without
+failing the whole doc). This matters because a lot of these are
+`mkDefault`s computed from `dotsLocal` axes (e.g.
+`features.appimages.enable`'s declared default is the literal text
+`config.core.enableGuiDefaults`, not a plain `true`/`false`) - showing
+only the declared default text wouldn't tell a user what's actually
+enabled on their machine, unlike `dotsLocal` schema fields which are all
+plain literals.
+
+Refactored `mkHomeConfig { optimized = false; }`'s result into its own
+`defaultHomeConfig` `let` binding, shared between `homeConfigurations.
+default` and `dotsContextOptionsDoc`, so both use the exact same
+evaluation (no risk of the doc silently describing a different
+config than what `apply-dots` would actually build).
+
+Gotcha hit during implementation: `o.description or ""` (the pattern
+already used in `dotsLocalOptionsDoc`) does NOT guard against options
+whose `description` attribute exists but is explicitly `null` (common
+across upstream Home Manager options, unlike `dots-local`'s own
+schema.nix where every option has a real description) - `or` only
+covers a *missing* attribute, not a present-but-null one. Fixed via
+`if (o.description or null) == null then "" else o.description`.
+
+**Validated**: `nix eval --json .#dotsContextOptionsDoc --override-input
+dots-local git+file://$HOME/dots-local` succeeds and correctly shows,
+e.g., `features.appimages.enable` (default: "false", current: "true")
+and `suites.gui-apps.drawio` (default: "false", current: "true" - from
+gui-apps.nix's own enableGuiDefaults-gated block); `nix flake check` and
+full `activationPackage` build both succeed; ran the built
+`dots-context-options` binary directly (`$GEN/home-path/bin/
+dots-context-options appimages` and `... gui-apps`) and confirmed
+correct plain-mode output, and `-i` mode correctly reaches `gum filter`
+(fails only on "no TTY" in this sandboxed shell, same as
+`dots-local-options -i`'s already-accepted failure mode).
