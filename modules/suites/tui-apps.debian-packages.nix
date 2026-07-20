@@ -10,12 +10,6 @@
     };
   };
 
-  lazygit = {
-    packages = {
-      apt = [ "lazygit" ];
-    };
-  };
-
   pass = {
     packages = {
       apt = [ "pass" ];
