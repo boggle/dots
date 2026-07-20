@@ -565,9 +565,9 @@ pager-story cleanup. All implemented as follows:
   nothing before this fix).
 
 **Rationale:** User's explicit design calls after a full research pass
-(see `preserved-features-checklist.md`-style investigation delegated to
-research agents) confirming exactly which packages/rules needed to
-change and why. All changes verified via before/after
+(a preserved-features-style investigation delegated to research agents)
+confirming exactly which packages/rules needed to change and why. All
+changes verified via before/after
 `config.home.packages`/`config.alienPackages.enabledPackages` diffs
 (byte-identical except the intended moves/removals/additions), full
 `nix build .../activationPackage` for chromaden (unchanged resolved
@@ -847,9 +847,9 @@ verification; applied the confirmed, low-risk fixes below in one round
   used (imported directly by `flake.nix:94`), not vestigial; the
   "duplicate discovery engines" issue this filename evokes (see
   `learnings.md`'s 2026-07-18 entry) was already resolved back in
-  Phase 3 by extracting shared logic into `alien-discovery.nix` (see
-  `plan.md:306-307`) - both `alien-package-specs.nix` (flake-level) and
-  `core/alien-packages.nix` (home-level) now call into that shared
+  the alien-package unification work by extracting shared logic into
+  `alien-discovery.nix` - both `alien-package-specs.nix` (flake-level)
+  and `core/alien-packages.nix` (home-level) now call into that shared
   helper rather than duplicating it.
 - Seriously considered, then reverted, a "fix" to `modules/core/
   nix-tools.nix`'s `lib.mkIf cfg.foo pkg` pattern inside a
@@ -1325,8 +1325,9 @@ named-but-absent input otherwise), and commented out
 
 **Validated**: `nixgl`/`nur` and all their transitive sub-inputs cleanly
 removed from the lock graph; zero package-list impact, as expected.
-Updated `architecture.md`/`preserved-features-checklist.md` in place to
-note this explicitly-authorized exception.
+Updated `architecture.md` in place to note this explicitly-authorized
+exception (the preserved-features checklist this also updated at the
+time has since been retired - see the memory-bank cleanup entry below).
 
 ---
 
@@ -1356,10 +1357,10 @@ earlier `modules/dots-local/` → `modules/local/` precedent (same
 context" reasoning). Updated every current-state reference across
 `setup.sh`, `AGENTS.md`, `SYNC.md`, and `architecture.md` (a living
 document, updated in place per its own section 12 rule #5) - left
-`decisions.md`/`plan.md`/`open-questions.md`'s existing historical
-entries using the old name untouched (they describe what was true when
-written, matching this project's established convention of appending
-new entries rather than rewriting old ones for pure renames).
+other dated log entries using the old name untouched at the time (they
+describe what was true when written, matching this project's
+established convention of appending new entries rather than rewriting
+old ones for pure renames).
 
 **New `templates/local/host.nix`**: user asked for a generic, always-
 present host-specific escape-hatch file in the template (mirroring
