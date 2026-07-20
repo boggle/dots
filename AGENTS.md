@@ -57,7 +57,7 @@ dots/
 ├── modules/
 │   ├── composition.nix       # Entry point - imports core + context + rules
 │   ├── rules.nix              # Declarative axis-based rules (gpu, compositor, isWsl, ...)
-│   ├── contexts/             # Composition bundles, selected by dotsLocal.profile
+│   ├── contexts/             # Composition bundles, selected by dotsLocal.context
 │   │   ├── common.nix        # Always-imported minimal CLI baseline
 │   │   ├── priv.nix          # Personal context
 │   │   └── work.nix          # Work context
@@ -73,7 +73,11 @@ dots/
 │   ├── flake/                # Flake-level helpers (alien discovery, tuning overlay)
 │   ├── features/             # Individual capabilities
 │   └── suites/               # Bundled application groups
-├── profiles/                 # Sync-only: profiles/<profile>/sync.json (global ignores)
+├── contexts/                 # Data catalogs per context (NOT Nix modules -
+│                             #   distinct from modules/contexts/ above):
+│                             #   contexts/<context>/sync.json (global sync
+│                             #   ignores), contexts/<context>/appimages/
+│                             #   manifest.nix (shared AppImage catalog)
 ├── settings/                 # Synced handcrafted configs (per-host)
 ├── etc/                      # Manual reinstall reference material (NOT wired into any
 │                             #   automation - bootloader/greetd configs, wallpapers, niri
@@ -81,7 +85,7 @@ dots/
 └── sync.sh                   # Config sync script
 ```
 
-No per-host directory or file (`profiles/<profile>/hosts/<hostname>.nix`)
+No per-host directory or file (`contexts/<context>/hosts/<hostname>.nix`)
 exists - host-specific config is expressed via `dotsLocal` fields
 (`machine.*`, `gpu`, `compositor`, `isWsl`, ...) consumed generically by
 feature modules, or, for anything too bespoke to generalize, via
@@ -92,7 +96,7 @@ feature modules, or, for anything too bespoke to generalize, via
 ### Composition
 
 `modules/composition.nix` always imports the common baseline plus exactly
-one `modules/contexts/<dotsLocal.profile>.nix` bundle (`priv` or `work`),
+one `modules/contexts/<dotsLocal.context>.nix` bundle (`priv` or `work`),
 then folds `modules/rules.nix`'s declarative axis-based rules
 on top as *defaults* (an explicit setting anywhere else always wins). A
 handful of feature/suite modules (niri-noctalia, llama-cpp, butterfish,

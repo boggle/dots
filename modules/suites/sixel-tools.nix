@@ -25,11 +25,11 @@ let
 in
 {
   options.suites.sixel-tools = {
-    enable = lib.mkEnableOption "Enable Sixel graphics tools";
+    enable = lib.mkEnableOption "Enable Sixel graphics tools" // { default = true; };
 
     # Terminal graphics
-    chafa = lib.mkEnableOption "Chafa (images in terminal)";
-    catimg = lib.mkEnableOption "catimg (images in terminal)";
+    chafa = lib.mkEnableOption "Chafa (images in terminal)" // { default = true; };
+    catimg = lib.mkEnableOption "catimg (images in terminal)" // { default = true; };
     lsix = lib.mkEnableOption "lsix (ls for images)";
 
     # Video

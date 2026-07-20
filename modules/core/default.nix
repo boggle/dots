@@ -88,6 +88,18 @@ home.packages = with pkgs; [
     enable = true; 
     nix-direnv.enable = true; 
   };
+
+  # Silence direnv's default noisy multi-line ANSI status chatter
+  # ("direnv: loading ~/.envrc", "direnv: using flake", per-line exports,
+  # etc.) in favor of one compact colored line - purely cosmetic, but
+  # applies to every machine since programs.direnv.enable is universal
+  # here too (was previously a per-host xdg.configFile snippet; promoted
+  # to core since there's nothing machine-specific about it).
+  xdg.configFile."direnv/direnvrc".text = ''
+    log_status() {
+      printf "\033[32mdirenv: %s\033[0m\n" "$*" >&2
+    }
+  '';
   
   programs.btop.settings = { 
     vim_keys = true; 

@@ -62,13 +62,14 @@ in
     ghostty = lib.mkEnableOption "Ghostty terminal";
     wezterm = lib.mkEnableOption "WezTerm terminal emulator";
 
-    # Browsers
-    librewolf = lib.mkEnableOption "LibreWolf browser" // { default = true; };
+    # Browsers - opt-in only (no global default; enable explicitly per
+    # machine, e.g. via dotsLocal.extraModules/host.nix)
+    librewolf = lib.mkEnableOption "LibreWolf browser";
     firefox = lib.mkEnableOption "Firefox browser";
     chromium = lib.mkEnableOption "Chromium browser" // { default = true; };
 
-    # Office
-    libreoffice = lib.mkEnableOption "LibreOffice" // { default = true; };
+    # Office - opt-in only, see librewolf's comment above
+    libreoffice = lib.mkEnableOption "LibreOffice";
     
     # Productivity
     vscodium = lib.mkEnableOption "VSCodium editor";
@@ -105,7 +106,28 @@ in
     flameshot = lib.mkEnableOption "Flameshot screenshot tool";
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkMerge [
+    # Global, non-context-specific "desktop app baseline": whenever
+    # there's an actual GUI backend to use (config.core.enableGuiDefaults,
+    # computed purely from dotsLocal - see modules/core/platform.nix),
+    # turn the suite on with a small curated set of everyday desktop
+    # tools (terminal, browser, PDF viewer, diagram editor, editor,
+    # password manager, video toolkit) rather than requiring every
+    # context to hand-roll this list. `libreoffice`/`firefox`/etc. are
+    # deliberately NOT in this baseline - genuinely opt-in only, per
+    # "only when requested". Still just `mkDefault`s - an explicit
+    # context/host setting always wins.
+    {
+      suites.gui-apps.enable = lib.mkDefault config.core.enableGuiDefaults;
+      suites.gui-apps.ghostty = lib.mkDefault config.core.enableGuiDefaults;
+      suites.gui-apps.keepassxc = lib.mkDefault config.core.enableGuiDefaults;
+      suites.gui-apps.librewolf = lib.mkDefault config.core.enableGuiDefaults;
+      suites.gui-apps.zathura = lib.mkDefault config.core.enableGuiDefaults;
+      suites.gui-apps.drawio = lib.mkDefault config.core.enableGuiDefaults;
+      suites.gui-apps.vscodium = lib.mkDefault config.core.enableGuiDefaults;
+      suites.gui-apps.ffmpeg = lib.mkDefault config.core.enableGuiDefaults;
+    }
+    (lib.mkIf cfg.enable {
     home.packages = appSet.packages;
 
     # Declare which alien packages are enabled
@@ -228,5 +250,6 @@ in
     # via pacman/paru, see `alien.mkEntry cfg.librewolf` above) rather than
     # through Home Manager's `programs.librewolf` module - native
     # librewolf-bin is the intended path, not a Nix-managed LibreWolf.
-  };
+    })
+  ];
 }

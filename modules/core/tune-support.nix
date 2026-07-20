@@ -84,7 +84,7 @@ let
   
 in {
   options.features.tune = {
-    enable = lib.mkEnableOption "package-specific performance tuning";
+    enable = lib.mkEnableOption "package-specific performance tuning" // { default = true; };
     
     packages = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule {

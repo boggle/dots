@@ -132,9 +132,9 @@
           inherit lib dotsLocal; 
       };
 
-      # Global-scope tuning packages, keyed by dotsLocal.profile - the same
+      # Global-scope tuning packages, keyed by dotsLocal.context - the same
       # value that modules/composition.nix uses to pick a
-      # contexts/<profile>.nix bundle. Add an entry here if a new context
+      # contexts/<context>.nix bundle. Add an entry here if a new context
       # needs specific global-scope tuning.
       tunePackagesByContext = {
         priv = {
@@ -144,7 +144,7 @@
         };
         work = {};
       };
-      tunePackages = tunePackagesByContext.${dotsLocal.profile} or {};
+      tunePackages = tunePackagesByContext.${dotsLocal.context} or {};
 
       # Just an optimized/baseline build-perf axis - everything
       # context-specific is resolved internally from dotsLocal by
@@ -203,8 +203,8 @@
         };
 
     in {
-      # There's no "profile choice" to make on the command line - it's
-      # fully determined by whatever dots-local.flake.nix's `profile` (and
+      # There's no "context choice" to make on the command line - it's
+      # fully determined by whatever dots-local.flake.nix's `context` (and
       # other axis fields) say. `apply-dots` (no argument) / `apply-dots
       # opt` select baseline vs. optimized.
       homeConfigurations = {

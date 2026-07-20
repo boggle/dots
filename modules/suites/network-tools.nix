@@ -16,12 +16,12 @@ let
 in
 {
   options.suites.network-tools = {
-    enable = lib.mkEnableOption "Enable network CLI tools";
+    enable = lib.mkEnableOption "Enable network CLI tools" // { default = true; };
 
     nmap = lib.mkEnableOption "nmap (network scanner)";
     rclone = lib.mkEnableOption "rclone (cloud sync)";
-    doggo = lib.mkEnableOption "doggo (DNS client)";
-    xh = lib.mkEnableOption "xh (modern HTTP client)";
+    doggo = lib.mkEnableOption "doggo (DNS client)" // { default = true; };
+    xh = lib.mkEnableOption "xh (modern HTTP client)" // { default = true; };
     curlie = lib.mkEnableOption "curlie (curl with jq-like output)";
   };
 

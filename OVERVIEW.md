@@ -126,8 +126,8 @@ Most Nix packages are built for generic `x86_64-linux` to work on any machine. I
 Replaces the package everywhere in your configuration.
 
 ```nix
-# In flake.nix's tunePackagesByContext table, keyed by dotsLocal.profile
-# (not a per-profile directory anymore - see modules/composition.nix)
+# In flake.nix's tunePackagesByContext table, keyed by dotsLocal.context
+# (not a per-context directory anymore - see modules/composition.nix)
 tunePackagesByContext = {
   priv = {
     ripgrep.enable = true;
@@ -222,7 +222,7 @@ Common `march` values: `znver3` (AMD Zen 3), `skylake`, `alderlake`, `sapphirera
 - **`default-opt`** - Rebuilds everything with `localSystem.gcc.arch` set
   from `dotsLocal.march`
 
-Which context (priv/work) you get comes from `dots-local`'s `profile`
+Which context (priv/work) you get comes from `dots-local`'s `context`
 field, not the flake output name - `default`/`default-opt` only choose
 baseline vs. optimized. Baseline is faster to install; the optimized
 variant rebuilds all packages locally (takes hours first time).
@@ -246,10 +246,10 @@ Two modes supported: **host-local** (runtime, outside Nix store) and **shared** 
 Store AppImages in `~/Applications/AppImages/` (or customize via `features.appimages.localDir`).
 These run directly without importing into the Nix store.
 
-App **definitions** (file pattern, command, desktopName, categories) live in dots's shared catalog - `profiles/<profile>/appimages/manifest.nix` - so they don't need to be copy-pasted into every machine's `dots-local`:
+App **definitions** (file pattern, command, desktopName, categories) live in dots's shared catalog - `contexts/<context>/appimages/manifest.nix` - so they don't need to be copy-pasted into every machine's `dots-local`:
 
 ```nix
-# dots/profiles/priv/appimages/manifest.nix
+# dots/contexts/priv/appimages/manifest.nix
 {
   steam = {
     file = "Steam-*.AppImage";   # Glob pattern - must match exactly one file
@@ -296,7 +296,7 @@ The wrapper requires exactly one file matching the pattern. It will error if:
 For AppImages that work fine from the Nix store, use shared manifests:
 
 ```nix
-# In profiles/common/appimages/manifest.nix or profiles/<profile>/appimages/manifest.nix
+# In contexts/common/appimages/manifest.nix or contexts/<context>/appimages/manifest.nix
 {
   cursor = {
     src = ./Cursor.AppImage;     # Nix path, imported into store
@@ -332,7 +332,7 @@ Exec bit is preserved during updates: if an AppImage was executable before updat
 
 ### Enable/Disable Individual Apps
 
-In `modules/contexts/<profile>.nix`, or `dots-local`'s `extraModules` for
+In `modules/contexts/<context>.nix`, or `dots-local`'s `extraModules` for
 something more host-specific:
 ```nix
 features.appimages = {

@@ -1,70 +1,23 @@
 # "priv" context bundle - personal Linux environment.
 #
-# Host-specific config doesn't require a dedicated per-host file in `dots`
-# - it's expressed via dotsLocal fields (machine.*, gpu, compositor, ...),
-# rules.nix, and (for truly bespoke needs)
-# dotsLocal.extraModules. See memory-bank/preserved-features-checklist.md
-# for the per-host migration notes.
-{ pkgs, lib, dotsLocal, ... }:
+{ pkgs, lib, config, dotsLocal, ... }:
 
 let
-  enableGuiDefaults = dotsLocal.enableGuiDefaults;
+  enableGuiDefaults = config.core.enableGuiDefaults;
 in {
 
   imports = [
-    # opener.nix/clipboard.nix/fonts.nix/ai-apps.nix are imported by
-    # modules/composition.nix (see its comment for why) - only the
-    # enable/backend/base config below is context-specific, not the
-    # import itself.
-    #
-    # sixel-tools.nix stays imported here (so the option is declared/
-    # reachable for this context) even though it's no longer enabled by
-    # default below - it's now an opt-in, host-specific concern set via
-    # dotsLocal.extraModules (e.g. chromaden's host-chromaden.nix), since
-    # it's not appropriate for a genuinely CLI-only host.
-    ../../modules/suites/sixel-tools.nix
-    ../../modules/features/appimages.nix
     ../../modules/suites/pim-apps.nix
     ../../modules/features/bookokrat.nix
     ../../modules/features/quarkdown.nix
-    ../../modules/suites/gui-apps.nix
-    ../../modules/suites/tui-apps.nix
   ];
 
-  # features.opener/features.clipboard's enable+backend are now set by
-  # modules/rules.nix (compositor != null / isWsl rules) rather than
-  # unconditionally here, so a CLI-only host (no compositor, not WSL)
-  # doesn't get xdg-utils/wl-clipboard installed by default. `alias = "o"`
-  # is a cosmetic default, not axis-dependent, so it stays a plain
-  # `mkDefault` here (harmless even when the feature ends up disabled).
   features.opener.alias = lib.mkDefault "o";
 
-  # Common AI Apps configuration
   suites.ai-apps = {
     enable = true;
-    opencode = true;
-    grabcontext = true;
-    # Default pi packages - hosts extend with ++ (via dotsLocal.extraModules
-    # if truly needed; in practice every priv host currently just inherits
-    # this list unmodified)
-    piPackages = [
-      "pi-btw"
-      "pi-subagents"
-      "context-mode"
-      "@tintinweb/pi-subagents"
-      "pi-mcp-adapter"
-      "@plannotator/pi-extension"
-      "pi-powerline-footer"
-      "pi-lens"
-      "@juicesharp/rpiv-ask-user-question"
-      "@juicesharp/rpiv-advisor"
-      "@juicesharp/rpiv-todo"
-      "@samfp/pi-memory"
-      "@juicesharp/rpiv-web-tools"
-    ];
   };
 
-  # Package-specific tuning
   features.tune = {
       enable = true;
       packages = {
@@ -98,41 +51,22 @@ in {
       enableDataFormats = true;     # Pretty print JSON/CSV/YAML
       enableFzfPicker = true;       # Interactive picker when no args
   };
-
-  features.network = {
-      enable = true;
-      sshAgent = true;
-      gpgAgent = true;
-      gpgSsh = false;
-  };
-
+  
   suites.network-tools = {
-      enable = true;
-      doggo = true;
-      xh = true;
       rclone = true;
       curlie = true;
   };
 
   suites.git-tools = {
-      enable = true;
-      git = true;
       jj = true;
-      delta = true;
-      lazygit = true;
-      gh = true;
-      gh-dash = true;
       gitCredentialManager = true;
   };
 
   suites.dev-tools = {
-      enable = true;
       rust = true;
       haskell = true;
-      json = true;
       python = true;
       xml = true;
-      marksman = true;
       egglog = true;
       steel = true;
       mkcert = true;
@@ -143,31 +77,6 @@ in {
       prettier = true;
   };
 
-  suites.gui-apps = lib.mkIf enableGuiDefaults {
-      enable = true;
-
-      # Lean common graphical baseline
-      ghostty = true;
-      librewolf = true;
-      vscodium = true;
-      keepassxc = true;
-      drawio = true;
-      zathura = true;
-      ffmpeg = true;
-  };
-
-  suites.tui-apps = {
-      enable = true;
-      btop = true;
-      gping = true;
-      imagemagick = true;
-      graphviz = true;
-      zellij = true;
-      lazygit = true;
-      yazi = true;
-      tailspin = true;
-  };
-
   suites.pim-apps = {
       enable = true;
       superproductivity = enableGuiDefaults;
@@ -176,19 +85,5 @@ in {
   features.bookokrat = {
       enable = true;
     };
-
-  features.appimages = {
-     enable = true;
-  };
-
-  programs.bash = {
-      enable = true;
-      initExtra = ''
-        export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
-
-        if command -v github-copilot-cli > /dev/null; then
-          eval "$(github-copilot-cli alias -- bash)"
-        fi
-      '';
-  };
 }
+

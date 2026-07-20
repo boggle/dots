@@ -2,19 +2,19 @@
 let
   cfg = config.features.appimages;
 
-  # Load shared manifests (profiles/common, profiles/<profile>)
-  loadSharedManifests = { profile }: 
+  # Load shared manifests (contexts/common, contexts/<context>)
+  loadSharedManifests = { context }: 
     let
-      commonPath = ../../profiles/common/appimages/manifest.nix;
-      profilePath = ../../profiles/${profile}/appimages/manifest.nix;
+      commonPath = ../../contexts/common/appimages/manifest.nix;
+      contextPath = ../../contexts/${context}/appimages/manifest.nix;
       
       commonExists = builtins.pathExists commonPath;
-      profileExists = builtins.pathExists profilePath;
+      contextExists = builtins.pathExists contextPath;
       
       commonApps = if commonExists then import commonPath else {};
-      profileApps = if profileExists then import profilePath else {};
+      contextApps = if contextExists then import contextPath else {};
       
-      merged = commonApps // profileApps;
+      merged = commonApps // contextApps;
     in
       merged;
 
@@ -151,7 +151,7 @@ let
   # dots-local's partial entry didn't also set. `recursiveUpdate` merges
   # field-by-field instead, so only the fields dots-local actually
   # specifies get overridden.
-  sharedApps = loadSharedManifests { profile = dotsLocal.profile; };
+  sharedApps = loadSharedManifests { context = dotsLocal.context; };
   allApps = lib.recursiveUpdate sharedApps hostLocalApps;
   
   # Filter enabled and create packages
@@ -200,10 +200,23 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    home.packages = with pkgs; [
-      appimage-run
-      appimageupdate
-    ] ++ wrappedPackages;
-  };
+  config = lib.mkMerge [
+    # AppImages are typically desktop apps not (yet) packaged for Nix/the
+    # native package manager - only worth the wrapper-script/catalog-merge
+    # machinery on a machine that actually has a GUI to run them on. No
+    # separate dotsLocal toggle for this - it rides directly on the same
+    # `core.enableGuiDefaults` axis as suites.gui-apps/suites.pim-apps
+    # (which already correctly ANDs dotsLocal.enableGuiDefaults with
+    # graphicalBackend != "none" - see modules/core/platform.nix). Still
+    # just `mkDefault` - an explicit `features.appimages.enable = false;`
+    # (or `= true;` on a CLI-only machine that still wants this) always
+    # wins.
+    { features.appimages.enable = lib.mkDefault config.core.enableGuiDefaults; }
+    (lib.mkIf cfg.enable {
+      home.packages = with pkgs; [
+        appimage-run
+        appimageupdate
+      ] ++ wrappedPackages;
+    })
+  ];
 }

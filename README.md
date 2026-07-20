@@ -7,13 +7,14 @@ A declarative, reproducible home setup for Linux workstations with per-machine o
 - **Declarative config** - Your entire environment defined in code
 - **Modular features** - Enable only what you need (AI, terminal, apps, etc.)
 - **Per-machine tuning** - Optimize packages for your specific CPU
-- **Two profiles** - Separate work and personal configurations
+- **Two contexts** - Separate work and personal configurations
 - **Fast or optimized builds** - Use cache or rebuild with microarchitecture flags
 
 ## Quick Start
 
 ```bash
 # First time setup
+./setup.sh --list  # List available contexts (priv/work)
 ./setup.sh priv    # Creates ~/dots-local with your identity
 
 # Daily workflow
@@ -31,7 +32,7 @@ appimage-update --all                    # Update all AppImages
 
 Which context (priv/work) and machine-specific behavior (GPU, compositor,
 display, etc.) you get is fully determined by `dots-local/flake.nix` -
-there's no profile name to pass on the command line, only the
+there's no context name to pass on the command line, only the
 baseline-vs-optimized build choice (see Architecture below).
 
 ## Feature System
@@ -39,7 +40,7 @@ baseline-vs-optimized build choice (see Architecture below).
 Enable features in `modules/contexts/priv.nix` or `modules/contexts/work.nix`:
 
 ```nix
-# Core environment (always enabled via common profile)
+# Core environment (always enabled via common context)
 features.viewer.enable = true;                 # Terminal file viewer ('v' command)
 features.network.enable = true;                # SSH/GPG agents
 
@@ -268,7 +269,7 @@ real hardware for those distros.
   `dots-local`'s `march` (rebuilds locally)
 
 **Composition:** `modules/composition.nix` always imports the common
-baseline plus a `modules/contexts/<dots-local.profile>.nix` bundle (`priv`
+baseline plus a `modules/contexts/<dots-local.context>.nix` bundle (`priv`
 or `work`), then applies `modules/rules.nix` - small, declarative rules
 over `dots-local` axes (GPU, compositor, WSL, ...) that enable/configure
 features as *defaults*. No per-host directory or file is required to
@@ -313,7 +314,7 @@ than implicit.
 **Module Structure:**
 ```
 modules/
-├── contexts/         # Composition bundles, selected by dots-local.profile
+├── contexts/         # Composition bundles, selected by dots-local.context
 │   ├── common.nix    # Always-imported minimal CLI baseline
 │   ├── priv.nix      # Personal context
 │   └── work.nix      # Work context
@@ -344,6 +345,7 @@ Most new machines need **no changes to `dots` at all** - just a
 
     machine = {
       sshIdentityFile = "~/.ssh/id_github_myhostname";
+      sshAddKeysToAgent = "yes";            # "yes"/"no"/"ask"/"confirm"/a duration like "10m"
       terminal = "/usr/bin/ghostty";       # only used if compositor == "niri"
       renderDrmDevice = null;               # let niri auto-detect, or set explicitly
       display = {                           # omit entirely to skip power-toggle.sh
@@ -404,8 +406,8 @@ apply-dots -- --force
 dots-sync -g  # Force regenerate from flake.nix
 ```
 
-**Profile not found:**
-Ensure `dots-local/flake.nix` has a valid `profile` attribute (e.g., `profile = "priv";`).
+**Context not found:**
+Ensure `dots-local/flake.nix` has a valid `context` attribute (e.g., `context = "priv";`). Run `./setup.sh --list` to see available contexts.
 
 **Nix evaluation errors:**
 ```bash

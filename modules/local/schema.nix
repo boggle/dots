@@ -65,10 +65,10 @@ in {
       '';
     };
 
-    profile = mkOption {
+    context = mkOption {
       type = types.str;
       default = "priv";
-      description = ''Which dots profile to use (e.g. "priv", "work").'';
+      description = ''Which dots context to use (e.g. "priv", "work"). Selects the modules/contexts/<context>.nix bundle.'';
     };
 
     distro = mkOption {
@@ -174,6 +174,20 @@ in {
             '';
           };
 
+          sshAddKeysToAgent = mkOption {
+            type = types.str;
+            default = "yes";
+            description = ''
+              Value for ssh's `AddKeysToAgent` setting in the default
+              `Host *` block - only applied when `sshIdentityFile` is
+              also set (consumed by features/network.nix). Accepts any
+              value ssh_config itself allows: "yes", "no", "ask"
+              (prompt every time before adding), "confirm" (prompt before
+              each use of an already-added key), or a duration like
+              "10m"/"1h" (auto-remove after that long).
+            '';
+          };
+
           terminal = mkOption {
             type = types.str;
             default = "ghostty";
@@ -244,13 +258,20 @@ in {
     };
 
     graphicalBackend = mkOption {
-      type = types.enum [ "wayland" "x11" "wsl" "macos" ];
-      default = "wayland";
+      type = types.enum [ "none" "wayland" "x11" "wsl" "macos" ];
+      default = "none";
       description = ''
         Desktop/platform backend, used by features.opener/
         features.clipboard and (in future) other platform-aware features.
-        Enum-typed, so an invalid value is rejected at eval time with a
-        clear error.
+        Only actually consulted when `compositor` is non-null (see
+        modules/core/platform.nix) - "none" is the correct default for a
+        CLI-only machine with no graphical desktop at all, rather than
+        defaulting to "wayland" as if every machine had one.
+        `config.core.enableGuiDefaults` (modules/core/platform.nix) is
+        also forced off whenever this is "none", regardless of
+        `enableGuiDefaults`'s own value - a machine with no graphical
+        backend shouldn't get GUI apps installed. Enum-typed, so an
+        invalid value is rejected at eval time with a clear error.
       '';
     };
 
@@ -321,7 +342,7 @@ in {
           # file/command are nullable (rather than required) because
           # dots-local's entries are often just an *override* of a subset
           # of fields for an app already fully defined in dots's shared
-          # catalog (profiles/<profile>/appimages/manifest.nix) - e.g.
+          # catalog (contexts/<context>/appimages/manifest.nix) - e.g.
           # `{ tuta.enable = true; }` to enable a catalog app, or
           # `{ tuta.file = "..."; }` to override just the file pattern.
           # modules/features/appimages.nix deep-merges (per-field, not a
@@ -377,7 +398,7 @@ in {
       description = ''
         Per-machine AppImage enable/override entries, merged (per-field)
         on top of dots's shared catalog
-        (profiles/<profile>/appimages/manifest.nix) - see OVERVIEW.md's
+        (contexts/<context>/appimages/manifest.nix) - see OVERVIEW.md's
         AppImages section. Only needs `file`/`command`/etc for apps not
         already in the shared catalog; for cataloged apps, a bare
         `{ appname.enable = true; }` is enough.

@@ -23,7 +23,7 @@ in
     # Basic settings from dots-local
     print_section "📋" "Basic Settings:"
     echo -e "   ''${YELLOW}Host:''${NC}     ''${GREEN}${hostOrUnknown}''${NC}"
-    echo -e "   ''${YELLOW}Profile:''${NC}  ''${GREEN}${dotsLocal.profile}''${NC}"
+    echo -e "   ''${YELLOW}Context:''${NC}  ''${GREEN}${dotsLocal.context}''${NC}"
     echo -e "   ''${YELLOW}System:''${NC}   ''${GREEN}${dotsLocal.system}''${NC}"
     echo -e "   ''${YELLOW}User:''${NC}     ''${GREEN}${dotsLocal.username}''${NC}"
     echo ""

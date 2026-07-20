@@ -46,15 +46,15 @@ let
 in
 {
   options.suites.git-tools = {
-    enable = lib.mkEnableOption "Enable Git tools";
+    enable = lib.mkEnableOption "Enable Git tools" // { default = true; };
 
     # Core
-    git = lib.mkEnableOption "Git";
+    git = lib.mkEnableOption "Git" // { default = true; };
     jj = lib.mkEnableOption "jj (Git alternative)";
     
     # Tools
-    delta = lib.mkEnableOption "delta (Git pager)";
-    lazygit = lib.mkEnableOption "lazygit (TUI Git client)";
+    delta = lib.mkEnableOption "delta (Git pager)" // { default = true; };
+    lazygit = lib.mkEnableOption "lazygit (TUI Git client)" // { default = true; };
     gh = lib.mkEnableOption "gh (GitHub CLI)" // { default = true; };
     gh-dash = lib.mkEnableOption "gh-dash (GitHub dashboard)" // { default = true; };
     gitCredentialManager = lib.mkEnableOption "Git Credential Manager";

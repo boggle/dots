@@ -12,7 +12,7 @@
       # Usage: apply-dots [opt] [-- <nh-args>...]
       #
       # Which context bundle you get (priv/work/...) is fully determined
-      # by dots-local.flake.nix's `profile` field, not a CLI argument. The
+      # by dots-local.flake.nix's `context` field, not a CLI argument. The
       # only CLI choice here is baseline vs. optimized build:
       #
       # Examples:
@@ -57,16 +57,16 @@
 
       print_header "✦" "DOTS CONFIGURATION"
 
-      # Get info from dots-local (informational only now - dots-local.profile
-      # selects a modules/contexts/<profile>.nix bundle, not a flake output)
+      # Get info from dots-local (informational only now - dots-local.context
+      # selects a modules/contexts/<context>.nix bundle, not a flake output)
       HOST=$(nix eval "git+file://$DOTS_LOCAL_DIR#host" 2>/dev/null | tr -d '"' || echo "unknown")
-      PROFILE=$(nix eval "git+file://$DOTS_LOCAL_DIR#profile" 2>/dev/null | tr -d '"' || echo "priv")
+      CONTEXT=$(nix eval "git+file://$DOTS_LOCAL_DIR#context" 2>/dev/null | tr -d '"' || echo "priv")
       SYSTEM=$(nix eval "git+file://$DOTS_LOCAL_DIR#system" 2>/dev/null | tr -d '"' || echo "x86_64-linux")
       USER=$(nix eval "git+file://$DOTS_LOCAL_DIR#username" 2>/dev/null | tr -d '"' || echo "$(whoami)")
 
       print_section "📋" "Settings:"
       echo -e "   ''${YELLOW}Host:''${NC}      ''${GREEN}$HOST''${NC}"
-      echo -e "   ''${YELLOW}Context:''${NC}   ''${GREEN}$PROFILE''${NC}"
+      echo -e "   ''${YELLOW}Context:''${NC}   ''${GREEN}$CONTEXT''${NC}"
       echo -e "   ''${YELLOW}Build:''${NC}     ''${GREEN}$FLAKE_OUTPUT''${NC}"
       echo -e "   ''${YELLOW}System:''${NC}    ''${GREEN}$SYSTEM''${NC}"
       echo -e "   ''${YELLOW}User:''${NC}      ''${GREEN}$USER''${NC}"
@@ -163,7 +163,7 @@
     (pkgs.writeShellScriptBin "dots-local-options" ''
       #!/usr/bin/env bash
       # dots-local-options - Show every option settable in dots-local/flake.nix
-      # Usage: dots-local-options [search-term]
+      # Usage: dots-local-options [-i|--interactive] [search-term]
       #
       # Reads the option list straight from modules/local/schema.nix (via
       # the .#dotsLocalOptionsDoc flake output, generated with nixpkgs's
@@ -175,6 +175,8 @@
       #   dots-local-options              # show everything
       #   dots-local-options machine      # only machine.* options
       #   dots-local-options sync         # only sync.* options (enable/tracked)
+      #   dots-local-options -i           # fuzzy-search/browse interactively (needs gum)
+      #   dots-local-options -i machine   # interactive, pre-narrowed to machine.*
 
       set -e
 
@@ -183,7 +185,14 @@
 
       source ${./scripts/common.sh}
 
-      FILTER="''${1:-}"
+      INTERACTIVE=0
+      FILTER=""
+      for arg in "$@"; do
+        case "$arg" in
+          -i|--interactive) INTERACTIVE=1 ;;
+          *) FILTER="$arg" ;;
+        esac
+      done
 
       print_header "📋" "dots-local options"
       if [ -n "$FILTER" ]; then
@@ -194,6 +203,49 @@
       DOC_JSON=$(nix eval --json "$DOTS_DIR#dotsLocalOptionsDoc" \
         --override-input dots-local "git+file://$DOTS_LOCAL_DIR" 2>/dev/null) \
         || { print_error "Failed to evaluate .#dotsLocalOptionsDoc"; exit 1; }
+
+      render_option() {
+        # $1 = a single option's JSON object
+        echo "$1" | jq -r '
+          "\u001b[1;36m\(.path)\u001b[0m\n" +
+          "  \u001b[1;33mtype:\u001b[0m \(.type)\n" +
+          "  \u001b[1;33mdefault:\u001b[0m \(if .default == null then "(required, no default)" else .default end)\n" +
+          "  " + (.description | gsub("\n"; "\n  ")) + "\n"
+        '
+      }
+
+      if [ "$INTERACTIVE" -eq 1 ]; then
+        if [ "$USE_GUM" -ne 1 ]; then
+          print_error "Interactive mode (-i/--interactive) needs gum, which isn't on PATH."
+          exit 1
+        fi
+
+        # One tab-separated "path<TAB>type<TAB>default" line per option, fed
+        # to gum filter for fuzzy narrowing (path is the sortable/filterable
+        # column; type+default ride along as a quick-glance preview).
+        LINES=$(echo "$DOC_JSON" | jq -r --arg filter "$FILTER" '
+          .[] | select($filter == "" or (.path | contains($filter))) |
+          "\(.path)\t\(.type)\t\(if .default == null then "(required)" else .default end)"
+        ')
+
+        if [ -z "$LINES" ]; then
+          print_error "No options match filter: $FILTER"
+          exit 1
+        fi
+
+        while true; do
+          SELECTED_PATH=$(echo "$LINES" | gum filter \
+            --placeholder "Search dots-local options... (esc to quit)" \
+            --height 20 --indicator "→" \
+            --header "↑↓/type to narrow · enter to view · esc to quit" \
+            | cut -f1) || break
+          [ -z "$SELECTED_PATH" ] && break
+
+          OPTION_JSON=$(echo "$DOC_JSON" | jq -c --arg path "$SELECTED_PATH" '.[] | select(.path == $path)')
+          render_option "$OPTION_JSON" | gum style --border rounded --border-foreground 62 --padding "0 1"
+        done
+        exit 0
+      fi
 
       echo "$DOC_JSON" | jq -r --arg filter "$FILTER" '
         .[] | select($filter == "" or (.path | contains($filter))) |
@@ -283,14 +335,14 @@
 
       source ${./scripts/common.sh}
 
-      # Get profile from dots-local (used below only to locate
-      # profiles/$PROFILE/appimages/ - the shared/store-backed AppImages
+      # Get context from dots-local (used below only to locate
+      # contexts/$CONTEXT/appimages/ - the shared/store-backed AppImages
       # dir, unrelated to Nix's homeConfigurations output name)
-      PROFILE=$(nix eval "git+file://$DOTS_LOCAL_DIR#profile" 2>/dev/null | tr -d '"' || echo "priv")
-      PROFILE="''${PROFILE:-priv}"
+      CONTEXT=$(nix eval "git+file://$DOTS_LOCAL_DIR#context" 2>/dev/null | tr -d '"' || echo "priv")
+      CONTEXT="''${CONTEXT:-priv}"
 
       # Get localDir from Home Manager config. NOTE: "default" here is the
-      # flake output name (see flake.nix) - unrelated to $PROFILE above.
+      # flake output name (see flake.nix) - unrelated to $CONTEXT above.
       # localDir doesn't differ between default/default-opt.
       LOCAL_DIR=$(nix eval --raw "$DOTS_DIR#homeConfigurations.default.config.features.appimages.localDir" 2>/dev/null || echo "$HOME/Applications/AppImages")
 
@@ -349,7 +401,7 @@
 
       echo ""
       log_info "Local directory: $LOCAL_DIR"
-      log_info "Profile: $PROFILE"
+      log_info "Context: $CONTEXT"
       if [[ -n "$TARGET_APP" ]]; then
           log_info "Target: $TARGET_APP"
       elif [[ "$UPDATE_ALL" == "true" ]]; then
@@ -513,8 +565,8 @@
           log_info "Processing shared AppImages from dots/..."
           
           # Common
-          if [[ -d "$DOTS_DIR/profiles/common/appimages" ]]; then
-              for app_path in "$DOTS_DIR/profiles/common/appimages"/*.AppImage; do
+          if [[ -d "$DOTS_DIR/contexts/common/appimages" ]]; then
+              for app_path in "$DOTS_DIR/contexts/common/appimages"/*.AppImage; do
                   [[ -f "$app_path" ]] || continue
                   app_file=$(basename "$app_path")
                   app_name="''${app_file%.AppImage}"
@@ -523,7 +575,7 @@
                       continue
                   fi
                   
-                  echo "  $app_name: Processing (profiles/common)"
+                  echo "  $app_name: Processing (contexts/common)"
                   if update_single "$app_name" "$app_path"; then
                       ((UPDATED++))
                   elif [[ $? -eq 2 ]]; then
@@ -534,9 +586,9 @@
               done
           fi
 
-          # Profile-specific
-          if [[ -d "$DOTS_DIR/profiles/$PROFILE/appimages" ]]; then
-              for app_path in "$DOTS_DIR/profiles/$PROFILE/appimages"/*.AppImage; do
+          # Context-specific
+          if [[ -d "$DOTS_DIR/contexts/$CONTEXT/appimages" ]]; then
+              for app_path in "$DOTS_DIR/contexts/$CONTEXT/appimages"/*.AppImage; do
                   [[ -f "$app_path" ]] || continue
                   app_file=$(basename "$app_path")
                   app_name="''${app_file%.AppImage}"
@@ -545,7 +597,7 @@
                       continue
                   fi
                   
-                  echo "  $app_name: Processing (profiles/$PROFILE)"
+                  echo "  $app_name: Processing (contexts/$CONTEXT)"
                   if update_single "$app_name" "$app_path"; then
                       ((UPDATED++))
                   elif [[ $? -eq 2 ]]; then

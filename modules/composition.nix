@@ -1,7 +1,7 @@
 # The composition entry point.
 #
 # Always imports the common baseline + core, then:
-#   1. Imports exactly one modules/contexts/<dotsLocal.profile>.nix bundle
+#   1. Imports exactly one modules/contexts/<dotsLocal.context>.nix bundle
 #      (the bulk, hand-authored per-context config).
 #   2. Folds rules.nix's declarative axis-based rules on top,
 #      as *defaults* (an explicit setting anywhere else always wins).
@@ -20,7 +20,7 @@
 let
   rules = import ./rules.nix { inherit lib dotsLocal; };
 
-  contextFile = ./contexts + "/${dotsLocal.profile}.nix";
+  contextFile = ./contexts + "/${dotsLocal.context}.nix";
   contextExists = builtins.pathExists contextFile;
 
   # Recursively wraps every LEAF value of a nested attrset in
@@ -82,12 +82,12 @@ in {
         {
           assertion = contextExists;
           message = ''
-            dotsLocal.profile = "${dotsLocal.profile}" has no matching
-            modules/contexts/${dotsLocal.profile}.nix file. Known contexts:
+            dotsLocal.context = "${dotsLocal.context}" has no matching
+            modules/contexts/${dotsLocal.context}.nix file. Known contexts:
             ${lib.concatStringsSep ", " (builtins.attrNames (lib.filterAttrs
               (n: _: lib.hasSuffix ".nix" n) (builtins.readDir ./contexts)))}.
             Add one (see modules/contexts/work.nix for a minimal starting
-            point) or fix dotsLocal.profile in your dots-local/flake.nix.
+            point) or fix dotsLocal.context in your dots-local/flake.nix.
           '';
         }
       ];

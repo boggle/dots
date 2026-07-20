@@ -40,14 +40,14 @@ in
   options.suites.tui-apps = {
     enable = lib.mkEnableOption "Enable interactive TUI tools" // { default = true; };
 
-    btop = lib.mkEnableOption "btop - system monitor";
-    zellij = lib.mkEnableOption "Zellij terminal multiplexer";
-    lazygit = lib.mkEnableOption "Lazygit";
-    yazi = lib.mkEnableOption "Yazi file manager";
+    btop = lib.mkEnableOption "btop - system monitor" // { default = true; };
+    zellij = lib.mkEnableOption "Zellij terminal multiplexer" // { default = true; };
+    lazygit = lib.mkEnableOption "Lazygit" // { default = true; };
+    yazi = lib.mkEnableOption "Yazi file manager" // { default = true; };
     pass = lib.mkEnableOption "pass (password manager)";
     bandwhich = lib.mkEnableOption "bandwhich - network monitor";
     vhs = lib.mkEnableOption "vhs - terminal recorder";
-    tailspin = lib.mkEnableOption "tailspin (tspin) - log file highlighter";
+    tailspin = lib.mkEnableOption "tailspin (tspin) - log file highlighter" // { default = true; };
 
     # Email
     aerc = lib.mkEnableOption "aerc (terminal email client)";
@@ -68,7 +68,25 @@ in
     hledger = lib.mkEnableOption "hledger (accounting)";
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkMerge [
+    # gping (ping with a live graph) is a network-monitoring tool that
+    # happens to live in this suite rather than suites.network-tools -
+    # default it on whenever that suite is (cross-suite default, set
+    # here since suites.network-tools's own enable state is what this
+    # actually should track; still just a `mkDefault`, so an explicit
+    # `gping = false`/`true` anywhere else still wins).
+    { suites.tui-apps.gping = lib.mkDefault config.suites.network-tools.enable; }
+    # graphviz/imagemagick are DTP tools mostly useful alongside an
+    # actual GUI (rendering diagrams/images you'll then look at) - default
+    # them on whenever there's a real GUI backend (config.core.
+    # enableGuiDefaults, purely dotsLocal-derived - see modules/core/
+    # platform.nix), same global condition gui-apps.nix uses for its own
+    # ghostty/keepassxc defaults.
+    {
+      suites.tui-apps.graphviz = lib.mkDefault config.core.enableGuiDefaults;
+      suites.tui-apps.imagemagick = lib.mkDefault config.core.enableGuiDefaults;
+    }
+    (lib.mkIf cfg.enable {
     home.packages = appSet.packages;
 
     programs.btop = lib.mkIf cfg.btop {
@@ -233,5 +251,6 @@ in
 
     # Declare alien packages for this suite
     alienPackages.enabledPackages = appSet.alienEnabled;
-  };
+    })
+  ];
 }

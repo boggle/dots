@@ -3,15 +3,37 @@
 # Exit on error
 set -e
 
-PROFILE=$1
+DOTS_DIR="${DOTS_DIR:-$(cd "$(dirname "$0")" && pwd)}"
+CONTEXTS_DIR="$DOTS_DIR/modules/contexts"
 
-if [ -z "$PROFILE" ]; then
-    echo "Usage: ./setup.sh <profile-name>"
+# List every available context - a real, existing modules/contexts/<name>.nix
+# file, `common.nix` excluded since it's the always-imported baseline, not
+# something to pick standalone.
+list_contexts() {
+    echo "Available contexts:"
+    for f in "$CONTEXTS_DIR"/*.nix; do
+        name=$(basename "$f" .nix)
+        [ "$name" = "common" ] && continue
+        echo "  - $name"
+    done
+}
+
+CONTEXT=$1
+
+if [ "$CONTEXT" = "-l" ] || [ "$CONTEXT" = "--list" ] || [ "$CONTEXT" = "list" ]; then
+    list_contexts
+    exit 0
+fi
+
+if [ -z "$CONTEXT" ]; then
+    echo "Usage: ./setup.sh <context>"
+    echo "       ./setup.sh --list    # show available contexts"
     echo "Example: ./setup.sh work"
+    echo ""
+    list_contexts
     exit 1
 fi
 
-DOTS_DIR="${DOTS_DIR:-$(cd "$(dirname "$0")" && pwd)}"
 DOTS_LOCAL="$HOME/dots-local"
 TEMPLATE_DIR="$DOTS_DIR/templates/local"
 
@@ -61,11 +83,11 @@ if [ ! -d "$DOTS_LOCAL" ]; then
         -e "s|@@UID@@|$(id -u)|g" \
         -e "s|@@GID@@|$(id -g)|g" \
         -e "s|@@HOMEDIR@@|${HOME}|g" \
-        -e "s|@@PROFILE@@|${PROFILE}|g" \
+        -e "s|@@CONTEXT@@|${CONTEXT}|g" \
         flake.nix
 
     git add flake.nix .gitignore appimages.nix host.nix
-    git commit -m "Initial identity for ${PROFILE}"
+    git commit -m "Initial identity for ${CONTEXT}"
     cd - > /dev/null
 else
     echo "Using existing identity at ${DOTS_LOCAL}"
@@ -73,9 +95,9 @@ fi
 
 # 2. Perform the initial bootstrap
 # NOTE: the flake output is always "default" - which context (priv/work/
-# ...) you get is fully determined by dots-local's `profile` field above,
+# ...) you get is fully determined by dots-local's `context` field above,
 # not by the flake output name.
-echo "Running initial Home Manager bootstrap for context: ${PROFILE}..."
+echo "Running initial Home Manager bootstrap for context: ${CONTEXT}..."
 
 nix run home-manager -- switch \
   --flake .#default \

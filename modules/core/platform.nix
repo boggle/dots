@@ -42,4 +42,27 @@
       `isWsl`/`compositor` themselves instead.
     '';
   };
+
+  options.core.enableGuiDefaults = lib.mkOption {
+    type = lib.types.bool;
+    readOnly = true;
+    default = dotsLocal.enableGuiDefaults && dotsLocal.graphicalBackend != "none";
+    description = ''
+      Whether GUI-app defaults (suites.gui-apps, suites.pim-apps's
+      superproductivity, ...) should actually be enabled - derived from
+      `dotsLocal.enableGuiDefaults` AND `dotsLocal.graphicalBackend != "none"`.
+      A machine with no graphical backend configured shouldn't get GUI
+      apps installed regardless of `enableGuiDefaults`'s own value (a
+      brand-new CLI-only machine that never set `graphicalBackend` would
+      otherwise silently get a GUI-app baseline it can't even use - see
+      `memory-bank/decisions.md`). Consumed by modules/contexts/priv.nix
+      instead of reading `dotsLocal.enableGuiDefaults` directly, mirroring
+      `core.platformBackend`'s "compute the derived axis value once,
+      here" convention rather than re-deriving it ad hoc at each call
+      site.
+
+      Read-only: override `dotsLocal.enableGuiDefaults`/`graphicalBackend`
+      themselves if a machine's actual intent differs.
+    '';
+  };
 }

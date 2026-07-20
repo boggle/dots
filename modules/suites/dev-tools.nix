@@ -17,10 +17,10 @@ let
 in
 {
   options.suites.dev-tools = {
-    enable = lib.mkEnableOption "Enable dev tools";
+    enable = lib.mkEnableOption "Enable dev tools" // { default = true; };
 
     # Nix tooling
-    nixd = lib.mkEnableOption "nixd (Nix language server)";
+    nixd = lib.mkEnableOption "nixd (Nix language server)" // { default = true; };
 
     # Rust tooling
     rust = lib.mkEnableOption "Rust toolchain (mold, clang, sccache)";
@@ -30,11 +30,14 @@ in
 
     # General tooling
     uv = lib.mkEnableOption "uv (Python package/project manager)";
-    marksman = lib.mkEnableOption "marksman (Markdown language server)";
+    # marksman is helix's Markdown LSP (bash-language-server, helix's
+    # other core LSP dep, already ships unconditionally in
+    # modules/core/default.nix) - defaults on for the same reason.
+    marksman = lib.mkEnableOption "marksman (Markdown language server)" // { default = true; };
     snippetsLs = lib.mkEnableOption "snippets-ls (snippet language server)";
 
     # JSON tooling
-    json = lib.mkEnableOption "JSON toolchain";
+    json = lib.mkEnableOption "JSON toolchain" // { default = true; };
 
     # XML tooling
     xml = lib.mkEnableOption "XML toolchain";
@@ -43,7 +46,7 @@ in
     haskell = lib.mkEnableOption "Haskell toolchain (ghc, cabal, stack)";
     
     # HMR tooling
-    entr = lib.mkEnableOption "entr (file watcher for auto-rebuilds)";
+    entr = lib.mkEnableOption "entr (file watcher for auto-rebuilds)" // { default = true; };
 
     # Web development tools
     mkcert = lib.mkEnableOption "mkcert (locally-trusted development certificates)";

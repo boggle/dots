@@ -1,5 +1,5 @@
 # Shared catalog of host-local (runtime, not Nix-store-imported) AppImage
-# definitions for the "priv" profile. Definitions live here (file
+# definitions for the "priv" context. Definitions live here (file
 # pattern/command/desktopName/categories) so machines don't need to
 # copy-paste the same app metadata into their own dots-local repos -
 # dots-local should only need to *enable* an app (and, if a machine

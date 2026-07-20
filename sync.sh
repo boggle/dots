@@ -39,44 +39,45 @@ fi
 # Get hostname
 CURRENT_HOSTNAME=$(cat /proc/sys/kernel/hostname 2>/dev/null || /bin/hostname 2>/dev/null || echo "unknown")
 
-# Get profile from dots-local
-get_profile_from_dots_local() {
-    # Try to get profile from dots-local flake input
+# Get context from dots-local
+get_context_from_dots_local() {
+    # Try to get context from dots-local flake input
     # This is passed via the apply-dots function or can be read from nix eval
     if command -v nix &> /dev/null && [[ -d "$DOTS_LOCAL_DIR" ]]; then
-        nix eval "git+file://$DOTS_LOCAL_DIR#profile" 2>/dev/null | tr -d '"' || echo "priv"
+        nix eval "git+file://$DOTS_LOCAL_DIR#context" 2>/dev/null | tr -d '"' || echo "priv"
     else
         echo "priv"
     fi
 }
 
-# Load global ignores from profile sync files
+# Load global ignores from context sync files
 load_global_ignores() {
-    local profile="$1"
+    local context="$1"
     local global_ignores=()
     
     # Load common if exists (skip silently if not)
-    local common_file="$DOTS_DIR/profiles/common/sync.json"
+    local common_file="$DOTS_DIR/contexts/common/sync.json"
     if [[ -f "$common_file" ]]; then
         while IFS= read -r pattern; do
             [[ -n "$pattern" ]] && global_ignores+=("$pattern")
         done < <(jq -r '.global_ignores[]?' "$common_file" 2>/dev/null)
     fi
     
-    # Load profile-specific ignores. NOTE: `profile` here is dotsLocal's
-    # `profile` field (e.g. "priv"/"work") - it never has a "-opt" suffix;
+    # Load context-specific ignores. NOTE: `context` here is dotsLocal's
+    # `context` field (e.g. "priv"/"work") - it never has a "-opt" suffix;
     # that distinction belongs only to the flake output name
     # (homeConfigurations.default/default-opt), which is a separate,
-    # unrelated axis (baseline vs. optimized build), not a profile variant.
-    local profile_file="$DOTS_DIR/profiles/$profile/sync.json"
-    if [[ -f "$profile_file" ]]; then
+    # unrelated axis (baseline vs. optimized build), not a context variant.
+    local context_file="$DOTS_DIR/contexts/$context/sync.json"
+    if [[ -f "$context_file" ]]; then
         while IFS= read -r pattern; do
             [[ -n "$pattern" ]] && global_ignores+=("$pattern")
-        done < <(jq -r '.global_ignores[]?' "$profile_file" 2>/dev/null)
+        done < <(jq -r '.global_ignores[]?' "$context_file" 2>/dev/null)
     fi
     
     printf '%s\n' "${global_ignores[@]}"
 }
+
 
 # Load local config from dots-local
 load_local_config() {
@@ -528,7 +529,7 @@ main() {
                 echo "  -h, --help    Show this help"
                 echo ""
                 echo "Configuration:"
-                echo "  Global ignores: dots/profiles/<profile>/sync.json"
+                echo "  Global ignores: dots/contexts/<context>/sync.json"
                 echo "  Local tracked:  dots-local/sync-config.json (generated from flake.nix)"
                 exit 0
                 ;;
@@ -550,16 +551,16 @@ main() {
         exit 1
     fi
     
-    # Get profile
-    local profile=$(get_profile_from_dots_local)
-    log_info "Profile: $profile"
+    # Get context
+    local context=$(get_context_from_dots_local)
+    log_info "Context: $context"
     
     # Load global ignores (disable glob expansion)
     local global_ignores=()
     set -f
     while IFS= read -r ignore_pattern; do
         [[ -n "$ignore_pattern" ]] && global_ignores+=("$ignore_pattern")
-    done < <(load_global_ignores "$profile")
+    done < <(load_global_ignores "$context")
     set +f
     if [[ ${#global_ignores[@]} -gt 0 ]]; then
         log_info "Global ignores: ${#global_ignores[@]} patterns"

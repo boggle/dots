@@ -15,7 +15,7 @@
   # home.packages = with pkgs; [ ];
 
   # Example: a feature/suite tweak too specific to set via
-  # modules/contexts/<profile>.nix or modules/rules.nix
+  # modules/contexts/<context>.nix or modules/rules.nix
   # features.llama-cpp.enable = true;
 
   # Example: session variables specific to this machine

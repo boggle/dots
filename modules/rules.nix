@@ -13,7 +13,7 @@
 # Keep this file small and readable - it's meant to be skimmed to
 # understand "what does this machine get and why", not to hold every
 # possible toggle (fine-grained suite configuration still lives in
-# modules/contexts/<profile>.nix).
+# modules/contexts/<context>.nix).
 { lib, dotsLocal }:
 
 [
@@ -36,7 +36,7 @@
   }
 
   {
-    when = d: d.profile == "work";
+    when = d: d.context == "work";
     set = d: {
       suites.cloud-tools.enable = true;
     };

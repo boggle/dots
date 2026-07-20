@@ -199,13 +199,37 @@ in
   options.suites.ai-apps = {
     enable = lib.mkEnableOption "Enable AI assistant tools";
 
-    grabcontext = lib.mkEnableOption "grabcontext (gather code context for AI) - outputs markdown";
-    opencode = lib.mkEnableOption "opencode (AI coding assistant)";
+    grabcontext = lib.mkEnableOption "grabcontext (gather code context for AI) - outputs markdown" // { default = true; };
+    opencode = lib.mkEnableOption "opencode (AI coding assistant)" // { default = true; };
     copilot = lib.mkEnableOption "GitHub Copilot CLI";
+    # Deliberately no `default = true` here even though the suite itself
+    # defaults enabled where used - pi is a heavier/more opinionated
+    # terminal agent than opencode, so it stays strictly opt-in even when
+    # suites.ai-apps.enable is true, unlike opencode.
     pi = lib.mkEnableOption "pi (terminal coding agent - pi.dev)";
     piPackages = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [];
+      # Global curated default list (moved here from being duplicated in
+      # every context that wanted `pi` support - `pi` itself still
+      # defaults to false above, so this list is inert until a
+      # context/host explicitly sets `suites.ai-apps.pi = true;`). Any
+      # context/host can still override wholesale via `lib.mkForce` or
+      # extend via `++` if truly needed.
+      default = [
+        "pi-btw"
+        "pi-subagents"
+        "context-mode"
+        "@tintinweb/pi-subagents"
+        "pi-mcp-adapter"
+        "@plannotator/pi-extension"
+        "pi-powerline-footer"
+        "pi-lens"
+        "@juicesharp/rpiv-ask-user-question"
+        "@juicesharp/rpiv-advisor"
+        "@juicesharp/rpiv-todo"
+        "@samfp/pi-memory"
+        "@juicesharp/rpiv-web-tools"
+      ];
       description = "Pi packages to auto-install via 'pi install npm:<pkg>'. Names are npm package names.";
       example = [ "pi-web-access" "pi-btw" "@juicesharp/rpiv-todo" ];
     };
@@ -224,6 +248,16 @@ in
     home.sessionPath = [
       "${config.home.homeDirectory}/.local/bin"
     ];
+
+    # GitHub Copilot CLI bash alias - only wired up when the tool itself
+    # is enabled. The runtime `command -v` guard is defensive: `copilot`
+    # may be alien-managed (see appSet above), so the binary might come
+    # from the native package manager rather than home.packages.
+    programs.bash.initExtra = lib.mkIf cfg.copilot ''
+      if command -v github-copilot-cli > /dev/null; then
+        eval "$(github-copilot-cli alias -- bash)"
+      fi
+    '';
 
     home.file.".grabcontext" = lib.mkIf cfg.grabcontext {
       text = ''

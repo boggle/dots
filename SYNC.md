@@ -6,21 +6,21 @@ Manages handcrafted configuration files that survive Nix rebuilds, tracking them
 
 The sync system uses **three levels of configuration** that are merged together:
 
-### 1. Global Profile Ignores (dots repo)
+### 1. Global Context Ignores (dots repo)
 
-**Location:** `dots/profiles/<profile>/sync.json`
+**Location:** `dots/contexts/<context>/sync.json`
 
-Contains global ignore patterns that apply to ALL tracked files for a given profile. These exclude common files that shouldn't be synced (docs, licenses, images, build artifacts, etc.).
+Contains global ignore patterns that apply to ALL tracked files for a given context. These exclude common files that shouldn't be synced (docs, licenses, images, build artifacts, etc.).
 
 **Files** (both are read and merged if present - neither is required):
-- `dots/profiles/common/sync.json` - Baseline ignores shared across every profile. This is
+- `dots/contexts/common/sync.json` - Baseline ignores shared across every context. This is
   where the actual pattern list lives today.
-- `dots/profiles/<profile>/sync.json` (e.g. `dots/profiles/priv/sync.json`) - Optional,
-  profile-specific *additions* on top of common - only add one if a profile genuinely
-  needs extra patterns beyond the shared baseline. Not present for any profile today
+- `dots/contexts/<context>/sync.json` (e.g. `dots/contexts/priv/sync.json`) - Optional,
+  context-specific *additions* on top of common - only add one if a context genuinely
+  needs extra patterns beyond the shared baseline. Not present for any context today
   (there's nothing priv/work-specific to add yet); don't copy the whole common list into
-  one of these - `sync.sh` already merges both files, so a per-profile file only needs to
-  contain what's actually different for that profile.
+  one of these - `sync.sh` already merges both files, so a per-context file only needs to
+  contain what's actually different for that context.
 
 **Format:**
 ```json
@@ -167,7 +167,7 @@ dots/settings/laputa/root/etc/NetworkManager/system-connections/Wifi.nmconnectio
 apply-dots [opt] [-- <nh-args>...]    # Apply dots config + run sync
 ```
 
-Which context (priv/work) you get comes from `dots-local`'s `profile`
+Which context (priv/work) you get comes from `dots-local`'s `context`
 field, not a CLI argument - the only argument `apply-dots` takes is the
 optional `opt` (baseline vs. optimized build).
 
@@ -285,13 +285,13 @@ apply-dots                    # Will auto-regenerate if needed
 
 ```
 dots/                           (main repo, committed)
-├── profiles/
+├── contexts/
 │   ├── priv/
 │   │   └── sync.json          ← Global ignores for priv
 │   ├── work/
 │   │   └── sync.json          ← Global ignores for work  
 │   └── common/
-│       └── sync.json          ← Shared ignores across profiles
+│       └── sync.json          ← Shared ignores across contexts
 │       (no per-host directory anymore - host-specific config now comes
 │       from dots-local fields/extraModules, see modules/composition.nix)
 ├── modules/
@@ -346,7 +346,7 @@ dots-local/                     (machine-specific, gitignored)
 ## Important Notes
 
 1. **dots-local is per-machine** - Each machine has its own dots-local with its own sync config in `flake.nix`
-2. **Global ignores are shared** - Patterns in `dots/profiles/*/sync.json` apply to all machines using that profile
+2. **Global ignores are shared** - Patterns in `dots/contexts/*/sync.json` apply to all machines using that context
 3. **Regeneration is automatic** - Both `apply-dots` and `dots-sync` check mtime and regenerate if `flake.nix` is newer than `sync-config.json`
 4. **Use `-g` to force** - If you want to regenerate even when not needed, use `dots-sync -g`
 5. **Negation works** - Use `!pattern` in local ignore lists to override global ignores for specific files

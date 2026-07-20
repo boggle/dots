@@ -1,7 +1,7 @@
 # Host-local AppImages: enable/override entries only.
 #
 # App definitions (file pattern, command, desktopName, categories) live
-# in dots's shared catalog (dots/profiles/<profile>/appimages/manifest.nix)
+# in dots's shared catalog (dots/contexts/<context>/appimages/manifest.nix)
 # instead of being copy-pasted into every machine's dots-local. This file
 # only needs to:
 #   - enable a cataloged app: `{ steam.enable = true; }`
@@ -13,7 +13,7 @@
 #     (needs file + command at minimum, same shape as the catalog):
 #     `{ myapp = { file = "MyApp-*.AppImage"; command = "myapp"; enable = true; }; }`
 #
-# See dots/profiles/priv/appimages/manifest.nix for what's already
+# See dots/contexts/priv/appimages/manifest.nix for what's already
 # cataloged there.
 {
   # steam.enable = true;

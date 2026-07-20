@@ -54,7 +54,7 @@ let
 in
 {
   options.features.viewer = {
-    enable = lib.mkEnableOption "Terminal file viewer with smart type detection";
+    enable = lib.mkEnableOption "Terminal file viewer with smart type detection" // { default = true; };
     
     alias = lib.mkOption {
       type = lib.types.str;

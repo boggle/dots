@@ -1378,3 +1378,405 @@ its "Next steps" output updated to mention it.
 identity-substitution half) - `host.nix` copied/committed correctly, the
 freshly-generated `dots-local` builds cleanly. Real chromaden config
 unaffected, as expected.
+
+### 2026-07-20 — Post-rollout fixes: default graphical backend, SSH agent option, `setup.sh --list`, and `profile`→`context` rename
+
+Prompted by the user finishing real setup on two new machines and
+reporting three concrete gaps, all fixed together:
+
+1. **`graphicalBackend` now defaults to `"none"`, not `"wayland"`.** Added
+   `"none"` to the enum (`modules/local/schema.nix`). A brand-new machine
+   with no compositor configured was previously still getting a graphical
+   config by default, which is wrong for CLI-only boxes.
+
+2. **New `core.enableGuiDefaults` derived option** (`modules/core/
+   platform.nix`), computed as `dotsLocal.enableGuiDefaults &&
+   dotsLocal.graphicalBackend != "none"` — mirrors the existing
+   `core.platformBackend` pattern (compute an axis-derived value once,
+   here, rather than re-deriving ad hoc per consumer). `modules/contexts/
+   priv.nix` (the only context with GUI-conditional logic) now reads this
+   instead of the raw `dotsLocal.enableGuiDefaults`, so GUI suites are
+   force-disabled whenever there's no graphical backend, regardless of
+   what a `dots-local` sets `enableGuiDefaults` to. `rules.nix` could not
+   express this directly since its rules are always folded via `mkDefault`
+   (an explicit `priv.nix` definition would still win) — this is why the
+   fix lives in a dedicated read-only option instead.
+
+3. **New `machine.sshAddKeysToAgent` option** (`modules/local/schema.nix`,
+   `types.str`, default `"yes"`, accepts ssh's own yes/no/ask/confirm/
+   duration values) — `features/network.nix`'s `AddKeysToAgent` was
+   previously hardcoded to `"yes"`; the user had a different value
+   configured on their previous setup and needs it configurable again.
+
+4. **`setup.sh --list`/`-l`/`list`** — lists `modules/contexts/*.nix`
+   (excluding `common.nix`) and exits 0. `setup.sh <context>` previously
+   gave no way to discover valid values without reading source.
+
+5. **Full `profile` → `context` rename**, authorized explicitly by the
+   user as an exception to the earlier "existing fields keep their flat
+   names to avoid rewriting the live `dots-local/flake.nix`" design note
+   (see schema.nix's original comment) — "Ok Dont mind renaming the
+   schema field, too but it has to be consistent." Renamed everywhere,
+   mechanically but carefully (many unrelated "profile" usages exist in
+   this repo — Unix `.profile`/`.bashrc` shell files, `/nix/var/nix/
+   profiles`, and the `default`/`default-opt` build-variant axis — all of
+   which were correctly left untouched):
+   - `modules/local/schema.nix`: `dotsLocal.profile` → `dotsLocal.context`
+   - Top-level `profiles/` directory → `contexts/` (`git mv`), holding
+     `contexts/<context>/sync.json` and `contexts/<context>/appimages/
+     manifest.nix` — distinct from `modules/contexts/` (the Nix module
+     bundles); both being named "contexts" is a real naming collision,
+     called out explicitly in `AGENTS.md`'s directory tree comment so
+     future readers don't conflate them.
+   - All consumers updated: `modules/composition.nix`, `modules/
+     rules.nix`, `modules/features/appimages.nix`, `flake.nix`, `modules/
+     core/dots-local.nix`, `modules/core/scripts.nix`, `sync.sh`.
+   - Templates updated: `templates/local/flake.nix` (`@@CONTEXT@@`
+     placeholder, was `@@PROFILE@@`), `templates/local/appimages.nix`,
+     `templates/local/host.nix`.
+   - Docs updated: `README.md`, `OVERVIEW.md`, `AGENTS.md`, `SYNC.md`.
+   - This machine's own `~/dots-local/flake.nix` updated (`profile =
+     "work"` → `context = "work"`) — required immediately, since without
+     it the schema would've silently defaulted this machine back to
+     `"priv"` instead of erroring, a real regression that could easily
+     have gone unnoticed.
+
+**Validated:** `nix flake check --override-input dots-local git+file://
+$HOME/dots-local` passes cleanly; `nix eval .#dotsLocal` confirms
+`context: "work"`, `sshAddKeysToAgent: "yes"`; `nix eval .#
+dotsLocalOptionsDoc` confirms the live-generated docs correctly reflect
+`context` (default `"priv"`), `graphicalBackend` (default `"none"`), and
+`machine.sshAddKeysToAgent` — no manual doc-string updates needed there
+since it's generated straight from `schema.nix`.
+
+### 2026-07-20 — Salvaged pre-refactor `lub` (WSL2) config from `~/dots-local-old`
+
+User asked to mine `$HOME/dots-local-old` (their pre-refactor `dots-local`
+checkout, still containing real per-host configs for `lub`/`chromaden`/
+`laputa`/`CPC-splan-26YAT`/`TDC476372020`) for anything salvageable that
+the new schema/context system doesn't already cover, specifically calling
+out VS Code integration and WSL2. Found and fixed:
+
+1. **`isWsl` was never actually set on this machine's own `dots-local`**
+   (`~/dots-local/flake.nix` had it commented out), despite `lub` being a
+   real WSL2 kernel (`uname -a` → `-microsoft-standard-WSL2`). This meant
+   `rules.nix`'s `isWsl` rule never fired, so `features.opener`,
+   `features.clipboard`, and — most importantly — `features.wsl-
+   shell-integration` (the VS Code Remote-SSH/WSLg shell-integration
+   fixup, ported from `lub.nix`'s old `programs.bash.initExtra` into
+   `modules/features/wsl-shell-integration.nix` during the earlier
+   re-architecture) were all silently OFF. Fixed by setting `isWsl = true`
+   in `~/dots-local/flake.nix`. Nothing needed changing in `dots` itself
+   here - the feature already existed and just needed the axis flipped.
+
+2. **`suites.ai-apps`/`suites.tui-apps` were enabled unconditionally in
+   every old `lub`/`CPC-splan-26YAT` host file** (opencode, grabcontext,
+   pi + a specific ~13-plugin `piPackages` list; btop/gping/imagemagick/
+   graphviz) but the new `work` context (this machine now uses `context =
+   "work"`, not the old `profile = "priv"`) deliberately ships minimal by
+   design (see `modules/contexts/work.nix`'s own comment) - neither suite
+   is enabled by default there. Restored both into `~/dots-local/
+   host.nix` (this machine's own bespoke-config escape hatch), not into
+   `dots` itself, since they're this-machine preferences layered on top
+   of a intentionally-lean shared context.
+
+3. **`suites.tui-apps.nix` was only ever imported by `modules/contexts/
+   priv.nix`**, not `common.nix` or `work.nix` - so setting `suites.tui-
+   apps.*` from `work`-context `host.nix` failed with "option does not
+   exist". Moved the import from `priv.nix` to `common.nix` (shared
+   across every context) rather than duplicating it into `work.nix` too -
+   the suite's own options all default off (`mkEnableOption`), so merely
+   making it *reachable* everywhere doesn't change any context's actual
+   default behavior, it just lets any context/host opt in.
+
+4. **Small direnv UX tweak (`~/.config/direnv/direnvrc`'s `log_status`
+   override, silencing direnv's default noisy multi-line ANSI status
+   chatter in favor of one compact colored line) existed in every old
+   host file but nowhere in the new repo.** User asked for this to be
+   promoted into `dots` itself (not per-host) since `programs.direnv.
+   enable` is already universal (`modules/core/default.nix`) - added
+   right next to it there, applies to every machine now.
+
+**Deliberately NOT restored** (already fully covered by the new schema,
+just needed the right dotsLocal axis rather than a manual snippet):
+`SSH_AUTH_SOCK`/`WAYLAND_DISPLAY`/`DIRENV_LOG_FORMAT` session vars (all
+set automatically by `rules.nix`'s `isWsl` rule once `isWsl = true`),
+`programs.zoxide`/`programs.direnv` `enableBashIntegration = mkForce
+false` (handled by `features.wsl-shell-integration` itself), SSH
+`identityFile`/`AddKeysToAgent` (already schema fields, this machine's
+own values already set/defaulted correctly).
+
+**Validated:** `nix build .#homeConfigurations.default.activationPackage
+--override-input dots-local git+file://$HOME/dots-local` succeeds fully
+(not just `nix flake check`) - confirms `pi`, `opencode.json`,
+`.grabcontext`, `graphify.js`, and the new `direnvrc` all build
+correctly with the restored config.
+
+## 2026-07-20: Global (non-context-specific) default-enablement policy for tui/gui/sixel/ai/network suites
+
+User asked to redesign default-enablement of a curated package list
+*globally* rather than per-context, using the currently-imperative
+per-`priv.nix`-override pattern as the thing to move away from. Final
+policy implemented:
+
+- **`suites.tui-apps`**: `zellij`/`yazi` -> unconditional `default =
+  true` (via `lib.mkEnableOption "..." // { default = true; }`).
+  `gping` -> still bare/false at declaration, but a new
+  `suites.tui-apps.gping = lib.mkDefault config.suites.network-
+  tools.enable;` added in the module's own `config` (cross-suite
+  default: on whenever network-tools is enabled). `graphviz`/
+  `imagemagick` -> same pattern, tied to `config.core.
+  enableGuiDefaults` instead (on whenever there's a real GUI backend).
+- **`suites.network-tools.xh`**: `default = true` (unconditional,
+  mirroring the suite's own `enable = mkDefault true`).
+- **`suites.ai-apps.opencode`**: `default = true` (implicitly tied to
+  `suites.ai-apps.enable`, since the whole suite's config is already
+  gated by `cfg.enable`). `suites.ai-apps.pi` deliberately left bare/
+  false - explicit user instruction: "disable pi by default even if
+  suite is enabled" (comment added in the module explaining why, so
+  this doesn't look like an oversight later).
+- **`suites.sixel-tools.chafa`/`catimg`**: `default = true` (tied to
+  `suites.sixel-tools.enable` the same way opencode is tied to ai-
+  apps.enable - confirmed via `ask_user` that "sixel tools + when sixel
+  is enabled" meant these two core tools, not the whole suite unconditionally).
+- **`suites.gui-apps`**: `enable`, `ghostty`, `keepassxc` -> new
+  `lib.mkDefault config.core.enableGuiDefaults` entries in the module's
+  own `config` (previously this axis only lived inline in `priv.nix`).
+  `librewolf`/`libreoffice` -> removed their old `default = true`,
+  now opt-in only (bare `mkEnableOption`), per "only when requested".
+  `chromium`'s pre-existing `default = true` deliberately left
+  untouched (out of scope for this request).
+- **Architectural choice**: `rules.nix`'s `rule.when`/`rule.set` only
+  ever receive `dotsLocal` (no `config` access), so any default that
+  depends on *another suite's computed config* (gping on network-
+  tools.enable, ghostty on core.enableGuiDefaults) was added directly
+  in the *consuming* suite module's own `config` block instead (suite
+  modules already receive `config` in their args) - avoided any change
+  to `rules.nix`'s signature, keeping "derive once, in the natural
+  place" intact. `core.enableGuiDefaults` (from `modules/core/
+  platform.nix`) was reused as-is as the canonical "real GUI backend
+  present" signal for every "when ui is enabled" default in this list.
+- **`modules/contexts/common.nix`** now imports all three of
+  `tui-apps.nix`/`gui-apps.nix`/`sixel-tools.nix` (previously only
+  `tui-apps.nix` had been moved there; `gui-apps.nix`/`sixel-tools.nix`
+  were `priv.nix`-only) so every context/host can reach these options,
+  though most suites still gate actual installs behind their own
+  `enable`.
+- **Gotcha discovered and fixed**: `common.nix` had a stale, explicit
+  `suites.network-tools.xh = lib.mkDefault false;` left over from
+  before this redesign. An option's own inline `default = true` is a
+  lower-priority default than an explicit `lib.mkDefault false`
+  assigned elsewhere, even though both "look like defaults" - so this
+  stale line silently killed the new module-level default. Removed it.
+  **Lesson**: whenever a module's own option default is changed/added,
+  grep every context file for that same option name and remove any
+  now-redundant explicit `mkDefault` assignments, or the module-level
+  default becomes dead code. No other stale overrides were found for
+  the other changed options (zellij/yazi/opencode/chafa/catimg/ghostty/
+  keepassxc/graphviz/imagemagick) - `priv.nix`'s existing explicit
+  `true` values for these are harmless duplicates of the new defaults,
+  not conflicts.
+
+**Validated:** `nix flake check` and a full `nix build .#home
+Configurations.default.activationPackage --override-input dots-local
+git+file://$HOME/dots-local` both succeed; `nix eval --json .#home
+Configurations.default.config.alienPackages.enabledPackages` confirms
+the final computed list includes `ghostty, keepassxc, graphviz,
+imagemagick, gping, zellij, yazi, opencode, libreoffice-fresh, zathura,
+xh` (the last of these only after the `common.nix` fix above) alongside
+this machine's explicit `~/dots-local/host.nix` additions (btop,
+libreoffice, zathura). `chafa`/`catimg` correctly absent since this
+machine doesn't enable `suites.sixel-tools`.
+
+## 2026-07-20: priv/work/common consolidation - pull shared defaults into common.nix
+
+Following the global default-enablement pass above, went through
+`modules/contexts/{common,priv,work}.nix` line-by-line to find (a) values
+both `priv.nix` and `work.nix` set identically (real duplication -> move
+to `common.nix`) and (b) explicit values in `priv.nix` that had become
+dead code because a global `mkDefault` (from this session or the prior
+one) already provides the same value.
+
+**Moved into `common.nix`:** `features.network.gpgAgent`,
+`programs.bash.initExtra` (GPG_TTY export + GitHub Copilot CLI bash
+alias - previously priv-only, now considered universal enough not to
+gate behind a context), `suites.git-tools.{lazygit,gh,gh-dash}` (gh/gh-
+dash already defaulted true at the option level - restated explicitly in
+common.nix purely so the file stays a complete picture, not because it
+changes behavior), `suites.dev-tools.json`, `suites.tui-apps.
+{btop,gping,lazygit,tailspin}`, `suites.network-tools.doggo`,
+`suites.ai-apps.grabcontext`.
+
+**Moved into `modules/suites/gui-apps.nix`'s existing global
+`core.enableGuiDefaults`-gated default block** (previously just enable/
+ghostty/keepassxc): added `librewolf`, `zathura`, `drawio`, `vscodium`,
+`ffmpeg` - now a "desktop app baseline" that applies to any context/host
+with a real GUI backend, not just `priv`. **Note**: this reverses part of
+the earlier same-day decision that made `librewolf` opt-in-only - user
+explicitly asked for it back in the baseline once thinking through the
+full desktop app set they actually want (libreoffice remains opt-in-only,
+not part of this baseline - not requested).
+
+**Moved into `modules/suites/ai-apps.nix`**: the curated ~13-item
+`piPackages` list (previously duplicated verbatim in both `priv.nix` and
+`~/dots-local/host.nix`) is now the option's own default value - inert
+unless `pi = true` is also set (still off by default everywhere, per the
+earlier "disable pi by default" decision), so this doesn't change any
+behavior, just removes the duplication.
+
+**`work.nix` reduced to a single line beyond its header comment**:
+`suites.network-tools.rclone = true;` (plain assignment, not
+`mkDefault` - needed to win over common.nix's own `mkDefault false` for
+the same option, since two `mkDefault`s of different values at the same
+priority is a hard conflict, not a "last one wins"). This was a deliberate
+per-context choice (rclone/cloud-sync treated as work-specific, not moved
+into common) - not a duplication removal.
+
+**`priv.nix` shrank substantially**: entire `suites.gui-apps` and
+`suites.tui-apps` blocks removed (fully covered by global defaults now),
+`suites.network-tools`/`suites.git-tools`/`suites.dev-tools`/`suites.ai-
+apps`/`features.network`/`programs.bash` blocks trimmed to only the
+attributes that are genuinely priv-specific (jj, gitCredentialManager,
+the full dev-tools toolchain list, rclone/curlie, pi's absence, etc.).
+
+**`~/dots-local/host.nix` (this machine)** also cleaned up the same way -
+removed now-dead `opencode`/`grabcontext`/`piPackages`/`btop`/`zathura`/
+tui-apps.enable, kept only `pi = true` (this machine's own opt-in) and
+`libreoffice = true` (still opt-in-only globally).
+
+**Gotcha hit while doing this**: setting `suites.network-tools.rclone =
+lib.mkDefault true;` in `work.nix` while `common.nix` already had
+`rclone = lib.mkDefault false;` produced a hard eval error ("conflicting
+definition values") rather than silently picking one - two `mkDefault`s at
+the same priority with different values is an error, not resolved by
+declaration order. Fixed by using a plain (higher-priority) assignment in
+`work.nix` instead of `mkDefault`, same pattern already used by
+`priv.nix`'s explicit overrides.
+
+**Validated**: `nix flake check` and a full `nix build .#home
+Configurations.default.activationPackage --override-input dots-local
+git+file://$HOME/dots-local` both succeed; `nix eval --json .#home
+Configurations.default.config.alienPackages.enabledPackages` produced an
+identical package list before and after the `host.nix` cleanup step,
+confirming no regression (this machine currently has `context = "work"`,
+so this run exercised the new `work.nix` directly, not just `priv.nix`).
+
+## 2026-07-20: Pull common.nix defaults back down into their owning suite/feature modules; tie GPG_TTY/copilot alias to their actual features
+
+Immediately after the priv/work/common consolidation above, went one step
+further per user feedback: `common.nix` is *always* imported (every
+context pulls it in), so anything set there as `lib.mkDefault true` is
+functionally identical to just setting `default = true` on the option
+itself in its owning module - moved all such defaults down to their
+option declarations instead of leaving them in `common.nix`:
+
+- `features.viewer.enable`, `features.network.{enable,sshAgent,gpgAgent}`,
+  `suites.network-tools.{enable,doggo}`, `suites.git-tools.
+  {enable,git,delta,lazygit}`, `suites.dev-tools.{enable,nixd,entr,json}`,
+  `suites.tui-apps.{btop,lazygit,tailspin}`, `suites.ai-apps.
+  grabcontext`, `features.tune.enable` (in `modules/core/tune-support.nix`)
+  - all now `lib.mkEnableOption "..." // { default = true; }` at the
+  option itself, rather than restated as `mkDefault true` in
+  `common.nix`.
+- `common.nix` is now a pure import aggregator (no `config = {...}`
+  block at all) - just makes `tui-apps`/`gui-apps`/`sixel-tools` suites
+  reachable from every context. Its own comment explains why (common.nix
+  is always-imported, so "default here" and "the option's own default"
+  are the same thing - no reason to duplicate).
+
+**Also fixed two bugs the user flagged directly**: the `GPG_TTY` export
+and the `github-copilot-cli` bash alias eval, previously bundled
+together as one unconditional `programs.bash.initExtra` in `common.nix`,
+were each not actually tied to the feature that makes them meaningful:
+  - `GPG_TTY` is only useful when GPG agent/pinentry is actually running
+    - moved into `modules/features/network.nix`'s own `config` block,
+    `lib.mkIf cfg.gpgAgent`. `gpgAgent`'s own option default was also
+    flipped to `true` (previously bare/false, only ever turned on
+    explicitly per-context) since GPG agent is now treated as a
+    universal default like `sshAgent` already was.
+  - the copilot alias is only useful when `suites.ai-apps.copilot` (the
+    actual `github-copilot-cli` package toggle) is enabled - moved into
+    `modules/suites/ai-apps.nix`'s own `config`, `lib.mkIf cfg.copilot`.
+    `copilot` itself is still bare/false by default (nobody had asked
+    for a default-on policy for it) - `~/dots-local/host.nix` now
+    explicitly sets `suites.ai-apps.copilot = true;` for this machine
+    (previously relied on eval always running regardless of whether the
+    package was even installed).
+
+**Lesson reinforced**: a shared `initExtra` snippet that references a
+tool/service should live in the module that owns that tool/service's
+enable flag (gated by `lib.mkIf`), not in a generic always-imported
+context file - otherwise the snippet runs unconditionally even on
+machines/contexts where the underlying feature is off, and there's no
+single place to look to understand why a given shell behavior exists.
+
+**Validated**: `nix flake check` and `nix build .#homeConfigurations.
+default.activationPackage --override-input dots-local
+git+file://$HOME/dots-local` both succeed; `nix eval --json .#home
+Configurations.default.config.alienPackages.enabledPackages` unchanged
+from before this pass (plus `github-copilot-cli` now correctly appearing,
+since `~/dots-local/host.nix` sets `copilot = true`); inspected the built
+`.bashrc-nix` directly and confirmed both `export GPG_TTY=$(tty
+2>/dev/null || echo /dev/tty)` and the `if command -v github-copilot-cli`
+block render correctly.
+
+## 2026-07-20: sixel-tools.enable and dev-tools.marksman now default true
+
+Two more items pulled to always-on per user feedback, following the same
+"default at the option itself, since common.nix/dev-tools are always
+imported" pattern as the rest of today's consolidation:
+- `suites.sixel-tools.enable` -> `default = true` (chafa/catimg already
+  defaulted true individually; the suite gate itself hadn't been flipped
+  yet, so it never actually installed on any machine that didn't
+  explicitly opt in).
+- `suites.dev-tools.marksman` -> `default = true`, since `helix` (the
+  core editor, unconditionally installed in `modules/core/default.nix`)
+  needs it as its Markdown LSP, same rationale as `bash-language-server`
+  sitting right next to `helix` in that same package list. Removed the
+  now-redundant explicit `marksman = true;` from `priv.nix`.
+
+Validated via `nix flake check` + full `activationPackage` build;
+confirmed `chafa`/`catimg`/`marksman` all present in
+`config.alienPackages.enabledPackages`.
+
+## 2026-07-20: features.appimages.enable defaults to core.enableGuiDefaults
+
+Considered a separate `dotsLocal.appimagesEnable` toggle first (bool,
+default false, shown in the template) but abandoned it per user
+feedback: no new schema field at all - `features.appimages.enable`'s
+*default* should simply track the same `core.enableGuiDefaults` axis
+already used by `suites.gui-apps`/`suites.pim-apps` (which itself is
+`dotsLocal.enableGuiDefaults && dotsLocal.graphicalBackend != "none"` -
+see `modules/core/platform.nix`). AppImages are predominantly GUI
+desktop apps not (yet) packaged for Nix/the native package manager, so
+gating them on the same "does this machine actually have a usable GUI"
+axis as the rest of the GUI-app baseline is the consistent choice.
+
+Implementation notes:
+- Considered doing this in `modules/rules.nix` (mirroring the `isWsl`
+  rule right above it) but `rules.nix`'s `when`/`set` functions only
+  ever receive raw `dotsLocal`, never the evaluated `config` - so
+  `d.enableGuiDefaults` there would miss the `graphicalBackend != "none"`
+  carve-out that `core.enableGuiDefaults` provides. Instead, added the
+  default straight to `modules/features/appimages.nix`'s own `config`
+  (`lib.mkMerge [ { features.appimages.enable = lib.mkDefault
+  config.core.enableGuiDefaults; } (lib.mkIf cfg.enable { ... }) ]`),
+  mirroring the same cross-module `mkDefault` pattern already used in
+  `gui-apps.nix`/`tui-apps.nix`.
+- Moved the `../../modules/features/appimages.nix` import from
+  `priv.nix` into `common.nix` (it's a plain feature module, no
+  priv-specific bits), so the new default actually applies regardless
+  of context (`work` included) rather than only ever being reachable
+  from `priv`.
+- Removed the now-redundant explicit `features.appimages.enable = true;`
+  block from `priv.nix` (pure duplication of the new default on any
+  priv machine that already has `enableGuiDefaults = true`, which is the
+  norm).
+
+**Validated**: `nix flake check` and full `activationPackage` build both
+succeed (`--override-input dots-local git+file://$HOME/dots-local`);
+`nix eval --json .#homeConfigurations.default.config.features.
+appimages.enable` returns `true` on this machine (context `work`,
+`enableGuiDefaults = true` in `~/dots-local/flake.nix`) with no explicit
+appimages setting in `dots-local` at all - confirming the default now
+propagates correctly outside `priv`.

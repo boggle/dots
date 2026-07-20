@@ -26,10 +26,14 @@
       uid = "@@UID@@";
       gid = "@@GID@@";
       homeDirectory = "@@HOMEDIR@@";
-      profile = "@@PROFILE@@";
-      enableGuiDefaults = true;
-      graphicalBackend = "wayland";
+      context = "@@CONTEXT@@";
       nixonDefault = false;
+      # enableGuiDefaults defaults to false, and is also automatically
+      # forced off whenever graphicalBackend is "none" (the default) -
+      # see dots-local-options for the full description. Uncomment both
+      # together once this machine actually has a graphical desktop:
+      # enableGuiDefaults = true;
+      # graphicalBackend = "wayland";   # or "x11"/"wsl"/"macos"
 
       # Hardware/context axes - all optional, uncomment and set what
       # applies to this machine (see `dots-local-options` for the full
@@ -41,6 +45,7 @@
       # Per-machine hardware/peripheral config - all fields optional.
       # machine = {
       #   sshIdentityFile = "~/.ssh/id_github_@@HOSTNAME@@";
+      #   sshAddKeysToAgent = "yes";            # "yes"/"no"/"ask"/"confirm"/a duration like "10m"
       #   terminal = "ghostty";                # only used if compositor == "niri"
       #   renderDrmDevice = null;               # let niri auto-detect, or set explicitly
       #   display = {                           # omit entirely to skip power-toggle.sh

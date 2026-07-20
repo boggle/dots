@@ -5,13 +5,13 @@ let
 in
 {
   options.features.network = {
-    enable = lib.mkEnableOption "Enable network services";
+    enable = lib.mkEnableOption "Enable network services" // { default = true; };
 
     # SSH
-    sshAgent = lib.mkEnableOption "SSH agent";
+    sshAgent = lib.mkEnableOption "SSH agent" // { default = true; };
     
     # GPG
-    gpgAgent = lib.mkEnableOption "GPG agent";
+    gpgAgent = lib.mkEnableOption "GPG agent" // { default = true; };
     gpgSsh = lib.mkEnableOption "GPG SSH support (use GPG keys for SSH)";
   };
 
@@ -33,7 +33,7 @@ in
       settings."*" =
         if dotsLocal.machine.sshIdentityFile != null then {
           IdentityFile = dotsLocal.machine.sshIdentityFile;
-          AddKeysToAgent = "yes";
+          AddKeysToAgent = dotsLocal.machine.sshAddKeysToAgent;
         } else {};
     };
 
@@ -59,5 +59,11 @@ in
       defaultCacheTtl = 86400;
       maxCacheTtl = 604800;
     };
+
+    # GPG_TTY is needed for gpg-agent's pinentry to prompt correctly in a
+    # terminal - only relevant when gpg-agent is actually enabled.
+    programs.bash.initExtra = lib.mkIf cfg.gpgAgent ''
+      export GPG_TTY=$(tty 2>/dev/null || echo /dev/tty)
+    '';
   };
 }
