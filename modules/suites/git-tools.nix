@@ -46,18 +46,18 @@ let
 in
 {
   options.suites.git-tools = {
-    enable = lib.mkEnableOption "Enable Git tools" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "Enable Git tools";
 
     # Core
-    git = lib.mkEnableOption "Git" // { default = true; };
-    jj = lib.mkEnableOption "jj (Git alternative)";
+    git = coreLib.mkDefaultEnabledOption "Git";
+    jj = coreLib.mkDefaultDisabledOption "jj (Git alternative)";
     
     # Tools
-    delta = lib.mkEnableOption "delta (Git pager)" // { default = true; };
-    lazygit = lib.mkEnableOption "lazygit (TUI Git client)" // { default = true; };
-    gh = lib.mkEnableOption "gh (GitHub CLI)" // { default = true; };
-    gh-dash = lib.mkEnableOption "gh-dash (GitHub dashboard)" // { default = true; };
-    gitCredentialManager = lib.mkEnableOption "Git Credential Manager";
+    delta = coreLib.mkDefaultEnabledOption "delta (Git pager)";
+    lazygit = coreLib.mkDefaultEnabledOption "lazygit (TUI Git client)";
+    gh = coreLib.mkDefaultEnabledOption "gh (GitHub CLI)";
+    gh-dash = coreLib.mkDefaultEnabledOption "gh-dash (GitHub dashboard)";
+    gitCredentialManager = coreLib.mkDefaultDisabledOption "Git Credential Manager";
   };
 
   config = lib.mkIf cfg.enable {

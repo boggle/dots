@@ -1,6 +1,7 @@
 { config, lib, pkgs, alien, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.opener;
   # Shared, derived value (modules/core/platform.nix) - not an
   # independently-set option on this feature anymore (see that file's
@@ -18,7 +19,7 @@ let
 in
 {
   options.features.opener = {
-    enable = lib.mkEnableOption "Cross-platform file opener feature";
+    enable = coreLib.mkDefaultDisabledOption "Cross-platform file opener feature";
 
     alias = lib.mkOption {
       type = lib.types.str;

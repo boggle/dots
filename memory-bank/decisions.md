@@ -1830,3 +1830,51 @@ dots-context-options appimages` and `... gui-apps`) and confirmed
 correct plain-mode output, and `-i` mode correctly reaches `gum filter`
 (fails only on "no TTY" in this sandboxed shell, same as
 `dots-local-options -i`'s already-accepted failure mode).
+
+## 2026-07-20: coreLib.mkDefault{Enabled,Disabled}Option helpers
+
+Two new helpers in `modules/core/lib.nix`, alongside `mkAppSet`:
+- `coreLib.mkDefaultEnabledOption "desc"` = `lib.mkEnableOption "desc" //
+  { default = true; }` (the "on by default" idiom already used 32 times
+  across 10 files, now named instead of needing the `// {...}` merge
+  spotted/understood at every call site).
+- `coreLib.mkDefaultDisabledOption "desc"` = plain `lib.mkEnableOption
+  "desc"` (mkEnableOption's own default is already `false`) - added
+  purely for call-site symmetry/consistency with the above, per explicit
+  user request ("Be consistent!"): every enable-option declaration in
+  the repo now goes through one of these two `coreLib.mkDefault*`
+  helpers, rather than mixing bare `lib.mkEnableOption` calls (implying
+  "off by default" only by omission) with explicit `coreLib.
+  mkDefaultEnabledOption` calls.
+
+Did a full repo-wide sweep (26 files) replacing every remaining plain
+`lib.mkEnableOption "..."` call with `coreLib.mkDefaultDisabledOption
+"..."`, adding a `coreLib = import ../core/lib.nix { inherit lib; };` (or
+`./lib.nix` for files already inside modules/core/) binding to the 11
+files that didn't already have one. Every `core/lib.nix` import site
+across the whole repo is now consistently bound to the name `coreLib`
+(verified via grep - no stragglers under any other binding name).
+
+Found and fixed two pre-existing, unrelated bugs surfaced while touching
+gui-apps.nix during this sweep:
+- `firefox`/`sublime`/`masterpdfeditor`/`sioyek`/`tuba`/`betterbird`/
+  `newsfeed` options were declared as `lib.mkOption "description string"`
+  - a copy-paste typo for `lib.mkEnableOption` (`mkOption` requires an
+    attrset with `type`/`default`/..., not a bare string; this either
+    errors or produces a broken, unusable option depending on what reads
+    it). Fixed to `lib.mkEnableOption` (then swept to `coreLib.
+    mkDefaultDisabledOption` along with everything else) - all opt-in-off
+    by default, matching intent.
+- `papers` (GNOME document viewer) was referenced in gui-apps.nix's
+  `appSet` (`papers = { enable = cfg.papers; pkg = pkgs.papers; };`) but
+  had no corresponding `options.suites.gui-apps.papers` declaration at
+  all - a hard eval error ("attribute 'papers' missing") the moment
+  anything evaluates the option set fully (which the `coreLib.
+  mkDefaultDisabledOption` sweep's own build/check immediately
+  triggered). Added the missing option declaration.
+
+**Validated**: `nix flake check` and full `activationPackage` build both
+succeed (`--override-input dots-local git+file://$HOME/dots-local`);
+`config.alienPackages.enabledPackages` eval unchanged (30 packages); the
+full build reused the exact same store path from before this sweep,
+confirming zero behavioral drift from the mechanical rename.

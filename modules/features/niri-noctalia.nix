@@ -1,6 +1,7 @@
 { config, pkgs, inputs, lib, alien, dotsLocal, ... }: 
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.niri-noctalia;
   # Font family names this desktop expects to be available - wired into
   # features.fonts.required below. terminalFont ("IosevkaTerm NFM" = the
@@ -34,7 +35,7 @@ in {
   imports = [ inputs.niri.homeModules.niri inputs.noctalia.homeModules.default ];
 
   options.features.niri-noctalia = {
-    enable = lib.mkEnableOption "Enable niri + noctalia desktop environment";
+    enable = coreLib.mkDefaultDisabledOption "Enable niri + noctalia desktop environment";
     
     terminal = lib.mkOption {
       type = lib.types.str;

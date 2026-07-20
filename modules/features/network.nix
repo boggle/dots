@@ -1,18 +1,19 @@
 { config, lib, pkgs, dotsLocal, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.network;
 in
 {
   options.features.network = {
-    enable = lib.mkEnableOption "Enable network services" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "Enable network services";
 
     # SSH
-    sshAgent = lib.mkEnableOption "SSH agent" // { default = true; };
+    sshAgent = coreLib.mkDefaultEnabledOption "SSH agent";
     
     # GPG
-    gpgAgent = lib.mkEnableOption "GPG agent" // { default = true; };
-    gpgSsh = lib.mkEnableOption "GPG SSH support (use GPG keys for SSH)";
+    gpgAgent = coreLib.mkDefaultEnabledOption "GPG agent";
+    gpgSsh = coreLib.mkDefaultDisabledOption "GPG SSH support (use GPG keys for SSH)";
   };
 
   config = lib.mkIf cfg.enable {

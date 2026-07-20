@@ -16,13 +16,13 @@ let
 in
 {
   options.suites.network-tools = {
-    enable = lib.mkEnableOption "Enable network CLI tools" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "Enable network CLI tools";
 
-    nmap = lib.mkEnableOption "nmap (network scanner)";
-    rclone = lib.mkEnableOption "rclone (cloud sync)";
-    doggo = lib.mkEnableOption "doggo (DNS client)" // { default = true; };
-    xh = lib.mkEnableOption "xh (modern HTTP client)" // { default = true; };
-    curlie = lib.mkEnableOption "curlie (curl with jq-like output)";
+    nmap = coreLib.mkDefaultDisabledOption "nmap (network scanner)";
+    rclone = coreLib.mkDefaultDisabledOption "rclone (cloud sync)";
+    doggo = coreLib.mkDefaultEnabledOption "doggo (DNS client)";
+    xh = coreLib.mkDefaultEnabledOption "xh (modern HTTP client)";
+    curlie = coreLib.mkDefaultDisabledOption "curlie (curl with jq-like output)";
   };
 
   config = lib.mkIf cfg.enable {

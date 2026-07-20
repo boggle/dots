@@ -56,54 +56,56 @@ let
 in
 {
   options.suites.gui-apps = {
-    enable = lib.mkEnableOption "Enable GUI application suite";
+    enable = coreLib.mkDefaultDisabledOption "Enable GUI application suite";
 
     # Terminal emulators
-    ghostty = lib.mkEnableOption "Ghostty terminal";
-    wezterm = lib.mkEnableOption "WezTerm terminal emulator";
+    ghostty = coreLib.mkDefaultDisabledOption "Ghostty terminal";
+    wezterm = coreLib.mkDefaultDisabledOption "WezTerm terminal emulator";
 
     # Browsers - opt-in only (no global default; enable explicitly per
     # machine, e.g. via dotsLocal.extraModules/host.nix)
-    librewolf = lib.mkEnableOption "LibreWolf browser";
-    firefox = lib.mkEnableOption "Firefox browser";
-    chromium = lib.mkEnableOption "Chromium browser" // { default = true; };
+    librewolf = coreLib.mkDefaultDisabledOption "LibreWolf browser";
+    chromium = coreLib.mkDefaultEnabledOption "Chromium browser";
+
+    firefox = coreLib.mkDefaultDisabledOption "Firefox browser";
 
     # Office - opt-in only, see librewolf's comment above
-    libreoffice = lib.mkEnableOption "LibreOffice";
+    libreoffice = coreLib.mkDefaultDisabledOption "LibreOffice";
     
     # Productivity
-    vscodium = lib.mkEnableOption "VSCodium editor";
-    keepassxc = lib.mkEnableOption "KeePassXC password manager";
-    sublime = lib.mkEnableOption "Sublime Text editor";
+    vscodium = coreLib.mkDefaultDisabledOption "VSCodium editor";
+    keepassxc = coreLib.mkDefaultDisabledOption "KeePassXC password manager";
+    sublime = coreLib.mkDefaultDisabledOption "Sublime Text editor";
     
     # PDF/Documents
-    drawio = lib.mkEnableOption "Draw.io diagram editor";
-    masterpdfeditor = lib.mkEnableOption "Master PDF Editor";
-    papers = lib.mkEnableOption "Papers (PDF viewer)";
-    pdfarranger = lib.mkEnableOption "PDF Arranger";
-    sioyek = lib.mkEnableOption "Sioyek PDF viewer";
-    zathura = lib.mkEnableOption "zathura (PDF viewer)";
-    evince = lib.mkEnableOption "Evince (PDF viewer)";
-    newsfeed = lib.mkEnableOption "Newsflash RSS reader";
+    drawio = coreLib.mkDefaultDisabledOption "Draw.io diagram editor";
+    pdfarranger = coreLib.mkDefaultDisabledOption "PDF Arranger";
+    zathura = coreLib.mkDefaultDisabledOption "zathura (PDF viewer)";
+    evince = coreLib.mkDefaultDisabledOption "Evince (PDF viewer)";
+    papers = coreLib.mkDefaultDisabledOption "Papers (GNOME document viewer)";
+
+    masterpdfeditor = coreLib.mkDefaultDisabledOption "Master PDF Editor";
+    sioyek = coreLib.mkDefaultDisabledOption "Sioyek PDF viewer";
     
     # Graphics
-    gimp = lib.mkEnableOption "GIMP image editor";
-    inkscape = lib.mkEnableOption "Inkscape vector graphics";
-    krita = lib.mkEnableOption "Krita digital painting";
+    gimp = coreLib.mkDefaultDisabledOption "GIMP image editor";
+    inkscape = coreLib.mkDefaultDisabledOption "Inkscape vector graphics";
+    krita = coreLib.mkDefaultDisabledOption "Krita digital painting";
 
     # Media
-    vlc = lib.mkEnableOption "VLC media player";
-    ffmpeg = lib.mkEnableOption "FFmpeg (full)";
-    handbrake = lib.mkEnableOption "HandBrake video transcoder";
-    imv = lib.mkEnableOption "imv image viewer";
-    amberol = lib.mkEnableOption "Amberol music player";
+    vlc = coreLib.mkDefaultDisabledOption "VLC media player";
+    ffmpeg = coreLib.mkDefaultDisabledOption "FFmpeg (full)";
+    handbrake = coreLib.mkDefaultDisabledOption "HandBrake video transcoder";
+    imv = coreLib.mkDefaultDisabledOption "imv image viewer";
+    amberol = coreLib.mkDefaultDisabledOption "Amberol music player";
     
-    # Chat/Communication
-    tuba = lib.mkEnableOption "Tuba (Fediverse client)";
-    betterbird = lib.mkEnableOption "Betterbird (email client)";
+    # Chat/Communication/Social
+    tuba = coreLib.mkDefaultDisabledOption "Tuba (Fediverse client)";
+    betterbird = coreLib.mkDefaultDisabledOption "Betterbird (email client)";
+    newsfeed = coreLib.mkDefaultDisabledOption "Newsflash RSS reader";
     
     # Utils
-    flameshot = lib.mkEnableOption "Flameshot screenshot tool";
+    flameshot = coreLib.mkDefaultDisabledOption "Flameshot screenshot tool";
   };
 
   config = lib.mkMerge [

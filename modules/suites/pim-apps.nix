@@ -16,19 +16,19 @@ let
   };
 in {
   options.suites.pim-apps = {
-    enable = lib.mkEnableOption "Enable PIM (Personal Information Management) tools";
+    enable = coreLib.mkDefaultDisabledOption "Enable PIM (Personal Information Management) tools";
     
-    khal = lib.mkEnableOption "khal - calendar CLI";
+    khal = coreLib.mkDefaultDisabledOption "khal - calendar CLI";
     
-    todoman = lib.mkEnableOption "todoman - todo manager for CalDAV";
+    todoman = coreLib.mkDefaultDisabledOption "todoman - todo manager for CalDAV";
     
-    pimsync = lib.mkEnableOption "pimsync - sync CalDAV/CardDAV with vdirsyncer";
+    pimsync = coreLib.mkDefaultDisabledOption "pimsync - sync CalDAV/CardDAV with vdirsyncer";
     
-    khard = lib.mkEnableOption "khard - console CardDAV client";
+    khard = coreLib.mkDefaultDisabledOption "khard - console CardDAV client";
     
-    taskwarrior = lib.mkEnableOption "Taskwarrior - command line task manager";
+    taskwarrior = coreLib.mkDefaultDisabledOption "Taskwarrior - command line task manager";
     
-    superproductivity = lib.mkEnableOption "SuperProductivity - GUI todo app with timeboxing";
+    superproductivity = coreLib.mkDefaultDisabledOption "SuperProductivity - GUI todo app with timeboxing";
   };
 
   config = lib.mkIf cfg.enable {

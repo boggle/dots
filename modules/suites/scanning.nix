@@ -14,11 +14,11 @@ let
 in
 {
   options.suites.scanning = {
-    enable = lib.mkEnableOption "Enable scanning/OCR tools";
+    enable = coreLib.mkDefaultDisabledOption "Enable scanning/OCR tools";
 
-    simple-scan = lib.mkEnableOption "Simple Scan (GNOME scanner app)";
-    gscan2pdf = lib.mkEnableOption "gscan2pdf (PDF from scans)";
-    tesseract = lib.mkEnableOption "Tesseract OCR engine";
+    simple-scan = coreLib.mkDefaultDisabledOption "Simple Scan (GNOME scanner app)";
+    gscan2pdf = coreLib.mkDefaultDisabledOption "gscan2pdf (PDF from scans)";
+    tesseract = coreLib.mkDefaultDisabledOption "Tesseract OCR engine";
   };
 
   config = lib.mkIf cfg.enable {

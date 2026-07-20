@@ -1,5 +1,6 @@
 { config, lib, pkgs, dotsLocal, ... }:
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.appimages;
 
   # Load shared manifests (contexts/common, contexts/<context>)
@@ -160,7 +161,7 @@ let
 in
 {
   options.features.appimages = {
-    enable = lib.mkEnableOption "AppImage support via simple wrapper scripts";
+    enable = coreLib.mkDefaultDisabledOption "AppImage support via simple wrapper scripts";
     
     localDir = lib.mkOption {
       type = lib.types.str;

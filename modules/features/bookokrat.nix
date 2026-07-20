@@ -1,10 +1,11 @@
 { config, lib, pkgs, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.bookokrat;
 in {
   options.features.bookokrat = {
-    enable = lib.mkEnableOption "Enable bookokrat - terminal ebook reader";
+    enable = coreLib.mkDefaultDisabledOption "Enable bookokrat - terminal ebook reader";
   };
 
   config = lib.mkIf cfg.enable {

@@ -1,6 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.clipboard;
   # Shared, derived value (modules/core/platform.nix) - not an
   # independently-set option on this feature anymore (see that file's
@@ -30,7 +31,7 @@ let
 in
 {
   options.features.clipboard = {
-    enable = lib.mkEnableOption "Cross-platform clipboard feature";
+    enable = coreLib.mkDefaultDisabledOption "Cross-platform clipboard feature";
   };
 
   config = lib.mkIf cfg.enable {

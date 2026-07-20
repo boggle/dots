@@ -38,34 +38,34 @@ let
 in
 {
   options.suites.tui-apps = {
-    enable = lib.mkEnableOption "Enable interactive TUI tools" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "Enable interactive TUI tools";
 
-    btop = lib.mkEnableOption "btop - system monitor" // { default = true; };
-    zellij = lib.mkEnableOption "Zellij terminal multiplexer" // { default = true; };
-    lazygit = lib.mkEnableOption "Lazygit" // { default = true; };
-    yazi = lib.mkEnableOption "Yazi file manager" // { default = true; };
-    pass = lib.mkEnableOption "pass (password manager)";
-    bandwhich = lib.mkEnableOption "bandwhich - network monitor";
-    vhs = lib.mkEnableOption "vhs - terminal recorder";
-    tailspin = lib.mkEnableOption "tailspin (tspin) - log file highlighter" // { default = true; };
+    btop = coreLib.mkDefaultEnabledOption "btop - system monitor";
+    zellij = coreLib.mkDefaultEnabledOption "Zellij terminal multiplexer";
+    lazygit = coreLib.mkDefaultEnabledOption "Lazygit";
+    yazi = coreLib.mkDefaultEnabledOption "Yazi file manager";
+    pass = coreLib.mkDefaultDisabledOption "pass (password manager)";
+    bandwhich = coreLib.mkDefaultDisabledOption "bandwhich - network monitor";
+    vhs = coreLib.mkDefaultDisabledOption "vhs - terminal recorder";
+    tailspin = coreLib.mkDefaultEnabledOption "tailspin (tspin) - log file highlighter";
 
     # Email
-    aerc = lib.mkEnableOption "aerc (terminal email client)";
-    deltachat = lib.mkEnableOption "DeltaChat (Delta Chat)";
+    aerc = coreLib.mkDefaultDisabledOption "aerc (terminal email client)";
+    deltachat = coreLib.mkDefaultDisabledOption "DeltaChat (Delta Chat)";
 
     # DTP
-    imagemagick = lib.mkEnableOption "ImageMagick";
-    graphviz = lib.mkEnableOption "Graphviz";
-    pandoc = lib.mkEnableOption "Pandoc";
-    typst = lib.mkEnableOption "Typst";
+    imagemagick = coreLib.mkDefaultDisabledOption "ImageMagick";
+    graphviz = coreLib.mkDefaultDisabledOption "Graphviz";
+    pandoc = coreLib.mkDefaultDisabledOption "Pandoc";
+    typst = coreLib.mkDefaultDisabledOption "Typst";
 
     # Network/Utils
-    gping = lib.mkEnableOption "gping (ping with graph)";
+    gping = coreLib.mkDefaultDisabledOption "gping (ping with graph)";
 
     # Social/Utils
-    posting = lib.mkEnableOption "posting (API client)" // { default = true; };
-    frogmouth = lib.mkEnableOption "frogmouth (Markdown viewer)" // { default = true; };
-    hledger = lib.mkEnableOption "hledger (accounting)";
+    posting = coreLib.mkDefaultEnabledOption "posting (API client)";
+    frogmouth = coreLib.mkDefaultEnabledOption "frogmouth (Markdown viewer)";
+    hledger = coreLib.mkDefaultDisabledOption "hledger (accounting)";
   };
 
   config = lib.mkMerge [

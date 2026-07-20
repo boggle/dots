@@ -4,6 +4,30 @@
 { lib }:
 
 {
+  # Shorthand for the extremely common "enable option, but on by default"
+  # pattern - previously written by hand everywhere as
+  # `lib.mkEnableOption "desc" // { default = true; }` (32 occurrences
+  # across 10 files before this helper existed). Equivalent to that exact
+  # expression - just named so the intent ("on by default") is visible at
+  # the call site instead of needing the `// { default = true; }` merge
+  # to be spotted/understood every time.
+  #
+  # NOT a replacement for plain `lib.mkEnableOption` (still used, as-is,
+  # for the many genuinely opt-in-only options) - only for options that
+  # should default to enabled.
+  # Companion to mkDefaultEnabledOption above, for symmetry/consistency:
+  # an explicit way to say "an enable option, off by default" - the exact
+  # same thing as plain `lib.mkEnableOption "desc"` (mkEnableOption's own
+  # default is already `false`), just named so both states ("on by
+  # default" / "off by default") are equally visible/explicit at every
+  # call site, rather than one being an obviously-named helper call and
+  # the other being "whatever mkEnableOption happens to default to".
+  mkDefaultDisabledOption = description:
+    lib.mkEnableOption description;
+
+  mkDefaultEnabledOption = description:
+    lib.mkEnableOption description // { default = true; };
+
   # `apps`: attrset of `<name> = { enable = bool; pkg = derivation;
   #          alienName ? name; };` - `alienName` lets the alien-spec key
   #          differ from the option/attr name (e.g. gui-apps.nix's

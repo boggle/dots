@@ -1,6 +1,7 @@
 { config, lib, pkgs, dotsLocal, ... }:
 
 let
+  coreLib = import ./lib.nix { inherit lib; };
   # Shared with modules/flake/alien-package-specs.nix - both call the same
   # recursive spec-file discovery function.
   discovery = import ../flake/alien-discovery.nix { inherit lib; };
@@ -27,7 +28,7 @@ let
 
 in {
   options.alienPackages = {
-    enable = lib.mkEnableOption "alien package management" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "alien package management";
     
     enabledPackages = lib.mkOption {
       type = lib.types.listOf lib.types.str;

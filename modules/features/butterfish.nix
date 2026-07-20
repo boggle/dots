@@ -1,6 +1,7 @@
 { config, lib, pkgs, dotsLocal, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.butterfish;
 
   # Resolves cfg.shell ("bash" or "zsh") to the actual binary path used
@@ -39,7 +40,7 @@ let
   };
 in {
   options.features.butterfish = {
-    enable = lib.mkEnableOption "butterfish shell with local LLM";
+    enable = coreLib.mkDefaultDisabledOption "butterfish shell with local LLM";
 
     baseUrl = lib.mkOption {
       type = lib.types.str;

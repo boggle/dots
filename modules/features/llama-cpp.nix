@@ -1,6 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.llama-cpp;
 
   # Properly shell-escaped cmake flags
@@ -117,7 +118,7 @@ EOF
 
 in {
   options.features.llama-cpp = {
-    enable = lib.mkEnableOption "llama.cpp with CUDA and Zen 5 optimization";
+    enable = coreLib.mkDefaultDisabledOption "llama.cpp with CUDA and Zen 5 optimization";
 
     cmakeFlags = lib.mkOption {
       type = lib.types.listOf lib.types.str;

@@ -10,10 +10,11 @@
 { config, lib, pkgs, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.wsl-shell-integration;
 in {
   options.features.wsl-shell-integration = {
-    enable = lib.mkEnableOption "VSCode Remote-SSH + WSL2 shell integration compatibility fixes";
+    enable = coreLib.mkDefaultDisabledOption "VSCode Remote-SSH + WSL2 shell integration compatibility fixes";
   };
 
   config = lib.mkIf cfg.enable {

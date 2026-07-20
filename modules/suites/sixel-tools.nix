@@ -25,16 +25,16 @@ let
 in
 {
   options.suites.sixel-tools = {
-    enable = lib.mkEnableOption "Enable Sixel graphics tools" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "Enable Sixel graphics tools";
 
     # Terminal graphics
-    chafa = lib.mkEnableOption "Chafa (images in terminal)" // { default = true; };
-    catimg = lib.mkEnableOption "catimg (images in terminal)" // { default = true; };
-    lsix = lib.mkEnableOption "lsix (ls for images)";
+    chafa = coreLib.mkDefaultEnabledOption "Chafa (images in terminal)";
+    catimg = coreLib.mkDefaultEnabledOption "catimg (images in terminal)";
+    lsix = coreLib.mkDefaultDisabledOption "lsix (ls for images)";
 
     # Video
-    mpv = lib.mkEnableOption "mpv (Sixel-enabled)";
-    ytdlp = lib.mkEnableOption "yt-dlp";
+    mpv = coreLib.mkDefaultDisabledOption "mpv (Sixel-enabled)";
+    ytdlp = coreLib.mkDefaultDisabledOption "yt-dlp";
   };
 
   config = lib.mkIf cfg.enable {

@@ -1,5 +1,6 @@
 { config, lib, pkgs, dotsLocal, ... }:
 let
+  coreLib = import ./lib.nix { inherit lib; };
   cfg = config.features.tune;
 
   # Architecture from dots-local (schema-defaulted to "native")
@@ -84,12 +85,12 @@ let
   
 in {
   options.features.tune = {
-    enable = lib.mkEnableOption "package-specific performance tuning" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "package-specific performance tuning";
     
     packages = lib.mkOption {
       type = lib.types.attrsOf (lib.types.submodule {
         options = {
-          enable = lib.mkEnableOption "tune this package" // { default = false; };
+          enable = coreLib.mkDefaultDisabledOption "tune this package";
           mode = lib.mkOption {
             type = lib.types.enum [ "safe" "default" "fast" ];
             default = "default";

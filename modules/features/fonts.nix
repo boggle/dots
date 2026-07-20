@@ -1,12 +1,13 @@
 { config, lib, pkgs, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.fonts;
   inherit (lib) types;
 in
 {
   options.features.fonts = {
-    enable = lib.mkEnableOption "Enable fonts";
+    enable = coreLib.mkDefaultDisabledOption "Enable fonts";
 
     # Base fonts (user preferences)
     base = lib.mkOption {

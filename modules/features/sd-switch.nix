@@ -1,6 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.sd-switch;
 in {
   # Previously this module had no `enable` option at all (broke the
@@ -8,8 +9,7 @@ in {
   # it got it unconditionally, with no way to opt out). Default is `true` to
   # preserve current always-on behavior for existing hosts.
   options.features.sd-switch.enable =
-    lib.mkEnableOption "aggressive systemd --user service restarts via sd-switch on activation"
-    // { default = true; };
+    coreLib.mkDefaultEnabledOption "aggressive systemd --user service restarts via sd-switch on activation";
 
   config = lib.mkIf cfg.enable {
     # This only applies to the user-level systemd

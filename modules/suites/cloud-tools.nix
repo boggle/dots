@@ -14,11 +14,11 @@ let
 in
 {
   options.suites.cloud-tools = {
-    enable = lib.mkEnableOption "Enable cloud CLI tools";
+    enable = coreLib.mkDefaultDisabledOption "Enable cloud CLI tools";
 
-    github = lib.mkEnableOption "GitHub CLI (gh)";
-    azure = lib.mkEnableOption "Azure CLI";
-    lazydocker = lib.mkEnableOption "lazydocker (TUI Docker client)";
+    github = coreLib.mkDefaultDisabledOption "GitHub CLI (gh)";
+    azure = coreLib.mkDefaultDisabledOption "Azure CLI";
+    lazydocker = coreLib.mkDefaultDisabledOption "lazydocker (TUI Docker client)";
   };
 
   config = lib.mkIf cfg.enable {

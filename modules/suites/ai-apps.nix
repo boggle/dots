@@ -197,16 +197,16 @@ let
 in
 {
   options.suites.ai-apps = {
-    enable = lib.mkEnableOption "Enable AI assistant tools";
+    enable = coreLib.mkDefaultDisabledOption "Enable AI assistant tools";
 
-    grabcontext = lib.mkEnableOption "grabcontext (gather code context for AI) - outputs markdown" // { default = true; };
-    opencode = lib.mkEnableOption "opencode (AI coding assistant)" // { default = true; };
-    copilot = lib.mkEnableOption "GitHub Copilot CLI";
+    grabcontext = coreLib.mkDefaultDisabledOption "grabcontext (gather code context for AI) - outputs markdown";
+    opencode = coreLib.mkDefaultDisabledOption "opencode (AI coding assistant)";
+    copilot = coreLib.mkDefaultDisabledOption "GitHub Copilot CLI";
     # Deliberately no `default = true` here even though the suite itself
     # defaults enabled where used - pi is a heavier/more opinionated
     # terminal agent than opencode, so it stays strictly opt-in even when
     # suites.ai-apps.enable is true, unlike opencode.
-    pi = lib.mkEnableOption "pi (terminal coding agent - pi.dev)";
+    pi = coreLib.mkDefaultDisabledOption "pi (terminal coding agent - pi.dev)";
     piPackages = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       # Global curated default list (moved here from being duplicated in

@@ -1,6 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
+  coreLib = import ../core/lib.nix { inherit lib; };
   cfg = config.features.viewer;
   sixelCfg = config.suites.sixel-tools or { enable = false; };
   
@@ -54,7 +55,7 @@ let
 in
 {
   options.features.viewer = {
-    enable = lib.mkEnableOption "Terminal file viewer with smart type detection" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "Terminal file viewer with smart type detection";
     
     alias = lib.mkOption {
       type = lib.types.str;
@@ -98,7 +99,7 @@ in
       description = "Enable interactive file picker when v is called without arguments.";
     };
 
-    ripgrepAll = lib.mkEnableOption "ripgrep-all (search including PDFs and binaries)";
+    ripgrepAll = coreLib.mkDefaultDisabledOption "ripgrep-all (search including PDFs and binaries)";
   };
 
   config = lib.mkIf cfg.enable {

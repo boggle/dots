@@ -17,50 +17,50 @@ let
 in
 {
   options.suites.dev-tools = {
-    enable = lib.mkEnableOption "Enable dev tools" // { default = true; };
+    enable = coreLib.mkDefaultEnabledOption "Enable dev tools";
 
     # Nix tooling
-    nixd = lib.mkEnableOption "nixd (Nix language server)" // { default = true; };
+    nixd = coreLib.mkDefaultEnabledOption "nixd (Nix language server)";
 
     # Rust tooling
-    rust = lib.mkEnableOption "Rust toolchain (mold, clang, sccache)";
+    rust = coreLib.mkDefaultDisabledOption "Rust toolchain (mold, clang, sccache)";
     
     # Python tooling
-    python= lib.mkEnableOption "Python toolchain";
+    python= coreLib.mkDefaultDisabledOption "Python toolchain";
 
     # General tooling
-    uv = lib.mkEnableOption "uv (Python package/project manager)";
+    uv = coreLib.mkDefaultDisabledOption "uv (Python package/project manager)";
     # marksman is helix's Markdown LSP (bash-language-server, helix's
     # other core LSP dep, already ships unconditionally in
     # modules/core/default.nix) - defaults on for the same reason.
-    marksman = lib.mkEnableOption "marksman (Markdown language server)" // { default = true; };
-    snippetsLs = lib.mkEnableOption "snippets-ls (snippet language server)";
+    marksman = coreLib.mkDefaultEnabledOption "marksman (Markdown language server)";
+    snippetsLs = coreLib.mkDefaultDisabledOption "snippets-ls (snippet language server)";
 
     # JSON tooling
-    json = lib.mkEnableOption "JSON toolchain" // { default = true; };
+    json = coreLib.mkDefaultEnabledOption "JSON toolchain";
 
     # XML tooling
-    xml = lib.mkEnableOption "XML toolchain";
+    xml = coreLib.mkDefaultDisabledOption "XML toolchain";
 
     # Haskell tooling
-    haskell = lib.mkEnableOption "Haskell toolchain (ghc, cabal, stack)";
+    haskell = coreLib.mkDefaultDisabledOption "Haskell toolchain (ghc, cabal, stack)";
     
     # HMR tooling
-    entr = lib.mkEnableOption "entr (file watcher for auto-rebuilds)" // { default = true; };
+    entr = coreLib.mkDefaultEnabledOption "entr (file watcher for auto-rebuilds)";
 
     # Web development tools
-    mkcert = lib.mkEnableOption "mkcert (locally-trusted development certificates)";
-    caddy = lib.mkEnableOption "caddy (modern web server with automatic HTTPS)";
+    mkcert = coreLib.mkDefaultDisabledOption "mkcert (locally-trusted development certificates)";
+    caddy = coreLib.mkDefaultDisabledOption "caddy (modern web server with automatic HTTPS)";
 
     # Document/Publishing tools
-    quarto = lib.mkEnableOption "quarto (scientific/technical publishing)";
-    typst = lib.mkEnableOption "typst (modern markup-based typesetting)";
-    pandoc = lib.mkEnableOption "pandoc (universal document converter)";
+    quarto = coreLib.mkDefaultDisabledOption "quarto (scientific/technical publishing)";
+    typst = coreLib.mkDefaultDisabledOption "typst (modern markup-based typesetting)";
+    pandoc = coreLib.mkDefaultDisabledOption "pandoc (universal document converter)";
 
     # Other tools
-    egglog = lib.mkEnableOption "egglog (e-graph toolkit)";
-    steel = lib.mkEnableOption "steel (Scheme interpreter)";
-    prettier = lib.mkEnableOption "prettier (code formatter)";
+    egglog = coreLib.mkDefaultDisabledOption "egglog (e-graph toolkit)";
+    steel = coreLib.mkDefaultDisabledOption "steel (Scheme interpreter)";
+    prettier = coreLib.mkDefaultDisabledOption "prettier (code formatter)";
   };
 
   config = lib.mkIf cfg.enable {
