@@ -228,21 +228,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
    (matching the existing convention every other feature file already
    uses: import unconditionally, gate everything behind the module's own
    `enable` option).
-4. **Validation technique for hosts this session can't directly reach**
-   (laputa, triomino - separate private dots-local repos on other
-   machines): built synthetic `dots-local` copies in scratch directories
-   mimicking exactly what each real machine's dots-local would need to
-   contain post-migration (same technique as Phase 0's host-swap testing,
-   extended to include the new axis fields), ran full `nix eval` +
-   `nix build .../activationPackage` against each, and spot-checked
-   resolved config values against the original host file's intent
-   (e.g. confirmed triomino's `piPackages` resolves to the same 13-entry
-   list via inheritance from `contexts/priv.nix`, without needing to
-   duplicate it - fixing a previously-flagged bug as a side effect).
-   This is eval/build-level confidence only, not a substitute for an
-   actual live `apply-dots` on those machines - documented clearly in
-   `host-migration-phase2.md` as still-required follow-up.
-6. **Renaming flake outputs breaks the currently-installed wrapper script
+4. **Renaming flake outputs breaks the currently-installed wrapper script
    that references the old name, until one manual bootstrap switch fixes
    it.** After committing the `priv`/`work`/`priv-opt`/`work-opt` ->
    `default`/`default-opt` rename, running the (still old, not yet
@@ -260,7 +246,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
    confirmation the eval/build validation this session relies on
    (necessarily, since it can't run `apply-dots` itself against the live
    system) really does predict the live outcome exactly.
-7. **A cosmetic warning can look alarming out of context - always verify
+5. **A cosmetic warning can look alarming out of context - always verify
    with hard evidence, not just reassurance, when a user flags something as
    "seriously worried."** The `noctalia-qs` "has an override for a
    non-existent input" warning printed again during the live switch,
@@ -277,7 +263,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
    itself is byte-identical to before this session touched anything, so
    the comment was already stale/inaccurate beforehand.
 
-9. **A rules.nix rule referencing an option makes that
+6. **A rules.nix rule referencing an option makes that
    option's module a hard, universal dependency - discovered a real gap
    this way.** Testing with `profile = "work"` + `isWsl = true` for the
    first time (previously every synthetic test used `profile = "priv"`)
@@ -300,7 +286,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
    one that happens to be live-checkpointed) with synthetic dots-local
    copies before considering a phase done.
 
-10. **Phase 4 (`mkAppSet`) validation technique: `git stash`/`git stash pop`
+7. **Phase 4 (`mkAppSet`) validation technique: `git stash`/`git stash pop`
     around a single `nix eval` each side, diffing the FULL resolved
     `config.home.packages` + `config.alienPackages.enabledPackages`, not
     per-suite.** Rather than running 9 separate before/after diffs (one
@@ -312,7 +298,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
     resolution via shared state). Both diffs were empty (byte-identical),
     giving full confidence across all 9 files' migrations in one step.
 
-11. **Phase 5 (tuning unification): a real per-machine override can make a
+8. **Phase 5 (tuning unification): a real per-machine override can make a
     "risky-looking" table drift completely irrelevant in practice.**
     Before unifying `tune-support.nix`'s and `package-tuning.nix`'s
     duplicated/drifted default-flags tables, reasoned (correctly, in the
@@ -334,7 +320,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
     verify with an actual before/after `nix eval` of the resolved values,
     not just code-reading confidence.
 
-13. **Phase 6 (shell bootstrap retarget): isolated bash-logic sandbox
+9. **Phase 6 (shell bootstrap retarget): isolated bash-logic sandbox
     testing is a good substitute for "can I fully live-test this without
     touching the real system", but has a specific limit worth naming.**
     Tested the new `ensureDotsShellHook` activation script's actual bash
@@ -355,7 +341,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
     and doesn't cover when reporting confidence to the user - don't let
     "I tested it in a sandbox" imply more coverage than it actually has.
 
-14. **CRITICAL, learned from a real live failure: removing a `home.file`
+10. **CRITICAL, learned from a real live failure: removing a `home.file`
     declaration is NOT the same as disabling it, when another module
     ALSO declares the same path.** Phase 6's first live attempt failed
     with `Permission denied` writing to `~/.bashrc`. Root cause:
@@ -390,7 +376,7 @@ Several real Nix/evalModules quirks surfaced while wiring up
       still resolved to valid content the whole time (confirmed via
       `readlink -f` before making any further changes).
 
-15. **Chromaden's power-toggle.sh script content matched byte-for-byte**
+11. **Chromaden's power-toggle.sh script content matched byte-for-byte**
    between the old hardcoded version and the new
    `dotsLocal.machine.display`-parametrized one (checked via `nix eval
    --raw` on the generated `home.file` text) - strong confidence the
