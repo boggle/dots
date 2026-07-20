@@ -74,7 +74,6 @@ in {
       egglog = true;
       steel = true;
       mkcert = true;
-      caddy = true;
       prettier = true;
   };
 

@@ -3,7 +3,7 @@
 let
   cfg = config.suites.dev-tools;
   coreLib = import ../core/lib.nix { inherit lib; };
-  # Only the alien-managed subset (marksman/mkcert/caddy) - everything else
+  # Only the alien-managed subset (marksman/mkcert) - everything else
   # in this feature is a plain, always-Nix-installed package with no alien
   # counterpart, so it stays as a hand-written lib.mkIf list below.
   appSet = coreLib.mkAppSet {
@@ -11,7 +11,6 @@ let
     apps = {
       marksman = { enable = cfg.marksman; pkg = pkgs.marksman; };
       mkcert = { enable = cfg.mkcert; pkg = pkgs.mkcert; };
-      caddy = { enable = cfg.caddy; pkg = pkgs.caddy; };
     };
   };
 in
@@ -50,7 +49,6 @@ in
 
     # Web development tools
     mkcert = coreLib.mkDefaultDisabledOption "mkcert (locally-trusted development certificates)";
-    caddy = coreLib.mkDefaultEnabledOption "caddy (modern web server with automatic HTTPS)";
 
     # Document/Publishing tools moved to suites.dtp-tools (quarto/typst/
     # pandoc) - see that suite's own module for the full rationale.
