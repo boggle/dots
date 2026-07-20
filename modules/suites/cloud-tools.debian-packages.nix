@@ -17,4 +17,12 @@
       apt = [ "azure-cli" ];
     };
   };
+
+  # Moved from network-tools.debian-packages.nix - now lives in
+  # suites.cloud-tools.
+  rclone = {
+    packages = {
+      apt = [ "rclone" ];
+    };
+  };
 }

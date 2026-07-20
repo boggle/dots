@@ -1,7 +1,0 @@
-{
-  graphviz = {
-    packages = {
-      tdnf = [ "graphviz" ];
-    };
-  };
-}

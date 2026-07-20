@@ -16,24 +16,6 @@
     };
   };
 
-  imagemagick = {
-    packages = {
-      apt = [ "imagemagick" ];
-    };
-  };
-
-  graphviz = {
-    packages = {
-      apt = [ "graphviz" ];
-    };
-  };
-
-  pandoc = {
-    packages = {
-      apt = [ "pandoc" ];
-    };
-  };
-
   pass = {
     packages = {
       apt = [ "pass" ];

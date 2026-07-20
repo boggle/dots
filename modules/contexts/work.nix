@@ -3,7 +3,8 @@
 { pkgs, lib, dotsLocal, ... }:
 
 {
-  suites.network-tools = {
+  suites.cloud-tools = {
     rclone = true;
+    azure = true;
   };
 }

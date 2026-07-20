@@ -14,10 +14,4 @@
       apt = [ "nmap" ];
     };
   };
-
-  rclone = {
-    packages = {
-      apt = [ "rclone" ];
-    };
-  };
 }

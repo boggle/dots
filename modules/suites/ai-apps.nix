@@ -199,8 +199,8 @@ in
   options.suites.ai-apps = {
     enable = coreLib.mkDefaultDisabledOption "Enable AI assistant tools";
 
-    grabcontext = coreLib.mkDefaultDisabledOption "grabcontext (gather code context for AI) - outputs markdown";
-    opencode = coreLib.mkDefaultDisabledOption "opencode (AI coding assistant)";
+    grabcontext = coreLib.mkDefaultEnabledOption "grabcontext (gather code context for AI) - outputs markdown";
+    opencode = coreLib.mkDefaultEnabledOption "opencode (AI coding assistant)";
     copilot = coreLib.mkDefaultDisabledOption "GitHub Copilot CLI";
     # Deliberately no `default = true` here even though the suite itself
     # defaults enabled where used - pi is a heavier/more opinionated

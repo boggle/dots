@@ -7,10 +7,13 @@ let
     inherit alien;
     apps = {
       nmap = { enable = cfg.nmap; pkg = pkgs.nmap; };
-      rclone = { enable = cfg.rclone; pkg = pkgs.rclone; };
       doggo = { enable = cfg.doggo; pkg = pkgs.doggo; };
       xh = { enable = cfg.xh; pkg = pkgs.xh; };
       curlie = { enable = cfg.curlie; pkg = pkgs.curlie; };
+      # Moved from suites.tui-apps - both are network-monitoring tools
+      # that belong here rather than in the general TUI-app grab-bag.
+      bandwhich = { enable = cfg.bandwhich; pkg = pkgs.bandwhich; };
+      gping = { enable = cfg.gping; pkg = pkgs.gping; };
     };
   };
 in
@@ -18,11 +21,12 @@ in
   options.suites.network-tools = {
     enable = coreLib.mkDefaultEnabledOption "Enable network CLI tools";
 
-    nmap = coreLib.mkDefaultDisabledOption "nmap (network scanner)";
-    rclone = coreLib.mkDefaultDisabledOption "rclone (cloud sync)";
+    nmap = coreLib.mkDefaultEnabledOption "nmap (network scanner)";
     doggo = coreLib.mkDefaultEnabledOption "doggo (DNS client)";
     xh = coreLib.mkDefaultEnabledOption "xh (modern HTTP client)";
     curlie = coreLib.mkDefaultDisabledOption "curlie (curl with jq-like output)";
+    bandwhich = coreLib.mkDefaultDisabledOption "bandwhich - network monitor";
+    gping = coreLib.mkDefaultEnabledOption "gping (ping with graph)";
   };
 
   config = lib.mkIf cfg.enable {

@@ -12,22 +12,12 @@ let
       lazygit = { enable = cfg.lazygit; pkg = pkgs.lazygit; };
       yazi = { enable = cfg.yazi; pkg = pkgs.yazi; };
       pass = { enable = cfg.pass; pkg = pkgs.pass; };
-      bandwhich = { enable = cfg.bandwhich; pkg = pkgs.bandwhich; };
       vhs = { enable = cfg.vhs; pkg = pkgs.vhs; };
       tailspin = { enable = cfg.tailspin; pkg = pkgs.tailspin; };
 
       # Email
       aerc = { enable = cfg.aerc; pkg = pkgs.aerc; };
       deltachat = { enable = cfg.deltachat; pkg = pkgs.deltachat-desktop; alienName = "deltachat-desktop"; };
-
-      # DTP
-      imagemagick = { enable = cfg.imagemagick; pkg = pkgs.imagemagick; };
-      graphviz = { enable = cfg.graphviz; pkg = pkgs.graphviz; };
-      pandoc = { enable = cfg.pandoc; pkg = pkgs.pandoc; };
-      typst = { enable = cfg.typst; pkg = pkgs.typst; };
-
-      # Network/Utils
-      gping = { enable = cfg.gping; pkg = pkgs.gping; };
 
       # Social/Utils
       posting = { enable = cfg.posting; pkg = pkgs.posting; };
@@ -45,7 +35,6 @@ in
     lazygit = coreLib.mkDefaultEnabledOption "Lazygit";
     yazi = coreLib.mkDefaultEnabledOption "Yazi file manager";
     pass = coreLib.mkDefaultDisabledOption "pass (password manager)";
-    bandwhich = coreLib.mkDefaultDisabledOption "bandwhich - network monitor";
     vhs = coreLib.mkDefaultDisabledOption "vhs - terminal recorder";
     tailspin = coreLib.mkDefaultEnabledOption "tailspin (tspin) - log file highlighter";
 
@@ -53,14 +42,9 @@ in
     aerc = coreLib.mkDefaultDisabledOption "aerc (terminal email client)";
     deltachat = coreLib.mkDefaultDisabledOption "DeltaChat (Delta Chat)";
 
-    # DTP
-    imagemagick = coreLib.mkDefaultDisabledOption "ImageMagick";
-    graphviz = coreLib.mkDefaultDisabledOption "Graphviz";
-    pandoc = coreLib.mkDefaultDisabledOption "Pandoc";
-    typst = coreLib.mkDefaultDisabledOption "Typst";
-
-    # Network/Utils
-    gping = coreLib.mkDefaultDisabledOption "gping (ping with graph)";
+    # bandwhich/gping (network-monitoring tools) moved to
+    # suites.network-tools; imagemagick/graphviz/pandoc/typst (DTP tools)
+    # moved to suites.dtp-tools - see those suites' own modules.
 
     # Social/Utils
     posting = coreLib.mkDefaultEnabledOption "posting (API client)";
@@ -69,23 +53,6 @@ in
   };
 
   config = lib.mkMerge [
-    # gping (ping with a live graph) is a network-monitoring tool that
-    # happens to live in this suite rather than suites.network-tools -
-    # default it on whenever that suite is (cross-suite default, set
-    # here since suites.network-tools's own enable state is what this
-    # actually should track; still just a `mkDefault`, so an explicit
-    # `gping = false`/`true` anywhere else still wins).
-    { suites.tui-apps.gping = lib.mkDefault config.suites.network-tools.enable; }
-    # graphviz/imagemagick are DTP tools mostly useful alongside an
-    # actual GUI (rendering diagrams/images you'll then look at) - default
-    # them on whenever there's a real GUI backend (config.core.
-    # enableGuiDefaults, purely dotsLocal-derived - see modules/core/
-    # platform.nix), same global condition gui-apps.nix uses for its own
-    # ghostty/keepassxc defaults.
-    {
-      suites.tui-apps.graphviz = lib.mkDefault config.core.enableGuiDefaults;
-      suites.tui-apps.imagemagick = lib.mkDefault config.core.enableGuiDefaults;
-    }
     (lib.mkIf cfg.enable {
     home.packages = appSet.packages;
 

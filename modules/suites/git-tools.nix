@@ -50,7 +50,7 @@ in
 
     # Core
     git = coreLib.mkDefaultEnabledOption "Git";
-    jj = coreLib.mkDefaultDisabledOption "jj (Git alternative)";
+    jj = coreLib.mkDefaultEnabledOption "jj (Git alternative)";
     
     # Tools
     delta = coreLib.mkDefaultEnabledOption "delta (Git pager)";

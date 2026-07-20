@@ -17,4 +17,12 @@
       pacman = [ "lazydocker" ];
     };
   };
+
+  # Moved from network-tools.cachyos-packages.nix - now lives in
+  # suites.cloud-tools.
+  rclone = {
+    packages = {
+      pacman = [ "rclone" ];
+    };
+  };
 }

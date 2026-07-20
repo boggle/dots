@@ -1878,3 +1878,62 @@ succeed (`--override-input dots-local git+file://$HOME/dots-local`);
 `config.alienPackages.enabledPackages` eval unchanged (30 packages); the
 full build reused the exact same store path from before this sweep,
 confirming zero behavioral drift from the mechanical rename.
+
+### 2026-07-20 — Split DTP tools into `suites.dtp-tools`; relocate bandwhich/gping/rclone
+**Decision:** Created a new `modules/suites/dtp-tools.nix` suite
+consolidating the two previously-duplicated, independent DTP option sets
+(`suites.dev-tools.{quarto,typst,pandoc}` and `suites.tui-apps.
+{imagemagick,graphviz,pandoc,typst}`) into one place: `imagemagick`,
+`graphviz`, `pandoc`, `typst` (all alien-managed via `mkAppSet`) plus
+`quarto` (still a plain `home.packages` entry via the pinned
+`nixpkgs-quarto-pin` overlay, not alien-managed - unchanged handling from
+its old home in dev-tools.nix). `suites.dtp-tools.enable` defaults to
+`lib.mkDefault config.suites.tui-apps.enable` (the "consolidate with
+tui-apps" cross-suite tie, same pattern tui-apps.nix already used for its
+own `gping` default); `typst`/`pandoc` default to `cfg.enable`; `graphviz`/
+`imagemagick` default to `config.core.enableGuiDefaults` (preserving
+tui-apps.nix's original GUI-tied logic for those two specifically).
+Also relocated `bandwhich`/`gping` from `suites.tui-apps` into
+`suites.network-tools` (both are network-monitoring tools, a better fit;
+`gping` now just uses `coreLib.mkDefaultEnabledOption` directly since it
+lives inside network-tools itself, which already defaults `enable = true`
+- no more cross-suite tie needed), and `rclone` from `suites.network-tools`
+into `suites.cloud-tools` (a cloud-storage sync tool, better fit there).
+Migrated all corresponding alien-package spec files: new `dtp-tools.
+{cachyos,debian,azurelinux3,azurelinux4}-packages.nix` (only the distros
+that already had entries for these packages under tui-apps); `bandwhich`/
+`gping` specs moved into `network-tools.cachyos-packages.nix` (only
+cachyos had them); `rclone` specs moved into `cloud-tools.{cachyos,
+debian}-packages.nix`. `tui-apps.{azurelinux3,azurelinux4}-packages.nix`
+were deleted outright (their sole entry was `graphviz`, now fully owned by
+dtp-tools). Wired `../suites/dtp-tools.nix` into `modules/contexts/
+common.nix`'s imports. Context updates: `priv.nix` now sets `suites.
+dtp-tools.quarto = true` (dropped from its old `suites.dev-tools` block)
+and `suites.cloud-tools.rclone = true` / `suites.network-tools.bandwhich =
+true` (both dropped/moved from its old `suites.network-tools` block);
+`work.nix` now sets `suites.cloud-tools = { rclone = true; azure = true;
+};` (previously just `suites.network-tools.rclone = true;`). `~/dots-
+local/host.nix` (this machine, context = work) now explicitly sets
+`suites.network-tools.bandwhich = true`, since `bandwhich` isn't on for
+the work context by any other default. Also added a representative,
+fully-commented `suites.*` example block to `templates/local/host.nix`
+(previously had zero `suites.*` mentions anywhere in the onboarding
+templates - only a single `features.llama-cpp.enable = true;` example).
+**Rationale:** `pandoc`/`typst` existed as two entirely separate,
+independently-toggleable options in two different suites - a real
+duplication bug, not just a stylistic quibble; consolidating into one
+DTP-focused suite removes that split-brain state going forward.
+`bandwhich`/`gping`/`rclone` were miscategorized relative to their actual
+purpose (network monitoring vs. general TUI grab-bag; cloud sync vs.
+general network tooling).
+**Validated:** `nix flake check` and a full `nix build .#homeConfigurations.
+default.activationPackage` both succeed (`--override-input dots-local
+git+file://$HOME/dots-local`). Targeted `nix eval` against the real `work`
+context (this machine) confirmed exactly the expected resolved values:
+`suites.dtp-tools.enable = true` (tracks `tui-apps.enable`), `suites.
+dtp-tools.typst = true`, `suites.dtp-tools.pandoc = true` (both cfg.enable-
+tied), `suites.dtp-tools.quarto = false` (correctly *not* set for `work` -
+only `priv.nix` enables it), `suites.network-tools.bandwhich = true`
+(from dots-local's own host.nix), `suites.network-tools.gping = true`
+(now-plain default-enabled option), `suites.cloud-tools.azure = true` and
+`suites.cloud-tools.rclone = true` (both from `work.nix`).

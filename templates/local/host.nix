@@ -18,6 +18,15 @@
   # modules/contexts/<context>.nix or modules/rules.nix
   # features.llama-cpp.enable = true;
 
+  # Example: suite/tool enables specific to this machine (run
+  # `dots-context-options` for the full list of suites/features and
+  # their toggles - this is just a representative sample, not exhaustive).
+  # suites.gui-apps.enable = true;
+  # suites.dev-tools.rust = true;
+  # suites.dtp-tools.quarto = true;
+  # suites.network-tools.bandwhich = true;
+  # suites.cloud-tools.azure = true;
+
   # Example: session variables specific to this machine
   # home.sessionVariables = { };
 }

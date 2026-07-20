@@ -53,8 +53,12 @@ in {
   };
   
   suites.network-tools = {
-      rclone = true;
+      bandwhich = true;
       curlie = true;
+  };
+
+  suites.cloud-tools = {
+      rclone = true;
   };
 
   suites.git-tools = {
@@ -71,10 +75,11 @@ in {
       steel = true;
       mkcert = true;
       caddy = true;
-      quarto = true;
-      typst = true;
-      pandoc = true;
       prettier = true;
+  };
+
+  suites.dtp-tools = {
+      quarto = true;
   };
 
   suites.pim-apps = {

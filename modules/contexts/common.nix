@@ -9,6 +9,7 @@
     ../suites/network-tools.nix
     ../suites/git-tools.nix
     ../suites/dev-tools.nix
+    ../suites/dtp-tools.nix
     ../suites/tui-apps.nix
     ../suites/gui-apps.nix
     ../suites/sixel-tools.nix

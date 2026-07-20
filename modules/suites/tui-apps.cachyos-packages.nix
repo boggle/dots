@@ -30,12 +30,6 @@
     };
   };
   
-  bandwhich = {
-    packages = {
-      pacman = [ "bandwhich" ];
-    };
-  };
-  
   vhs = {
     packages = {
       pacman = [ "vhs" ];
@@ -55,38 +49,6 @@
     };
   };
   
-  # DTP
-  imagemagick = {
-    packages = {
-      pacman = [ "imagemagick" ];
-    };
-  };
-  
-  graphviz = {
-    packages = {
-      pacman = [ "graphviz" ];
-    };
-  };
-  
-  pandoc = {
-    packages = {
-      pacman = [ "pandoc" ];
-    };
-  };
-  
-  typst = {
-    packages = {
-      pacman = [ "typst" ];
-    };
-  };
-  
-  # Network/Utils
-  gping = {
-    packages = {
-      pacman = [ "gping" ];
-    };
-  };
-
   # Social/Utils
   posting = {
     packages = {

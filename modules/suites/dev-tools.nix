@@ -23,24 +23,24 @@ in
     nixd = coreLib.mkDefaultEnabledOption "nixd (Nix language server)";
 
     # Rust tooling
-    rust = coreLib.mkDefaultDisabledOption "Rust toolchain (mold, clang, sccache)";
+    rust = coreLib.mkDefaultEnabledOption "Rust toolchain (mold, clang, sccache)";
     
     # Python tooling
-    python= coreLib.mkDefaultDisabledOption "Python toolchain";
+    python= coreLib.mkDefaultEnabledOption "Python toolchain";
 
     # General tooling
-    uv = coreLib.mkDefaultDisabledOption "uv (Python package/project manager)";
+    uv = coreLib.mkDefaultEnabledOption "uv (Python package/project manager)";
     # marksman is helix's Markdown LSP (bash-language-server, helix's
     # other core LSP dep, already ships unconditionally in
     # modules/core/default.nix) - defaults on for the same reason.
     marksman = coreLib.mkDefaultEnabledOption "marksman (Markdown language server)";
-    snippetsLs = coreLib.mkDefaultDisabledOption "snippets-ls (snippet language server)";
+    snippetsLs = coreLib.mkDefaultEnabledOption "snippets-ls (snippet language server)";
 
     # JSON tooling
     json = coreLib.mkDefaultEnabledOption "JSON toolchain";
 
     # XML tooling
-    xml = coreLib.mkDefaultDisabledOption "XML toolchain";
+    xml = coreLib.mkDefaultEnabledOption "XML toolchain";
 
     # Haskell tooling
     haskell = coreLib.mkDefaultDisabledOption "Haskell toolchain (ghc, cabal, stack)";
@@ -50,12 +50,10 @@ in
 
     # Web development tools
     mkcert = coreLib.mkDefaultDisabledOption "mkcert (locally-trusted development certificates)";
-    caddy = coreLib.mkDefaultDisabledOption "caddy (modern web server with automatic HTTPS)";
+    caddy = coreLib.mkDefaultEnabledOption "caddy (modern web server with automatic HTTPS)";
 
-    # Document/Publishing tools
-    quarto = coreLib.mkDefaultDisabledOption "quarto (scientific/technical publishing)";
-    typst = coreLib.mkDefaultDisabledOption "typst (modern markup-based typesetting)";
-    pandoc = coreLib.mkDefaultDisabledOption "pandoc (universal document converter)";
+    # Document/Publishing tools moved to suites.dtp-tools (quarto/typst/
+    # pandoc) - see that suite's own module for the full rationale.
 
     # Other tools
     egglog = coreLib.mkDefaultDisabledOption "egglog (e-graph toolkit)";
@@ -82,9 +80,6 @@ in
       (lib.mkIf cfg.haskell cabal-install)
       (lib.mkIf cfg.haskell stack)
       (lib.mkIf cfg.entr entr)
-      (lib.mkIf cfg.quarto quarto)
-      (lib.mkIf cfg.typst typst)
-      (lib.mkIf cfg.pandoc pkgs.pandoc)
       (lib.mkIf cfg.egglog egglog)
       (lib.mkIf cfg.steel steel)
       (lib.mkIf cfg.prettier prettier)
